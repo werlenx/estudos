@@ -1,0 +1,1035 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Módulo 2: Testes e Integração Contínua</title>
+<style>
+:root{
+  --ink:#1b1f24; --muted:#5b6470; --line:#d8dde3; --soft:#f4f6f8;
+  --accent:#1f5fa8; --accent-soft:#e8f0fa;
+  --bad:#b42318; --bad-soft:#fdecea; --good:#1a7f37; --good-soft:#e7f5ec;
+  --warn:#9a6700; --warn-soft:#fff6db; --lab:#6f42c1; --lab-soft:#f1ecfb;
+}
+@page{ size:A4; margin:20mm 18mm 20mm 18mm;
+  @bottom-right{ content: counter(page); font: 9pt "Noto Sans", sans-serif; color:#5b6470; }
+  @bottom-left{ content: "Módulo 2 · Testes e Integração Contínua"; font: 8.5pt "Noto Sans", sans-serif; color:#8a939e; }
+}
+@page capa{ margin:0; @bottom-right{content:none} @bottom-left{content:none} }
+html{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+body{ font-family:"Noto Sans","Liberation Sans",sans-serif; font-size:10.3pt; line-height:1.52; color:var(--ink); background:#fff; margin:0; hyphens:auto; }
+h1,h2,h3,h4{ line-height:1.25; break-after:avoid; }
+h1{ font-size:21pt; color:var(--accent); margin:0 0 4mm; padding-bottom:3mm; border-bottom:2px solid var(--accent); break-before:page; }
+h1 .num{ display:block; font-size:10pt; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); font-weight:600; margin-bottom:1mm; }
+h2{ font-size:13.5pt; margin:6mm 0 2mm; color:#14324f; }
+h3{ font-size:11.2pt; margin:4.5mm 0 1.5mm; }
+p{ margin:0 0 2.6mm; text-align:justify; }
+ul,ol{ margin:0 0 3mm; padding-left:6mm; } li{ margin-bottom:1mm; }
+code{ font-family:"DejaVu Sans Mono",monospace; font-size:8.6pt; background:var(--soft); padding:0 1.2mm; border-radius:2px; }
+pre{ font-family:"DejaVu Sans Mono",monospace; font-size:8.1pt; line-height:1.42; background:#f6f8fa; border:1px solid var(--line); border-left:3px solid #8a939e; padding:2.5mm 3mm; margin:0 0 3.5mm; white-space:pre-wrap; word-break:break-word; break-inside:avoid; }
+pre code{ background:none; padding:0; font-size:inherit; }
+pre.bad{ border-left-color:var(--bad); background:#fffafa; }
+pre.good{ border-left-color:var(--good); background:#fbfffc; }
+pre .lbl{ display:block; font-family:"Noto Sans",sans-serif; font-weight:700; font-size:7.8pt; letter-spacing:.06em; text-transform:uppercase; margin-bottom:1mm; }
+pre.bad .lbl{ color:var(--bad); } pre.good .lbl{ color:var(--good); }
+table{ width:100%; border-collapse:collapse; margin:0 0 4mm; font-size:9.2pt; break-inside:auto; }
+th,td{ border:1px solid var(--line); padding:1.6mm 2mm; text-align:left; vertical-align:top; }
+th{ background:var(--soft); font-weight:700; }
+tr{ break-inside:avoid; }
+.box{ border:1px solid var(--line); border-left:4px solid var(--accent); background:var(--accent-soft); padding:2.6mm 3.4mm; margin:0 0 4mm; break-inside:avoid; }
+.box > :last-child{ margin-bottom:0; }
+.box .t{ display:block; font-weight:700; font-size:8.6pt; letter-spacing:.07em; text-transform:uppercase; margin-bottom:1.2mm; }
+.obj{ border-left-color:var(--accent); } .obj .t{ color:var(--accent); }
+.erro{ border-left-color:var(--bad); background:var(--bad-soft); } .erro .t{ color:var(--bad); }
+.dica{ border-left-color:var(--good); background:var(--good-soft); } .dica .t{ color:var(--good); }
+.caso{ border-left-color:var(--warn); background:var(--warn-soft); } .caso .t{ color:var(--warn); }
+.lab{ border-left-color:var(--lab); background:var(--lab-soft); } .lab .t{ color:var(--lab); }
+.gatilho{ border-left-color:#444; background:#f2f2f2; } .gatilho .t{ color:#333; }
+.quiz{ border:1px solid var(--line); border-top:3px solid var(--ink); padding:3mm 4mm; margin:5mm 0 4mm; background:#fff; }
+.quiz .t{ display:block; font-weight:800; font-size:9pt; letter-spacing:.08em; text-transform:uppercase; margin-bottom:2mm; }
+.quiz ol{ margin-bottom:0; }
+.feyn{ border:1.5px dashed #8a939e; padding:2.5mm 3.4mm; margin:0 0 4mm; break-inside:avoid; }
+.feyn .t{ font-weight:700; font-size:8.6pt; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); display:block; margin-bottom:1mm; }
+.linhas{ height:20mm; background:repeating-linear-gradient(#fff 0 6.6mm, #cfd5dc 6.6mm 6.9mm); margin-top:1mm; }
+figure{ margin:0 0 4mm; break-inside:avoid; text-align:center; }
+figcaption{ font-size:8.6pt; color:var(--muted); margin-top:1.2mm; }
+svg text{ font-family:"Noto Sans",sans-serif; }
+.small{ font-size:8.8pt; color:var(--muted); }
+.two{ display:grid; grid-template-columns:1fr 1fr; gap:4mm; }
+.tag{ display:inline-block; font-size:7.6pt; font-weight:700; padding:.3mm 1.6mm; border-radius:2mm; background:var(--soft); color:var(--muted); letter-spacing:.04em; }
+.check li{ list-style:none; margin-left:-5mm; }
+.check li::before{ content:"☐  "; color:var(--muted); }
+.gab h3{ margin-top:3mm; }
+.gab ol li{ margin-bottom:1.4mm; }
+.toc{ columns:2; column-gap:8mm; font-size:9.6pt; }
+.toc div{ break-inside:avoid; margin-bottom:1.4mm; }
+.toc b{ color:var(--accent); display:inline-block; width:8mm; }
+.capa{ page:capa; height:297mm; box-sizing:border-box; padding:34mm 22mm 20mm; background:linear-gradient(160deg,#0f2f52 0%,#1f5fa8 70%,#2c74c4 100%); color:#fff; position:relative; }
+.capa .k{ font-size:10pt; letter-spacing:.2em; text-transform:uppercase; opacity:.8; }
+.capa h1{ break-before:auto; border:none; color:#fff; font-size:34pt; margin:6mm 0 4mm; padding:0; line-height:1.1; }
+.capa .sub{ font-size:13pt; opacity:.92; max-width:150mm; line-height:1.45; }
+.capa .meta{ position:absolute; bottom:22mm; left:22mm; right:22mm; font-size:9.5pt; opacity:.85; border-top:1px solid rgba(255,255,255,.35); padding-top:4mm; }
+.capa .itens{ margin-top:16mm; font-size:10.5pt; line-height:1.9; opacity:.95; }
+.capa .itens span{ display:inline-block; border:1px solid rgba(255,255,255,.45); border-radius:4mm; padding:.4mm 3mm; margin:0 1.6mm 2mm 0; }
+.nobreak{ break-inside:avoid; }
+.fable{ border:1px solid #6f42c1; background:#f6f2fd; padding:3mm 4mm; margin:4mm 0; break-inside:avoid; }
+.fable .t{ display:block; font-weight:700; font-size:8.6pt; letter-spacing:.07em; text-transform:uppercase; color:#6f42c1; margin-bottom:1mm; }
+</style>
+</head>
+<body>
+<section class="capa" style="background:linear-gradient(160deg,#123d2a 0%,#1a7f37 70%,#2a9d4b 100%)">
+  <div class="k">Trilha de Fundamentos · Módulo 2</div>
+  <h1>Testes e<br>Integração Contínua</h1>
+  <div class="sub">Como escrever testes que pegam bug de verdade, sem travar refatoração, e como fazer o GitHub rodar tudo a cada push. Exemplos em Vitest, pytest e Go.</div>
+  <div class="itens">
+    <span>O que testar</span><span>Anatomia de um bom teste</span><span>Pirâmide e escolas</span><span>Mocks e dublês</span>
+    <span>Banco real e Testcontainers</span><span>Testando HTTP e permissões</span><span>Tempo, filas e concorrência</span>
+    <span>Cobertura e mutação</span><span>TDD e testes de regressão</span><span>GitHub Actions</span><span>Pipeline e CD</span>
+  </div>
+  <div class="meta">Versão de novembro de 2026 · Duração prevista: 4 semanas, ~6 h por semana · Pré-requisito: Módulo 1 (as missões dele viram testes aqui)</div>
+</section>
+
+<h1><span class="num">Antes de começar</span>Como usar este material</h1>
+<p>O método é o mesmo do Módulo 1: <b>pré-teste</b> antes de estudar, <b>pergunta-gatilho</b> no início de cada capítulo, <b>exemplo resolvido</b> (errado → certo) e depois exercício com menos ajuda, <b>questões de recuperação</b> no fim de cada capítulo com gabarito no apêndice, <b>revisão intercalada</b>, flashcards com <b>revisão espaçada</b> (D+1, D+3, D+7, D+14, D+30) e <b>missões</b> nos seus repositórios. A justificativa de cada técnica, com as referências, está no capítulo "Como usar" do Módulo 1.</p>
+
+<div class="fable"><span class="t">Passo 0 · Revisão técnica com o Fable</span>
+<p>Antes de estudar, troque para o Fable 5.2 com <code>/model</code> e peça: <i>"Revise <code>~/repo/estudos/fundamentos/modulo-2-testes-ci.html</code> como especialista em testes e CI: aponte afirmações incorretas, desatualizadas ou imprecisas (inclusive versões de actions e APIs de bibliotecas) e código que não funciona. Corrija no HTML e gere o PDF de novo com <code>_fonte/gerar.py</code>."</i> Depois volte ao Opus e marque a revisão na <code>TRILHA-FUNDAMENTOS.md</code>.</p></div>
+
+<h2>Onde você está hoje (levantado nos repositórios em 13/11/2026)</h2>
+<table>
+<tr><th>Projeto</th><th>Stack de teste</th><th>Situação</th></tr>
+<tr><td>RH (backend)</td><td>Vitest</td><td>34 arquivos de teste. <b>Nenhum toca o banco</b>: 14 usam mock do Prisma. Ótimo para regra de negócio pura, mas consultas erradas passam despercebidas (capítulo 4).</td></tr>
+<tr><td>marketZapp (backend)</td><td>Vitest</td><td>7 arquivos. Parte fala com o <b>Postgres de verdade</b> (similaridade do <code>pg_trgm</code>), e isso é uma decisão correta. Mas o banco vem do <code>.env</code> de desenvolvimento, e não existe script de lint nem de typecheck separado (capítulos 5 e 10).</td></tr>
+<tr><td>Julielton</td><td>pytest</td><td>13 arquivos. Banco isolado por teste: SQLite por padrão, Postgres se <code>TEST_DATABASE_URL</code> existir. A estrutura é boa, mas o SQLite não é o banco de produção (capítulo 5).</td></tr>
+<tr><td>MesaPay (backend)</td><td>Go <code>testing</code></td><td>11 arquivos <code>_test.go</code> em <code>services/</code>. Falta testar handlers e isolamento entre estabelecimentos (capítulo 6).</td></tr>
+<tr><td>Todos</td><td>—</td><td><b>Nenhum tem CI.</b> Os testes só rodam quando alguém lembra (capítulo 10).</td></tr>
+</table>
+<p>Você não está começando do zero, e isso muda o foco do módulo: em vez de "aprender a escrever teste", o foco é <b>escrever os testes certos</b> e <b>fazer eles rodarem sozinhos</b>.</p>
+
+<h2>Cronograma de 4 semanas</h2>
+<table>
+<tr><th style="width:16%">Semana</th><th>Capítulos</th><th style="width:36%">Entrega</th></tr>
+<tr><td>1</td><td>Pré-teste · 1. O que testar · 2. Anatomia · 3. Pirâmide e escolas</td><td>Matriz de risco de um projeto (missão M1)</td></tr>
+<tr><td>2</td><td>4. Dublês · 5. Banco real · 6. HTTP e permissões</td><td>M2 e M3</td></tr>
+<tr><td>3</td><td>7. O difícil de testar · 8. Cobertura e mutação · 9. TDD e regressão</td><td>M4</td></tr>
+<tr><td>4</td><td>10. GitHub Actions · 11. Pipeline e CD · revisão intercalada</td><td>M5 e M6, refazer o pré-teste</td></tr>
+</table>
+
+<h2>Sumário</h2>
+<div class="toc">
+<div><b>—</b> Pré-teste</div>
+<div><b>1</b> Por que e o que testar</div>
+<div><b>2</b> Anatomia de um bom teste</div>
+<div><b>3</b> Pirâmide, troféu e as duas escolas</div>
+<div><b>4</b> Dublês de teste: quando mockar</div>
+<div><b>5</b> Integração com banco real</div>
+<div><b>6</b> Testando HTTP, autenticação e permissões</div>
+<div><b>7</b> Tempo, aleatoriedade, filas e concorrência</div>
+<div><b>8</b> Cobertura, mutação e testes instáveis</div>
+<div><b>9</b> TDD, regressão e código legado</div>
+<div><b>10</b> GitHub Actions do zero</div>
+<div><b>11</b> O pipeline completo e o CD</div>
+<div><b>—</b> Missões</div>
+<div><b>A</b> Gabarito e revisão intercalada</div>
+<div><b>B</b> Flashcards</div>
+<div><b>C</b> Glossário</div>
+<div><b>D</b> Referências</div>
+</div>
+
+<h1><span class="num">Diagnóstico</span>Pré-teste</h1>
+<p>Responda por escrito, sem consultar. Errar aqui é parte do método. O gabarito está no apêndice A.</p>
+<div class="quiz"><span class="t">Pré-teste · 12 questões</span>
+<ol>
+<li>Cobertura de 90% garante que os testes são bons? Por quê?</li>
+<li>Qual a diferença entre um <i>stub</i> e um <i>mock</i>?</li>
+<li>Você deve mockar o seu próprio banco de dados nos testes? Justifique.</li>
+<li>Um teste quebra toda vez que você renomeia um método privado, embora o comportamento não tenha mudado. Que problema esse teste tem?</li>
+<li>O que é um teste <i>flaky</i>? Cite duas causas comuns.</li>
+<li>Como testar um código que depende de <code>Date.now()</code> sem esperar o tempo passar?</li>
+<li>No GitHub Actions, qual a diferença entre <i>workflow</i>, <i>job</i> e <i>step</i>?</li>
+<li>Seu teste precisa de Postgres no CI. Cite duas formas de oferecer um.</li>
+<li>Um bug apareceu em produção. Qual o primeiro passo antes de corrigir o código?</li>
+<li>Por que rodar os testes de integração contra SQLite quando a produção usa Postgres pode enganar?</li>
+<li>O que significa "o CI é obrigatório para merge"? Como se configura isso?</li>
+<li>Qual teste dá mais segurança para o MesaPay: "a função <code>calcularTotal</code> soma os itens" ou "o bar A recebe 404 ao pedir a comanda do bar B"? Por quê?</li>
+</ol></div>
+<p class="small">Nota: ____ / 12 · Data: ___/___/____ &nbsp;&nbsp;&nbsp; Semana 4: ____ / 12 · Data: ___/___/____</p>
+
+<h1><span class="num">Capítulo 1</span>Por que e o que testar</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>Se você só pudesse escrever 5 testes no projeto do Julielton, quais seriam? Escreva os 5 títulos antes de continuar.</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Explicar</b> o valor de um teste em termos de custo do bug e de liberdade para mudar o código.</li>
+<li><b>Priorizar</b> o que testar com uma matriz de risco.</li>
+<li><b>Transformar</b> uma regra de negócio (RN) em casos de teste.</li></ul></div>
+
+<h2>1.1 Para que servem os testes</h2>
+<p>A resposta comum é "achar bug". A resposta mais útil é: <b>permitir mudar o código com segurança</b>. Um projeto sem testes congela, porque toda mudança vira um risco que só aparece em produção. Com bons testes, você refatora, atualiza dependências e aceita código gerado por IA sabendo em segundos se algo quebrou. Testes também são <b>documentação executável</b>: o <code>whatsapp.test.ts</code> do marketZapp explica o contrato do webhook melhor que qualquer README, e nunca fica desatualizado, porque se ficar, quebra.</p>
+<p>O custo de um bug cresce com a distância entre o momento em que ele nasce e o momento em que é descoberto: no editor, custa segundos; no CI, minutos; em produção, custa o tempo do cliente, a confiança e às vezes dados.</p>
+
+<h2>1.2 Os quatro pilares de um teste valioso (Khorikov)</h2>
+<table>
+<tr><th style="width:28%">Pilar</th><th>Pergunta</th></tr>
+<tr><td><b>Proteção contra regressão</b></td><td>Se alguém introduzir um bug aqui, o teste pega? Testes que executam mais código importante protegem mais.</td></tr>
+<tr><td><b>Resistência a refatoração</b></td><td>Se eu reorganizar o código sem mudar o comportamento, o teste continua passando? Teste que quebra sem bug é <b>falso positivo</b>, e falsos positivos ensinam a equipe a ignorar os testes.</td></tr>
+<tr><td><b>Feedback rápido</b></td><td>Roda em quanto tempo? Testes lentos deixam de ser rodados.</td></tr>
+<tr><td><b>Manutenibilidade</b></td><td>É fácil de ler e de montar?</td></tr>
+</table>
+<p>Os três primeiros competem entre si, e nenhum teste maximiza todos. Mas a <b>resistência a refatoração não é negociável</b>: um teste frágil tem valor negativo. É por isso que a regra é testar <b>comportamento observável</b> (o que a função devolve, o que a API responde, o que ficou gravado no banco) e não <b>detalhes de implementação</b> (qual método privado foi chamado, em que ordem).</p>
+
+<h2>1.3 O que testar primeiro: matriz de risco</h2>
+<p>Não tente cobrir tudo. Classifique cada funcionalidade por <b>impacto se quebrar</b> e <b>probabilidade de quebrar</b> (complexidade, frequência de mudança, histórico de bugs).</p>
+<figure>
+<svg viewBox="0 0 680 250" width="100%" xmlns="http://www.w3.org/2000/svg">
+<rect x="120" y="10" width="270" height="105" fill="#fff6db" stroke="#9a6700"/><rect x="390" y="10" width="270" height="105" fill="#fdecea" stroke="#b42318"/>
+<rect x="120" y="115" width="270" height="105" fill="#f4f6f8" stroke="#8a939e"/><rect x="390" y="115" width="270" height="105" fill="#fff6db" stroke="#9a6700"/>
+<text x="255" y="35" text-anchor="middle" font-size="12" font-weight="700">2º · teste de integração</text><text x="255" y="55" text-anchor="middle" font-size="10.5">Raro de quebrar, caro se quebrar</text><text x="255" y="75" text-anchor="middle" font-size="10.5">ex.: backup, login de admin</text>
+<text x="525" y="35" text-anchor="middle" font-size="12" font-weight="700" fill="#b42318">1º · TESTE PRIMEIRO</text><text x="525" y="55" text-anchor="middle" font-size="10.5">Muda muito e dá prejuízo</text><text x="525" y="75" text-anchor="middle" font-size="10.5">pagamento, permissão, isolamento,</text><text x="525" y="92" text-anchor="middle" font-size="10.5">cálculo de orçamento, webhook</text>
+<text x="255" y="145" text-anchor="middle" font-size="12" font-weight="700">Último · ou nunca</text><text x="255" y="165" text-anchor="middle" font-size="10.5">getters, telas estáticas,</text><text x="255" y="182" text-anchor="middle" font-size="10.5">código de framework</text>
+<text x="525" y="145" text-anchor="middle" font-size="12" font-weight="700">3º · teste unitário barato</text><text x="525" y="165" text-anchor="middle" font-size="10.5">Quebra fácil, prejuízo pequeno</text><text x="525" y="182" text-anchor="middle" font-size="10.5">formatação, máscara de telefone</text>
+<text x="390" y="240" text-anchor="middle" font-size="11" fill="#5b6470">probabilidade de quebrar →</text>
+<text x="60" y="115" text-anchor="middle" font-size="11" fill="#5b6470" transform="rotate(-90 60 115)">impacto se quebrar →</text>
+</svg>
+<figcaption>Figura 1.1. Matriz de risco: comece pelo canto superior direito.</figcaption>
+</figure>
+
+<h2>1.4 De regra de negócio para caso de teste</h2>
+<p>O <code>REGRAS_DE_NEGOCIO.md</code> do MesaPay, com códigos RN-XX, já é meio caminho andado. Para cada regra, escreva os casos com a técnica de <b>partição e valor-limite</b>: um caso típico de cada classe de entrada e os casos nas fronteiras.</p>
+<div class="box caso"><span class="t">Exemplo resolvido · uma RN fictícia no estilo do MesaPay</span>
+<p><b>RN-XX:</b> "A reserva pode ser cancelada sem multa até 2 horas antes do horário. Depois disso, cobra-se 20%. Reservas já iniciadas não podem ser canceladas."</p>
+<ul>
+<li>Classes: <i>mais de 2 h antes</i> (sem multa), <i>menos de 2 h</i> (multa), <i>já iniciada</i> (erro).</li>
+<li>Limites: <b>exatamente</b> 2 h antes ("até" inclui ou não? Pergunte ao cliente e registre na RN), 2 h menos 1 segundo, exatamente no horário.</li>
+<li>Casos inválidos: reserva de outro estabelecimento, reserva já cancelada.</li>
+</ul>
+<p>São 7 testes para uma regra de uma linha, e o caso de "exatamente 2 h" provavelmente revela uma ambiguidade que ninguém tinha decidido. <b>Escrever o teste é uma forma de especificar.</b></p></div>
+<pre class="good"><span class="lbl">Go · teste orientado por tabela (o padrão idiomático do MesaPay)</span>func TestMultaCancelamento(t *testing.T) {
+    inicio := time.Date(2026, 11, 20, 20, 0, 0, 0, time.UTC)
+    casos := []struct {
+        nome      string
+        agora     time.Time
+        multa     int // percentual
+        erroEsper error
+    }{
+        {"3h antes, sem multa", inicio.Add(-3 * time.Hour), 0, nil},
+        {"exatamente 2h antes, sem multa", inicio.Add(-2 * time.Hour), 0, nil},
+        {"2h menos 1s, com multa", inicio.Add(-2*time.Hour + time.Second), 20, nil},
+        {"já iniciada", inicio.Add(time.Minute), 0, ErrReservaIniciada},
+    }
+    for _, c := range casos {
+        t.Run(c.nome, func(t *testing.T) {
+            multa, err := MultaCancelamento(inicio, c.agora)
+            if !errors.Is(err, c.erroEsper) { t.Fatalf("erro = %v, esperado %v", err, c.erroEsper) }
+            if multa != c.multa { t.Errorf("multa = %d, esperado %d", multa, c.multa) }
+        })
+    }
+}</pre>
+<p class="small">Repare que o "agora" é <b>parâmetro</b>, não um <code>time.Now()</code> dentro da função. Isso torna a regra testável (capítulo 7).</p>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 1</span><ol>
+<li>Cite os quatro pilares de Khorikov. Qual deles não é negociável e por quê?</li>
+<li>O que é um falso positivo em teste e qual o efeito dele na equipe?</li>
+<li>Monte a matriz de risco para três funcionalidades do RH.</li>
+<li>Para a regra "frete grátis acima de R$ 200", liste os casos de valor-limite.</li>
+</ol></div>
+<div class="feyn"><span class="t">Explique com suas palavras</span>"Testar comportamento e não implementação significa..."<div class="linhas"></div></div>
+
+<h1><span class="num">Capítulo 2</span>Anatomia de um bom teste</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>Abra um teste seu de 3 meses atrás. Em 10 segundos, você consegue dizer qual regra ele protege?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Estruturar</b> testes no padrão Arrange-Act-Assert.</li>
+<li><b>Nomear</b> testes como frases sobre o comportamento.</li>
+<li><b>Reconhecer</b> os cheiros de teste mais comuns.</li></ul></div>
+
+<h2>2.1 Arrange, Act, Assert</h2>
+<p>Todo teste tem três partes: <b>preparar</b> o cenário, <b>executar</b> uma ação e <b>verificar</b> o resultado. Deixe as três visíveis, com uma linha em branco entre elas. A seção Act deve ter <b>uma linha</b>. Se precisa de várias chamadas para executar "uma ação", a API do código provavelmente está mal desenhada.</p>
+<pre class="bad"><span class="lbl">Errado · vários comportamentos e nome vago</span>it('vagas', async () => {
+  const v = await criarVaga({ titulo: 'Dev' });
+  expect(v.id).toBeDefined();
+  await publicarVaga(v.id);
+  expect((await buscar(v.id)).status).toBe('publicada');
+  await arquivarVaga(v.id);
+  expect((await buscar(v.id)).status).toBe('arquivada');
+  await expect(publicarVaga(v.id)).rejects.toThrow();
+});</pre>
+<pre class="good"><span class="lbl">Certo · um comportamento por teste, nome é uma frase</span>describe('arquivamento de vaga', () => {
+  it('não permite republicar uma vaga arquivada', async () => {
+    const vaga = await fabrica.vaga({ status: 'arquivada' });   // Arrange
+
+    const tentativa = publicarVaga(vaga.id);                     // Act
+
+    await expect(tentativa).rejects.toThrow(VagaArquivadaError); // Assert
+  });
+});</pre>
+<p>Quando o teste da direita falhar, a mensagem já diz o que quebrou: "arquivamento de vaga › não permite republicar uma vaga arquivada". O da esquerda diz só "vagas".</p>
+
+<h2>2.2 Propriedades F.I.R.S.T.</h2>
+<ul>
+<li><b>Fast</b> (rápido): unitários em milissegundos, a suíte inteira em poucos minutos.</li>
+<li><b>Isolated</b> (isolado): um teste não depende de outro nem da ordem de execução. O Vitest e o pytest podem rodar em paralelo ou em ordem aleatória.</li>
+<li><b>Repeatable</b> (repetível): o mesmo resultado na sua máquina, no CI e às 23h59 de 31 de dezembro.</li>
+<li><b>Self-validating</b>: passa ou falha sozinho, sem ninguém olhar um log.</li>
+<li><b>Timely</b>: escrito junto com o código, não "depois".</li>
+</ul>
+
+<h2>2.3 Fábricas e dados de teste</h2>
+<p>Montar objetos completos em cada teste deixa tudo verboso e frágil: quando um campo obrigatório novo aparece, 40 testes quebram. Use <b>fábricas</b> com valores padrão sensatos, e deixe o teste sobrescrever <b>só o que importa para aquele caso</b>. Isso também documenta: se o teste passa <code>{ status: 'arquivada' }</code>, fica claro que o status é o que importa.</p>
+<pre class="good"><span class="lbl">TypeScript · fábrica simples, sem biblioteca</span>let seq = 0;
+export const fabrica = {
+  candidato: (over: Partial&lt;Candidato&gt; = {}): Candidato => ({
+    id: ++seq, nome: `Candidato ${seq}`, email: `c${seq}@teste.local`, telefone: '91988887777',
+    criadoEm: new Date('2026-01-01T12:00:00Z'), ...over,
+  }),
+};</pre>
+<pre class="good"><span class="lbl">pytest · fixture como fábrica</span>@pytest.fixture
+def novo_orcamento(sessao):
+    def _criar(**over):
+        dados = {"cliente": "Cliente Teste", "potencia_kwp": 5.5, **over}
+        o = Orcamento(**dados); sessao.add(o); sessao.flush()
+        return o
+    return _criar
+
+def test_orcamento_acima_de_75kwp_exige_projeto(novo_orcamento):
+    o = novo_orcamento(potencia_kwp=80)
+    assert o.exige_projeto_especial()</pre>
+
+<h2>2.4 Cheiros de teste</h2>
+<table>
+<tr><th style="width:28%">Cheiro</th><th>Sintoma</th><th style="width:32%">Cura</th></tr>
+<tr><td>Lógica no teste</td><td><code>if</code>, <code>for</code> ou cálculo dentro do teste, que reimplementa o código testado</td><td>Valores esperados fixos, literais. Para variações, use tabela ou <code>it.each</code></td></tr>
+<tr><td>Teste espelho</td><td>Verifica que o código chama exatamente os métodos que chama</td><td>Verificar o resultado, não as chamadas (capítulo 4)</td></tr>
+<tr><td>Asserção ausente ou fraca</td><td><code>expect(res).toBeDefined()</code>, ou só "não lançou erro"</td><td>Verificar o valor exato que importa</td></tr>
+<tr><td>Snapshot gigante</td><td>Um snapshot de 300 linhas que todo mundo atualiza com <code>-u</code> sem ler</td><td>Snapshot só para saídas pequenas e estáveis</td></tr>
+<tr><td>Dependência de ordem</td><td>Passa sozinho, falha na suíte (ou o contrário)</td><td>Estado limpo por teste (capítulo 5)</td></tr>
+<tr><td><code>sleep</code> no teste</td><td><code>await new Promise(r =&gt; setTimeout(r, 2000))</code></td><td>Relógio falso ou esperar uma condição (capítulo 7)</td></tr>
+</table>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 2</span><ol>
+<li>Por que a seção Act deve ter uma linha?</li>
+<li>Reescreva o nome <code>it('teste login')</code> como uma frase de comportamento.</li>
+<li>Por que lógica dentro do teste é perigosa?</li>
+<li>Para que serve uma fábrica de dados de teste, além de economizar digitação?</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 3</span>Pirâmide, troféu e as duas escolas</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>O que é uma "unidade" num teste unitário: uma função, uma classe ou outra coisa?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Diferenciar</b> testes unitários, de integração, de ponta a ponta e de contrato.</li>
+<li><b>Comparar</b> a escola clássica e a londrina.</li>
+<li><b>Escolher</b> a proporção de cada tipo para cada projeto seu.</li></ul></div>
+
+<h2>3.1 Os tipos</h2>
+<table>
+<tr><th style="width:18%">Tipo</th><th>O que exercita</th><th style="width:16%">Velocidade</th><th style="width:28%">Exemplo seu</th></tr>
+<tr><td>Unitário</td><td>Uma unidade de comportamento, sem I/O de processo externo</td><td>ms</td><td><code>telefone.test.ts</code> do RH, cálculo de multa</td></tr>
+<tr><td>Integração</td><td>Seu código junto com o banco, a fila e o framework HTTP de verdade</td><td>10–500 ms</td><td><code>duplicate.test.ts</code> do marketZapp (pg_trgm real)</td></tr>
+<tr><td>Ponta a ponta (E2E)</td><td>O sistema inteiro pelo navegador (Playwright)</td><td>segundos</td><td>"candidato se inscreve e o recrutador vê"</td></tr>
+<tr><td>Contrato</td><td>Se o formato que você espera de um serviço externo continua igual</td><td>ms</td><td>Formato do evento da Evolution API</td></tr>
+</table>
+
+<h2>3.2 Pirâmide ou troféu?</h2>
+<p>A <b>pirâmide</b> clássica (Mike Cohn) diz: muitos unitários, alguns de integração, poucos E2E, porque unitários são rápidos e baratos. O <b>troféu</b> (Kent C. Dodds) diz: para aplicações web, a maior parte do valor está nos testes de <b>integração</b>, porque é na junção (SQL, serialização, middleware, permissão) que os bugs de verdade moram. Ferramentas como Testcontainers deixaram a integração rápida o bastante para isso.</p>
+<div class="box dica"><span class="t">Recomendação para os seus projetos</span><p>APIs CRUD com regras (RH, marketZapp, MesaPay, Julielton) se beneficiam do <b>troféu</b>: unitários para regras de cálculo puras, <b>integração como base</b> (rota HTTP + banco real) e 3 a 5 E2E só nos fluxos que dão dinheiro ou dor de cabeça. O <code>pechincha</code> (app Expo) é outro caso, com mais testes de componente.</p></div>
+
+<h2>3.3 As duas escolas</h2>
+<table>
+<tr><th style="width:20%"></th><th>Clássica (Detroit)</th><th>Londrina (mockista)</th></tr>
+<tr><td>Unidade</td><td>Uma unidade de <b>comportamento</b>, que pode envolver várias classes</td><td>Uma <b>classe</b></td></tr>
+<tr><td>Isolamento</td><td>Isola os <b>testes</b> uns dos outros</td><td>Isola a <b>classe</b> de todas as dependências</td></tr>
+<tr><td>Mocks</td><td>Só para dependências compartilhadas ou fora do processo</td><td>Para todo colaborador</td></tr>
+<tr><td>Risco</td><td>Uma falha pode apontar para várias classes</td><td>Testes acoplados à implementação, que quebram em refatoração</td></tr>
+</table>
+<p>Este material segue a <b>escola clássica</b>, como Khorikov, porque ela maximiza a resistência a refatoração. Na prática: mock é exceção, não regra.</p>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 3</span><ol>
+<li>Por que o troféu dá mais peso à integração do que a pirâmide?</li>
+<li>Na escola clássica, o que é uma "unidade"?</li>
+<li>Dê um exemplo de teste de contrato para o marketZapp.</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 4</span>Dublês de teste: quando mockar</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>O RH tem 14 arquivos de teste que mockam o Prisma. Que tipo de bug esses testes <b>nunca</b> vão pegar?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Nomear</b> os cinco tipos de dublê.</li>
+<li><b>Decidir</b> quando mockar com a regra das dependências gerenciadas e não gerenciadas.</li>
+<li><b>Usar</b> <code>vi.fn</code>, <code>vi.mock</code>, <code>monkeypatch</code> e interfaces em Go.</li></ul></div>
+
+<h2>4.1 Os cinco dublês (Meszaros)</h2>
+<table>
+<tr><th style="width:14%">Dublê</th><th>O que faz</th><th style="width:38%">Exemplo</th></tr>
+<tr><td>Dummy</td><td>Ocupa um parâmetro e nunca é usado</td><td><code>new Servico(null as any)</code></td></tr>
+<tr><td>Stub</td><td>Devolve respostas prontas (<b>entrada</b> para o código testado)</td><td>"a Evolution respondeu 200 com este JSON"</td></tr>
+<tr><td>Spy</td><td>Registra as chamadas para verificar depois</td><td><code>vi.spyOn(email, 'enviar')</code></td></tr>
+<tr><td>Mock</td><td>Spy com expectativa: verifica uma <b>saída</b> (efeito colateral)</td><td>"enviou exatamente 1 mensagem para tal número"</td></tr>
+<tr><td>Fake</td><td>Implementação simplificada que funciona de verdade</td><td>Repositório em memória, servidor SMTP falso (Mailpit)</td></tr>
+</table>
+<p><b>Regra de ouro:</b> nunca verifique chamadas feitas a um <b>stub</b>. Se você deu ao código o dado X, conferir que ele "pediu X" é teste espelho: testa a implementação, não o resultado.</p>
+
+<h2>4.2 Quando mockar: dependências gerenciadas x não gerenciadas</h2>
+<figure>
+<svg viewBox="0 0 680 190" width="100%" xmlns="http://www.w3.org/2000/svg">
+<rect x="10" y="10" width="200" height="170" rx="6" fill="#e8f0fa" stroke="#1f5fa8"/><text x="110" y="34" text-anchor="middle" font-weight="700" font-size="12">Dentro do processo</text><text x="110" y="58" text-anchor="middle" font-size="11">funções, classes, regras</text><text x="110" y="100" text-anchor="middle" font-size="11" fill="#1a7f37" font-weight="700">Use o real.</text><text x="110" y="118" text-anchor="middle" font-size="11" fill="#1a7f37">Nunca mocke.</text>
+<rect x="240" y="10" width="200" height="170" rx="6" fill="#e7f5ec" stroke="#1a7f37"/><text x="340" y="34" text-anchor="middle" font-weight="700" font-size="12">Fora, GERENCIADA</text><text x="340" y="58" text-anchor="middle" font-size="11">só a sua aplicação usa:</text><text x="340" y="76" text-anchor="middle" font-size="11">o seu Postgres, o seu Redis</text><text x="340" y="110" text-anchor="middle" font-size="11" fill="#1a7f37" font-weight="700">Use o real</text><text x="340" y="128" text-anchor="middle" font-size="11" fill="#1a7f37">(container no teste).</text><text x="340" y="146" text-anchor="middle" font-size="11" fill="#1a7f37">Verifique o ESTADO final.</text>
+<rect x="470" y="10" width="200" height="170" rx="6" fill="#fdecea" stroke="#b42318"/><text x="570" y="34" text-anchor="middle" font-weight="700" font-size="12">Fora, NÃO gerenciada</text><text x="570" y="58" text-anchor="middle" font-size="11">outros veem o efeito:</text><text x="570" y="76" text-anchor="middle" font-size="11">Evolution, e-mail, ERP, Anthropic</text><text x="570" y="110" text-anchor="middle" font-size="11" fill="#b42318" font-weight="700">Mocke na fronteira.</text><text x="570" y="128" text-anchor="middle" font-size="11" fill="#b42318">Verifique a mensagem</text><text x="570" y="146" text-anchor="middle" font-size="11" fill="#b42318">enviada (o contrato).</text>
+</svg>
+<figcaption>Figura 4.1. A regra de Khorikov para decidir o que mockar.</figcaption>
+</figure>
+<p>O seu banco é um <b>detalhe de implementação</b>: ninguém além do seu sistema lê dele. Mockar o Prisma faz o teste verificar <i>"o código chamou <code>prisma.vaga.findMany</code> com estes argumentos"</i>. Se o <code>where</code> estiver errado, por exemplo sem o filtro por empresa, o mock responde o que você mandou e o teste passa. Já a mensagem que vai para o WhatsApp de um cliente é observável de fora: ali o mock faz sentido, porque o contrato é "mandou esta mensagem para este número".</p>
+
+<div class="box caso"><span class="t">Caso real · RH</span><p>Os 34 testes do RH são ótimos para regras puras (<code>telefone</code>, <code>schemas</code>, <code>roteiro.service</code>) e para middleware de autenticação e RBAC. Os 14 que mockam o Prisma, porém, não protegem as <b>consultas</b>: filtros, joins, transações, <code>unique</code>, cascata. A missão M2 adiciona testes de integração com Postgres real para as consultas críticas, sem apagar os unitários.</p></div>
+
+<h2>4.3 As ferramentas</h2>
+<pre class="good"><span class="lbl">Vitest · mock na fronteira com um serviço externo</span>// o código recebe o cliente da Evolution por parâmetro (injeção de dependência)
+it('responde ao lead com a mensagem de boas-vindas', async () => {
+  const evolution = { enviarTexto: vi.fn().mockResolvedValue({ ok: true }) };
+
+  await tratarMensagem({ de: '5591988887777', texto: 'oi' }, { evolution });
+
+  expect(evolution.enviarTexto).toHaveBeenCalledTimes(1);
+  expect(evolution.enviarTexto).toHaveBeenCalledWith('5591988887777', expect.stringContaining('Bem-vindo'));
+});</pre>
+<pre class="good"><span class="lbl">Go · interface pequena + fake (o jeito idiomático, sem biblioteca)</span>type Notificador interface { Enviar(ctx context.Context, para, msg string) error }
+
+type notificadorFake struct{ enviadas []string }
+func (f *notificadorFake) Enviar(_ context.Context, para, msg string) error {
+    f.enviadas = append(f.enviadas, para+": "+msg); return nil
+}
+
+func TestPedidoProntoAvisaMesa(t *testing.T) {
+    fake := &amp;notificadorFake{}
+    svc := NovoServicoPedido(db, fake)
+    svc.MarcarPronto(ctx, pedidoID)
+    if len(fake.enviadas) != 1 { t.Fatalf("esperava 1 aviso, veio %d", len(fake.enviadas)) }
+}</pre>
+<pre class="good"><span class="lbl">pytest · monkeypatch para trocar uma dependência</span>def test_gera_pdf_sem_chamar_servico_externo(monkeypatch, novo_orcamento):
+    chamadas = []
+    monkeypatch.setattr("mabsol_docs.integracoes.consultar_concessionaria",
+                        lambda uc: chamadas.append(uc) or {"tensao": 220})
+    ...</pre>
+<div class="box erro"><span class="t">Erro comum: <code>vi.mock</code> de módulo inteiro</span><p><code>vi.mock('../db')</code> no topo do arquivo troca o módulo para <b>todos</b> os testes do arquivo e esconde a dependência. Prefira <b>injetar</b> a dependência (parâmetro ou construtor). O código fica mais testável e o teste mostra explicitamente o que foi substituído. Use <code>vi.mock</code> como último recurso, para módulos que você não controla.</p></div>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 4</span><ol>
+<li>Diferencie stub de mock pela direção do dado (entrada x saída).</li>
+<li>Por que não verificar as chamadas feitas a um stub?</li>
+<li>Classifique: Postgres do RH, API da Anthropic no marketZapp, Redis do BullMQ, servidor SMTP.</li>
+<li>Que bug um teste com Prisma mockado não pega? Dê um exemplo concreto.</li>
+</ol></div>
+<div class="feyn"><span class="t">Explique com suas palavras</span>"Mockar o meu próprio banco é ruim porque..."<div class="linhas"></div></div>
+
+<h1><span class="num">Capítulo 5</span>Integração com banco real</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>Os testes do marketZapp leem o banco do <code>.env</code>. O que acontece se um dia esse <code>.env</code> apontar para produção?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Subir</b> um Postgres descartável por suíte com Testcontainers ou docker compose.</li>
+<li><b>Isolar</b> os testes com transação revertida ou truncate.</li>
+<li><b>Explicar</b> por que SQLite no teste e Postgres em produção é um risco.</li></ul></div>
+
+<h2>5.1 Três estratégias de banco para teste</h2>
+<table>
+<tr><th style="width:24%">Estratégia</th><th>Prós</th><th>Contras</th></tr>
+<tr><td><b>Testcontainers</b>: o teste sobe um container Postgres sozinho</td><td>Zero configuração manual, mesma versão de produção, isolado, funciona igual no CI</td><td>Precisa de Docker. Sobe em ~2 a 5 s (uma vez por suíte)</td></tr>
+<tr><td><b>Serviço no compose / no CI</b>: um Postgres de teste fixo (<code>TEST_DATABASE_URL</code>)</td><td>Simples. É o que o Julielton já suporta</td><td>Você precisa lembrar de subir. Risco de apontar para o banco errado</td></tr>
+<tr><td><b>Banco em memória</b> (SQLite) no lugar de Postgres</td><td>Rápido, sem Docker</td><td><b>É outro banco</b>: tipos, <code>ILIKE</code>, <code>pg_trgm</code>, JSONB, locks, fuso horário e constraints se comportam diferente</td></tr>
+</table>
+<div class="box caso"><span class="t">Caso real · Julielton e marketZapp</span><p>O <code>conftest.py</code> do Julielton usa SQLite por padrão e Postgres se <code>TEST_DATABASE_URL</code> existir. Bom desenho, mas o padrão deveria ser o banco de produção, e o <b>CI deve rodar com Postgres</b>. O marketZapp faz o certo ao testar o <code>pg_trgm</code> no Postgres real, mas carrega o banco do <code>.env</code> de desenvolvimento, o que mistura dados de teste com os seus e corre o risco de apontar para o lugar errado. A regra: <b>teste usa um banco que só existe para teste</b>, e a suíte se recusa a rodar se o nome do banco não terminar em <code>_test</code>.</p></div>
+
+<h2>5.2 Testcontainers no Vitest</h2>
+<pre class="good"><span class="lbl">vitest.globalSetup.ts · um Postgres por execução da suíte</span>import { PostgreSqlContainer } from '@testcontainers/postgresql';   // npm i -D @testcontainers/postgresql
+import { execSync } from 'node:child_process';
+
+export default async function setup() {
+  const pg = await new PostgreSqlContainer('postgres:16-alpine').withDatabase('app_test').start();
+  process.env.DATABASE_URL = pg.getConnectionUri();
+  execSync('npx prisma migrate deploy', { stdio: 'inherit' });    // RH: aplica as migrações reais
+  // marketZapp: aplicar db/schema.sql e CREATE EXTENSION pg_trgm
+  return async () => { await pg.stop(); };
+}
+// vitest.config.ts → test: { globalSetup: ['./vitest.globalSetup.ts'] }</pre>
+<p class="small">O <code>globalSetup</code> roda uma vez no processo principal, antes dos workers. A forma documentada de passar valores dele para os testes é <code>provide('dbUrl', ...)</code> no setup e <code>inject('dbUrl')</code> no teste. Alterar <code>process.env</code> no setup costuma funcionar, mas depende de como os workers são criados. Confira na documentação da sua versão do Vitest.</p>
+
+<h2>5.3 Isolamento entre testes</h2>
+<ul>
+<li><b>Transação revertida</b>: cada teste abre uma transação e faz rollback no fim. É o mais rápido, mas não serve se o código testado abre a própria transação ou usa várias conexões.</li>
+<li><b>Truncate</b> de todas as tabelas no <code>beforeEach</code>: <code>TRUNCATE ... RESTART IDENTITY CASCADE</code>. Simples e robusto, custa alguns ms.</li>
+<li><b>Banco por arquivo de teste</b> (template database do Postgres): <code>CREATE DATABASE t1 TEMPLATE app_template</code>. Permite paralelismo total.</li>
+</ul>
+<pre class="good"><span class="lbl">pytest · Postgres de teste com proteção contra banco errado</span>@pytest.fixture(scope="session")
+def url_teste():
+    url = os.environ.get("TEST_DATABASE_URL")
+    if not url:
+        pytest.skip("TEST_DATABASE_URL não definido")
+    if not urlsplit(url).path.endswith("_test"):
+        pytest.exit("Recusado: o banco de teste precisa terminar em _test", returncode=2)
+    return url</pre>
+<pre class="good"><span class="lbl">Go · testcontainers-go (MesaPay com GORM)</span>func TestMain(m *testing.M) {
+    ctx := context.Background()
+    pg, err := postgres.Run(ctx, "postgres:16-alpine",
+        postgres.WithDatabase("mesapay_test"),
+        postgres.BasicWaitStrategies())
+    if err != nil { log.Fatal(err) }
+    dsn, _ := pg.ConnectionString(ctx, "sslmode=disable")
+    db, _ = gorm.Open(gormpg.Open(dsn), &amp;gorm.Config{})
+    // aplicar migrações / AutoMigrate dos models
+    code := m.Run()
+    _ = pg.Terminate(ctx)
+    os.Exit(code)
+}</pre>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 5</span><ol>
+<li>Cite três diferenças entre SQLite e Postgres que podem esconder bugs.</li>
+<li>Quando a estratégia de transação revertida não funciona?</li>
+<li>Como impedir que a suíte rode contra o banco de desenvolvimento ou de produção?</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 6</span>Testando HTTP, autenticação e permissões</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>Quantas combinações de papel × rota existem no RH? Quantas estão testadas?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Testar</b> rotas sem subir servidor de verdade nos quatro frameworks.</li>
+<li><b>Montar</b> uma matriz de permissões testada por tabela.</li>
+<li><b>Transformar</b> as missões do Módulo 1 em testes permanentes.</li></ul></div>
+
+<h2>6.1 Injeção de requisição em cada framework</h2>
+<table>
+<tr><th>Framework</th><th>Como</th></tr>
+<tr><td>Fastify (marketZapp)</td><td><code>await app.inject({ method: 'POST', url: '/x', payload, headers })</code>: não abre porta, já usado no <code>whatsapp.test.ts</code></td></tr>
+<tr><td>Express (RH)</td><td><code>supertest</code>: <code>await request(app).get('/x').set('Cookie', c)</code>. Exporte o <code>app</code> sem chamar <code>listen</code></td></tr>
+<tr><td>Flask (Julielton)</td><td><code>app.test_client()</code>: <code>cliente.post('/entrar', data=...)</code>, que mantém os cookies entre chamadas</td></tr>
+<tr><td>Gin (MesaPay)</td><td><code>httptest.NewRecorder()</code> + <code>router.ServeHTTP(w, req)</code></td></tr>
+</table>
+<p>Para que isso funcione, separe a <b>criação do app</b> (<code>buildApp()</code> / <code>create_app()</code> / <code>NovoRouter()</code>) da <b>subida do servidor</b>. É uma mudança pequena que vale para todos os projetos.</p>
+
+<h2>6.2 A matriz de permissões</h2>
+<p>As falhas de autorização (Módulo 1, capítulo 4) são as mais comuns, e também as mais fáceis de testar de forma sistemática: liste <b>cada rota sensível × cada papel × resultado esperado</b> numa tabela e gere um teste por linha.</p>
+<pre class="good"><span class="lbl">Vitest + supertest · RH</span>const matriz = [
+  // rota,                         método,  papel,        status esperado
+  ['/admin/vagas',                 'get',   'anonimo',    401],
+  ['/admin/vagas',                 'get',   'candidato',  403],
+  ['/admin/vagas',                 'get',   'recrutador', 200],
+  ['/admin/usuarios/5/papel',      'patch', 'recrutador', 403],
+  ['/admin/usuarios/5/papel',      'patch', 'admin',      200],
+] as const;
+
+describe.each(matriz)('%s %s como %s', (rota, metodo, papel, status) => {
+  it(`responde ${status}`, async () => {
+    const req = request(app)[metodo](rota);
+    if (papel !== 'anonimo') req.set('Cookie', await cookieDe(papel));
+    expect((await req).status).toBe(status);
+  });
+});</pre>
+<pre class="good"><span class="lbl">Go · isolamento entre estabelecimentos no MesaPay</span>func TestComandaDeOutroBarRetorna404(t *testing.T) {
+    barA, barB := criarBar(t, db), criarBar(t, db)
+    comandaB := criarComanda(t, db, barB.ID)
+
+    w := httptest.NewRecorder()
+    req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/comandas/%d", comandaB.ID), nil)
+    req.Header.Set("Authorization", "Bearer "+tokenDe(t, barA))
+    router.ServeHTTP(w, req)
+
+    if w.Code != http.StatusNotFound { t.Fatalf("status = %d, esperado 404", w.Code) }
+}</pre>
+
+<h2>6.3 Teste o caminho triste</h2>
+<p>A maior parte dos bugs de segurança mora no caminho de erro, e é exatamente o caminho que ninguém testa à mão. Para cada rota crítica, teste: sem autenticação, token expirado, token de outro tenant, corpo inválido (o <code>zod</code> rejeita?), campo extra (mass assignment), ID inexistente e método errado.</p>
+<div class="box dica"><span class="t">Conexão com o Módulo 1</span><p>Cada missão do Módulo 1 tem um "pronto quando" que é um teste: o papel rebaixado recebe 403, o redirect com <code>//evil.com</code> volta para <code>/</code>, o webhook sem segredo recebe 401. Esses testes ficam para sempre e rodam no CI, então a falha não volta.</p></div>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 6</span><ol>
+<li>Por que separar a criação do app da subida do servidor?</li>
+<li>Monte 5 linhas da matriz de permissões do Julielton.</li>
+<li>Liste 5 casos de "caminho triste" para <code>PATCH /api/me</code>.</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 7</span>Tempo, aleatoriedade, filas e concorrência</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>A fila do marketZapp "espalha ações por dias". Como testar que uma ação marcada para daqui a 3 dias roda na hora certa, sem esperar 3 dias?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Controlar</b> o tempo e a aleatoriedade nos testes.</li>
+<li><b>Testar</b> jobs do BullMQ em dois níveis.</li>
+<li><b>Escrever</b> um teste que reproduz uma condição de corrida.</li></ul></div>
+
+<h2>7.1 Tempo</h2>
+<p>Código que chama <code>new Date()</code> ou <code>time.Now()</code> por dentro é difícil de testar. Duas saídas:</p>
+<ol>
+<li><b>Injetar o relógio</b> (a preferida): a função recebe <code>agora</code> como parâmetro, ou o serviço recebe um <code>Relogio</code>. Foi o que o exemplo do capítulo 1 fez com a multa.</li>
+<li><b>Relógio falso</b> da ferramenta, quando não dá para mudar o código:</li>
+</ol>
+<pre class="good"><span class="lbl">Vitest · fake timers</span>beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(new Date('2026-11-20T19:00:00-03:00')); });
+afterEach(() => vi.useRealTimers());
+
+it('lembrete dispara 1h antes da reserva', async () => {
+  agendarLembrete(reservaAs20h, enviar);
+  await vi.advanceTimersByTimeAsync(59 * 60_000);
+  expect(enviar).not.toHaveBeenCalled();
+  await vi.advanceTimersByTimeAsync(60_000);
+  expect(enviar).toHaveBeenCalledOnce();
+});</pre>
+<div class="box erro"><span class="t">Erro comum: fuso horário</span><p>Testes que passam no seu notebook (America/Belem, UTC-3) e falham no CI (UTC). Fixe o fuso no ambiente de teste (<code>TZ=UTC</code> no script ou no workflow) e escreva as datas dos testes com fuso explícito. No banco, use <code>timestamptz</code>. O Julielton já trata isso em <code>_data_com_fuso</code>.</p></div>
+
+<h2>7.2 Aleatoriedade</h2>
+<p>IDs, tokens, embaralhamentos e sorteios: injete o gerador, ou verifique <b>propriedades</b> em vez de valores (o token tem 43 caracteres base64url, dois tokens seguidos são diferentes). Para lógica com muitas entradas possíveis, considere <b>testes baseados em propriedades</b> (<code>fast-check</code>, <code>hypothesis</code>, <code>testing/quick</code> e fuzzing nativo do Go), que geram centenas de entradas e encolhem o contraexemplo até o mínimo.</p>
+
+<h2>7.3 Filas (BullMQ) em dois níveis</h2>
+<ol>
+<li><b>O processador como função pura</b>: extraia a lógica do job para uma função <code>processarAcao(dados, deps)</code> e teste como qualquer unidade, sem Redis.</li>
+<li><b>Integração com Redis real</b> (container): adicione o job com <code>delay</code>, avance o relógio e verifique o efeito. Teste também o que acontece quando o job <b>falha</b>: ele é reprocessado (<code>attempts</code>, <code>backoff</code>)? É <b>idempotente</b> se rodar duas vezes?</li>
+</ol>
+<pre class="good"><span class="lbl">Vitest · idempotência do processador</span>it('processar o mesmo job duas vezes envia uma mensagem só', async () => {
+  const evolution = { enviarTexto: vi.fn().mockResolvedValue({ ok: true }) };
+  const job = { id: 'msg-123', data: { para: '5591988887777', texto: 'oi' } };
+
+  await processarAcao(job, { evolution, db });
+  await processarAcao(job, { evolution, db });   // reentrega (crash, retry, duplicata)
+
+  expect(evolution.enviarTexto).toHaveBeenCalledTimes(1);
+});</pre>
+
+<h2>7.4 Concorrência</h2>
+<p>A regra "vale o último que salvou" do Julielton é um problema de concorrência, tema do Módulo 4. O teste que prova o problema é simples: disparar duas operações <b>ao mesmo tempo</b> e verificar o invariante.</p>
+<pre class="good"><span class="lbl">Vitest · duas reservas simultâneas para a última mesa</span>it('não aceita duas reservas para a mesma mesa e horário', async () => {
+  const mesa = await fabrica.mesa();
+  const [a, b] = await Promise.allSettled([
+    reservar(mesa.id, '20:00', clienteA),
+    reservar(mesa.id, '20:00', clienteB),
+  ]);
+  const ok = [a, b].filter((r) => r.status === 'fulfilled');
+  expect(ok).toHaveLength(1);                         // exatamente uma vence
+});</pre>
+<p class="small">Com banco real, esse teste falha se a regra for só um <code>SELECT</code> seguido de <code>INSERT</code> sem constraint <code>UNIQUE</code> nem lock. Em Go, rode a suíte com <code>go test -race</code> para detectar acesso concorrente a memória.</p>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 7</span><ol>
+<li>Por que injetar o relógio é melhor do que usar fake timers?</li>
+<li>Como evitar que um teste com datas quebre só no CI?</li>
+<li>Quais os dois níveis de teste de um job de fila?</li>
+<li>Escreva o esqueleto de um teste que prova uma condição de corrida.</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 8</span>Cobertura, mutação e testes instáveis</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>Escreva um teste que dê 100% de cobertura para uma função e mesmo assim não pegue nenhum bug.</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Interpretar</b> a cobertura de linha e de ramo e saber o que ela não diz.</li>
+<li><b>Usar</b> testes de mutação para medir a qualidade das asserções.</li>
+<li><b>Diagnosticar</b> e curar testes instáveis.</li></ul></div>
+
+<h2>8.1 O que a cobertura diz e o que não diz</h2>
+<p>Cobertura mede quais linhas (ou ramos) <b>foram executadas</b> durante os testes, não quais foram <b>verificadas</b>. Um teste sem nenhum <code>expect</code> pode dar 100%. Por isso:</p>
+<ul>
+<li><b>Cobertura baixa é um sinal útil</b>: mostra código que nenhum teste toca.</li>
+<li><b>Cobertura alta não prova nada</b> sobre a qualidade dos testes.</li>
+<li>Metas rígidas ("80% ou o CI falha") incentivam testes vazios. Prefira: "a cobertura do código <b>novo</b> não cai" e olhar o relatório nos módulos críticos.</li>
+<li>Prefira <b>cobertura de ramos</b>: <code>if (a &amp;&amp; b)</code> com um teste dá 100% de linha e 50% de ramos.</li>
+</ul>
+<pre class="good"><span class="lbl">Como gerar</span>npx vitest run --coverage                 # npm i -D @vitest/coverage-v8
+pytest --cov=mabsol_docs --cov-branch --cov-report=term-missing   # pip install pytest-cov
+go test ./... -coverprofile=c.out &amp;&amp; go tool cover -html=c.out</pre>
+
+<h2>8.2 Testes de mutação: quem testa os testes</h2>
+<p>A ferramenta faz pequenas alterações no seu código (troca <code>&gt;</code> por <code>&gt;=</code>, <code>+</code> por <code>-</code>, apaga uma linha) e roda os testes. Se os testes continuarem passando, o <b>mutante sobreviveu</b>: você tem código executado mas não verificado. É a melhor medida da qualidade das asserções. Ferramentas: <b>Stryker</b> (JS/TS), <b>mutmut</b> (Python), <b>Gremlins</b> e <b>go-mutesting</b> (Go). É lento: rode em um módulo crítico por vez, como o cálculo de orçamento do Julielton, não no CI de todo push.</p>
+
+<h2>8.3 Testes instáveis (flaky)</h2>
+<p>Um teste que às vezes passa e às vezes falha sem mudança de código é pior que nenhum teste: ensina a equipe a apertar "rodar de novo". Causas e curas:</p>
+<table>
+<tr><th>Causa</th><th>Cura</th></tr>
+<tr><td>Tempo real, fuso, <code>sleep</code></td><td>Relógio injetado ou falso, <code>TZ=UTC</code></td></tr>
+<tr><td>Ordem entre testes / estado compartilhado</td><td>Limpar o estado por teste. Rodar em ordem aleatória para expor (<code>vitest --sequence.shuffle</code>, <code>pytest-randomly</code>, <code>go test -shuffle=on</code>)</td></tr>
+<tr><td>Rede externa de verdade</td><td>Mock na fronteira (capítulo 4)</td></tr>
+<tr><td>Ordem de resultado sem <code>ORDER BY</code></td><td>Ordenar na consulta ou comparar sem ordem</td></tr>
+<tr><td>Corrida com operação assíncrona</td><td><code>await</code> no lugar certo. Esperar a <b>condição</b>, não um tempo fixo</td></tr>
+</table>
+<p><b>Política:</b> teste instável vai para a quarentena (marcado como <code>skip</code> com um link para uma issue) <b>no mesmo dia</b>, e é corrigido em até uma semana.</p>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 8</span><ol>
+<li>Por que 100% de cobertura de linha não garante nada?</li>
+<li>O que significa um mutante sobreviver?</li>
+<li>Cite três causas de testes instáveis e a cura de cada uma.</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 9</span>TDD, regressão e código legado</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>Quando a IA gera 200 linhas que "funcionam", como você se protege de quebrá-las na próxima mudança, sem entender cada linha de primeira?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Aplicar</b> o ciclo vermelho-verde-refatorar.</li>
+<li><b>Seguir</b> a regra "todo bug vira teste antes da correção".</li>
+<li><b>Escrever</b> testes de caracterização para código que você não escreveu.</li></ul></div>
+
+<h2>9.1 TDD em uma página</h2>
+<ol>
+<li><b>Vermelho</b>: escreva um teste para o próximo pedaço de comportamento. Rode e <b>veja falhar</b>, pelo motivo certo.</li>
+<li><b>Verde</b>: escreva o <b>mínimo</b> de código para passar.</li>
+<li><b>Refatorar</b>: melhore o código (e o teste) com a rede de segurança ligada.</li>
+</ol>
+<p>Ver o teste falhar antes não é ritual: prova que o teste <b>consegue</b> falhar. Um teste que nunca foi visto vermelho pode estar testando nada. TDD funciona muito bem para regras de negócio bem definidas (RN-XX, cálculos) e menos para exploração de UI ou integração com uma API que você ainda não conhece.</p>
+
+<h2>9.2 Todo bug vira teste, antes da correção</h2>
+<ol>
+<li>Reproduza o bug num teste automatizado. Ele <b>deve falhar</b>.</li>
+<li>Corrija o código. O teste passa.</li>
+<li>O teste fica para sempre e garante que o bug não volta.</li>
+</ol>
+<div class="box caso"><span class="t">Caso real · o marketZapp já faz isso</span><p>O <code>whatsapp.test.ts</code> documenta o incidente do webhook ("qualquer um podia forjar um <code>messages.upsert</code>... que foi o que aconteceu") e cobre até o detalhe sutil do <code>apikey</code> da Evolution que sombrearia o segredo. É o padrão a copiar: o comentário conta a história, e os testes impedem a repetição.</p></div>
+
+<h2>9.3 Testes de caracterização</h2>
+<p>Para código que funciona mas que você não entende totalmente (legado, ou gerado por IA), escreva testes que <b>registram o comportamento atual</b>, seja ele certo ou errado: chame com entradas variadas e fixe as saídas observadas. Agora você pode refatorar e entender com segurança. Quando descobrir que um comportamento está errado, mude o teste <b>de propósito</b>, num commit separado, explicando o porquê.</p>
+<div class="box dica"><span class="t">Fluxo com IA recomendado</span><ol>
+<li>Você escreve (ou dita) os <b>casos de teste</b>, que são a especificação.</li>
+<li>A IA implementa.</li>
+<li>Você lê o diff e roda os testes.</li>
+<li>Peça à IA para <b>atacar</b>: "que entradas quebram esta função?". Cada resposta boa vira um caso novo.</li>
+</ol>
+<p>Assim os testes são seus, mesmo que o código não seja.</p></div>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 9</span><ol>
+<li>Por que é importante ver o teste falhar antes de implementar?</li>
+<li>Quais os três passos para corrigir um bug?</li>
+<li>O que é um teste de caracterização e quando usar?</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 10</span>GitHub Actions do zero</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>O que precisa existir numa máquina limpa para rodar os testes do marketZapp? Liste tudo, na ordem.</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Explicar</b> workflow, evento, job, step, runner e action.</li>
+<li><b>Escrever</b> workflows para Node, Python e Go com Postgres de serviço.</li>
+<li><b>Proteger</b> a branch principal exigindo o CI verde.</li></ul></div>
+
+<h2>10.1 O vocabulário</h2>
+<table>
+<tr><th style="width:18%">Termo</th><th>Significado</th></tr>
+<tr><td>Workflow</td><td>Um arquivo YAML em <code>.github/workflows/</code>. Um repositório pode ter vários</td></tr>
+<tr><td>Evento</td><td>O que dispara o workflow: <code>push</code>, <code>pull_request</code>, <code>schedule</code> (cron), <code>workflow_dispatch</code> (botão manual)</td></tr>
+<tr><td>Job</td><td>Um conjunto de passos que roda numa máquina. Jobs diferentes rodam <b>em paralelo</b>, a não ser que haja <code>needs:</code></td></tr>
+<tr><td>Step</td><td>Um comando (<code>run:</code>) ou uma action (<code>uses:</code>). Os steps de um job compartilham o disco</td></tr>
+<tr><td>Runner</td><td>A máquina virtual, por exemplo <code>ubuntu-latest</code>. Nasce limpa a cada job</td></tr>
+<tr><td>Action</td><td>Um passo reutilizável publicado, como <code>actions/checkout</code> e <code>actions/setup-node</code></td></tr>
+<tr><td>Service container</td><td>Um container (Postgres, Redis) que sobe ao lado do job</td></tr>
+</table>
+<p class="small">Nos exemplos abaixo, as actions estão com <code>@v4</code>/<code>@v5</code>. Confira a versão major mais recente no README de cada uma: as actions oficiais migram de versão quando o GitHub muda o runtime do Node.</p>
+
+<h2>10.2 marketZapp (Node + Postgres com pg_trgm + Redis)</h2>
+<pre class="good"><span class="lbl">.github/workflows/ci.yml</span>name: CI
+on:
+  push: { branches: [main] }
+  pull_request:
+
+concurrency:                       # cancela execuções antigas do mesmo branch
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults: { run: { working-directory: backend } }
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env: { POSTGRES_USER: app, POSTGRES_PASSWORD: app, POSTGRES_DB: app_test }
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U app" --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+    env:
+      TZ: UTC
+      NODE_ENV: test
+      DATABASE_URL: postgres://app:app@localhost:5432/app_test
+      REDIS_URL: redis://localhost:6379
+      JWT_SECRET: segredo-so-de-ci-nao-usar-em-producao
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: backend/package-lock.json }
+      - run: npm ci
+      - run: psql "$DATABASE_URL" -c 'CREATE EXTENSION IF NOT EXISTS pg_trgm' -f db/schema.sql
+      - run: npx tsc --noEmit            # typecheck
+      - run: npm test</pre>
+<p class="small">O <code>psql</code> já vem instalado no runner Ubuntu. A extensão <code>pg_trgm</code> faz parte da imagem oficial do Postgres. Note que o <code>JWT_SECRET</code> do CI é um valor de teste, escrito no YAML de propósito: não é segredo. Segredos de verdade (para deploy) vão em <b>Settings › Secrets and variables › Actions</b> e são lidos como <code>${{ secrets.NOME }}</code>.</p>
+
+<h2>10.3 Julielton (Python + Postgres)</h2>
+<pre class="good"><span class="lbl">.github/workflows/ci.yml</span>name: CI
+on: { push: { branches: [main] }, pull_request: {} }
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env: { POSTGRES_USER: mabsol, POSTGRES_PASSWORD: mabsol, POSTGRES_DB: mabsol_test }
+        ports: ['5432:5432']
+        options: --health-cmd "pg_isready -U mabsol" --health-interval 5s --health-retries 10
+    env:
+      TZ: UTC
+      TEST_DATABASE_URL: postgresql+psycopg://mabsol:mabsol@localhost:5432/mabsol_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12', cache: pip }
+      - run: pip install -e '.[dev]' ruff
+      - run: ruff check .
+      - run: pytest -q</pre>
+
+<h2>10.4 MesaPay (Go)</h2>
+<pre class="good"><span class="lbl">.github/workflows/ci.yml</span>name: CI
+on: { push: { branches: [main] }, pull_request: {} }
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: backend } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version-file: backend/go.mod }
+      - run: go vet ./...
+      - run: go test -race -shuffle=on ./...
+      # testcontainers-go usa o Docker que já existe no runner ubuntu-latest</pre>
+
+<h2>10.5 Tornar o CI obrigatório</h2>
+<p>Um CI que só avisa é ignorado na primeira pressa. Em <b>Settings › Rules › Rulesets</b> (ou <i>Branch protection</i>), crie uma regra para <code>main</code>: exigir pull request, exigir os <i>status checks</i> do workflow (selecione o job pelo nome) e bloquear push forçado. Sim, mesmo trabalhando sozinho: abrir PR para si mesmo dá um ponto de revisão do diff (regra da trilha) e garante o CI verde antes do merge.</p>
+
+<h2>10.6 Extras baratos e valiosos</h2>
+<ul>
+<li><b>Dependabot</b> (<code>.github/dependabot.yml</code>): PRs automáticos de atualização de dependências e de actions. O CI testa cada um.</li>
+<li><b>gitleaks</b> no CI (Módulo 1, capítulo 9): uma action oficial do projeto roda a varredura a cada push.</li>
+<li><b><code>npm audit --audit-level=high</code></b> / <b><code>pip-audit</code></b> / <b><code>govulncheck</code></b>: vulnerabilidades conhecidas nas dependências.</li>
+<li><b>Permissões mínimas</b>: <code>permissions: { contents: read }</code> no topo do workflow. O token do Actions não precisa poder escrever no repositório para rodar testes.</li>
+</ul>
+<div class="box erro"><span class="t">Erro comum: <code>pull_request_target</code></span><p>Esse evento roda com acesso aos segredos do repositório mesmo para PRs de forks. Combinado com um checkout do código do PR, permite que um estranho rode código com os seus segredos. Para CI de testes, use <code>pull_request</code>.</p></div>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 10</span><ol>
+<li>Dois jobs no mesmo workflow compartilham arquivos? E dois steps?</li>
+<li>Como o job acessa o Postgres do bloco <code>services</code>?</li>
+<li>Por que o <code>JWT_SECRET</code> pode ficar escrito no YAML do CI e a chave de deploy não?</li>
+<li>Para que serve <code>concurrency</code> com <code>cancel-in-progress</code>?</li>
+<li>Como tornar o CI obrigatório para merge?</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 11</span>O pipeline completo e o CD</h1>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Ordenar</b> as etapas de um pipeline do mais barato ao mais caro.</li>
+<li><b>Descrever</b> um deploy contínuo simples para a sua VPS, com rollback.</li></ul></div>
+
+<h2>11.1 A ordem das etapas</h2>
+<figure>
+<svg viewBox="0 0 680 90" width="100%" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="d" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#5b6470"/></marker></defs>
+<g font-size="11" text-anchor="middle">
+<rect x="5" y="20" width="95" height="40" rx="5" fill="#e8f0fa" stroke="#1f5fa8"/><text x="52" y="44">lint + format</text>
+<rect x="117" y="20" width="95" height="40" rx="5" fill="#e8f0fa" stroke="#1f5fa8"/><text x="164" y="44">typecheck</text>
+<rect x="229" y="20" width="95" height="40" rx="5" fill="#e7f5ec" stroke="#1a7f37"/><text x="276" y="44">unitários</text>
+<rect x="341" y="20" width="95" height="40" rx="5" fill="#e7f5ec" stroke="#1a7f37"/><text x="388" y="44">integração</text>
+<rect x="453" y="20" width="95" height="40" rx="5" fill="#fff6db" stroke="#9a6700"/><text x="500" y="44">build imagem</text>
+<rect x="565" y="20" width="110" height="40" rx="5" fill="#fdecea" stroke="#b42318"/><text x="620" y="40">deploy</text><text x="620" y="54" font-size="9.5">(só main / tag)</text>
+<line x1="100" y1="40" x2="115" y2="40" stroke="#5b6470" marker-end="url(#d)"/><line x1="212" y1="40" x2="227" y2="40" stroke="#5b6470" marker-end="url(#d)"/><line x1="324" y1="40" x2="339" y2="40" stroke="#5b6470" marker-end="url(#d)"/><line x1="436" y1="40" x2="451" y2="40" stroke="#5b6470" marker-end="url(#d)"/><line x1="548" y1="40" x2="563" y2="40" stroke="#5b6470" marker-end="url(#d)"/>
+<text x="340" y="82" fill="#5b6470">segundos → minutos: falhar cedo no que é barato</text></g>
+</svg>
+<figcaption>Figura 11.1. Pipeline típico. Cada etapa só roda se a anterior passou.</figcaption>
+</figure>
+
+<h2>11.2 CD simples para a VPS</h2>
+<ol>
+<li>No push para <code>main</code>, com testes verdes, o job de deploy constrói a imagem Docker e a publica no <b>GitHub Container Registry</b> (<code>ghcr.io</code>) com a tag do commit (<code>sha</code>).</li>
+<li>O job conecta por SSH na VPS (chave guardada em <code>secrets</code>, com um usuário só para deploy) e roda <code>docker compose pull &amp;&amp; docker compose up -d</code>.</li>
+<li>Um <b>smoke test</b> chama <code>/health</code>. Se falhar, volta para a tag anterior.</li>
+<li>Use um <b>environment</b> <code>production</code> no GitHub com aprovação manual, se quiser um botão "aprovar deploy".</li>
+</ol>
+<p><b>Rollback</b> é a razão de usar a tag do commit e não <code>latest</code>: voltar é <code>TAG=&lt;sha-anterior&gt; docker compose up -d</code>. Migrações de banco complicam o rollback. O Módulo 4 trata de migrações compatíveis com a versão anterior.</p>
+<div class="box dica"><span class="t">Não precisa fazer tudo agora</span><p>A prioridade deste módulo é o <b>CI</b>. O CD automatizado só vale quando o CI está confiável. Até lá, o deploy manual documentado (como o <code>deploy.md</code> do marketZapp) é suficiente.</p></div>
+
+<h2>11.3 Checklist do pipeline</h2>
+<ul class="check">
+<li>Workflow roda em <code>push</code> para main e em <code>pull_request</code></li>
+<li>Lint, typecheck e testes, nessa ordem</li>
+<li>Postgres (e Redis) como serviço, com a mesma versão de produção</li>
+<li><code>TZ=UTC</code> e variáveis de teste explícitas</li>
+<li>Cache de dependências</li>
+<li><code>permissions: contents: read</code></li>
+<li>Status check obrigatório na <code>main</code></li>
+<li>Dependabot ativado</li>
+<li>gitleaks e auditoria de dependências</li>
+<li>Tempo total abaixo de 10 minutos</li>
+</ul>
+
+<h1><span class="num">Prática</span>Missões nos seus projetos</h1>
+<p>Uma branch por missão (<code>testes/m2-integracao-rh</code>...), commits pequenos, 15 minutos sozinho antes de pedir ajuda e leitura de todo diff.</p>
+<table>
+<tr><th style="width:7%">#</th><th style="width:24%">Missão</th><th>O que fazer</th><th style="width:30%">Pronto quando</th></tr>
+<tr><td>M1</td><td>Matriz de risco</td><td>Para o projeto do Julielton (tem cliente), liste as funcionalidades e classifique na matriz do capítulo 1. Compare com os 13 testes existentes: o que está no quadrante vermelho sem teste?</td><td>Lista priorizada com no máximo 10 itens, salva em <code>docs/</code> do projeto.</td></tr>
+<tr><td>M2</td><td>RH: integração com Postgres real</td><td>Testcontainers + <code>prisma migrate deploy</code> no <code>globalSetup</code>. Escolha as 3 consultas mais críticas (ex.: listagem de candidatos por vaga com filtro de permissão) e teste contra o banco real.</td><td>3 testes de integração passando com <code>npm test</code>, sem depender de nada além do Docker.</td></tr>
+<tr><td>M3</td><td>Matriz de permissões</td><td>No RH (ou no Julielton), monte a tabela rota × papel × status do capítulo 6 e gere os testes. Inclua os testes das missões M1 e M3 do Módulo 1.</td><td>Toda rota de admin aparece na matriz com pelo menos anônimo, papel comum e papel certo.</td></tr>
+<tr><td>M4</td><td>marketZapp: banco de teste isolado e fila</td><td>Fazer os testes que usam Postgres usarem um banco só de teste (<code>_test</code>, recusando outro nome) em vez do <code>.env</code> de dev. Extrair o processador de um job do BullMQ e testar a idempotência (7.3).</td><td><code>npm test</code> passa num clone limpo com só o Docker rodando. Teste de idempotência verde.</td></tr>
+<tr><td>M5</td><td>Primeiro CI</td><td>Criar o <code>ci.yml</code> do marketZapp (10.2), adaptando os caminhos. Depois, Julielton (10.3) e MesaPay (10.4).</td><td>Badge verde nos três repositórios. Um PR com um teste quebrado de propósito aparece vermelho.</td></tr>
+<tr><td>M6</td><td>Proteção da main</td><td>Ruleset exigindo PR e o check do CI na <code>main</code> dos três projetos. Ativar o Dependabot.</td><td>Push direto na main é recusado, e o primeiro PR do Dependabot passa pelo CI.</td></tr>
+</table>
+
+<h1><span class="num">Apêndice A</span>Gabarito e revisão intercalada</h1>
+<div class="gab">
+<h3>Pré-teste</h3>
+<ol>
+<li>Não. Cobertura mede o que foi executado, não o que foi verificado. (8.1)</li>
+<li>O stub fornece entrada (respostas prontas). O mock verifica saída (efeitos colaterais). (4.1)</li>
+<li>Em geral, não: é uma dependência gerenciada, então use o real em container e verifique o estado. (4.2)</li>
+<li>Está acoplado à implementação: falta resistência a refatoração, o que gera falsos positivos. (1.2)</li>
+<li>Teste que passa ou falha sem mudança de código. Causas: tempo/fuso, estado compartilhado, rede, ordem sem <code>ORDER BY</code>. (8.3)</li>
+<li>Injetar o relógio ou usar fake timers. (7.1)</li>
+<li>Workflow = arquivo. Job = conjunto de passos numa máquina. Step = um comando ou action. (10.1)</li>
+<li>Service container no workflow ou Testcontainers. (5.1, 10.2)</li>
+<li>Escrever um teste que reproduz o bug e vê-lo falhar. (9.2)</li>
+<li>Comportamento diferente: tipos, <code>ILIKE</code>, extensões, locks, fuso e constraints. (5.1)</li>
+<li>O merge na main exige o status check verde. Configura-se em Rulesets / Branch protection. (10.5)</li>
+<li>O de isolamento: protege contra vazamento de dados entre clientes, o risco mais caro, e exercita autenticação, rota e consulta juntos. (1.3, 6.2)</li>
+</ol>
+<h3>Capítulo 1</h3>
+<ol>
+<li>Proteção contra regressão, resistência a refatoração, feedback rápido, manutenibilidade. A resistência a refatoração, porque falsos positivos destroem a confiança nos testes.</li>
+<li>Teste que falha sem haver bug. A equipe passa a ignorar falhas.</li>
+<li>Exemplo: permissões de admin (alto/alto), envio de candidatura (alto/médio), máscara de telefone (baixo/alto).</li>
+<li>R$ 199,99, R$ 200,00, R$ 200,01, mais um valor típico abaixo e um acima. Definir se "acima" inclui 200.</li>
+</ol>
+<h3>Capítulo 2</h3>
+<ol>
+<li>Uma ação = um comportamento. Várias linhas indicam API ruim ou teste de vários comportamentos.</li>
+<li>Ex.: "recusa login com senha errada sem revelar se o e-mail existe".</li>
+<li>Reimplementa o código: se a lógica estiver errada nos dois lugares, o teste passa.</li>
+<li>Mostra o que importa no caso, porque só os campos relevantes aparecem, e absorve mudanças no modelo.</li>
+</ol>
+<h3>Capítulo 3</h3>
+<ol>
+<li>Em apps web os bugs moram nas junções (SQL, HTTP, middleware), e containers deixaram a integração rápida.</li>
+<li>Uma unidade de comportamento, que pode envolver várias classes.</li>
+<li>Fixar exemplos reais do evento <code>messages.upsert</code> e validar que o parser os aceita, falhando se o formato mudar.</li>
+</ol>
+<h3>Capítulo 4</h3>
+<ol>
+<li>Stub: dado entra no código testado. Mock: verifica o dado que sai para fora.</li>
+<li>É teste espelho: verifica implementação, não resultado.</li>
+<li>Gerenciadas: Postgres e Redis. Não gerenciadas: API da Anthropic e SMTP.</li>
+<li><code>where</code> sem o filtro de empresa, <code>unique</code> violado, ordenação errada, transação incompleta.</li>
+</ol>
+<h3>Capítulo 5</h3>
+<ol>
+<li>Tipos e coerção, <code>ILIKE</code> e extensões (pg_trgm), concorrência e locks, fuso horário, JSONB.</li>
+<li>Quando o código abre a própria transação ou usa várias conexões.</li>
+<li>Exigir um nome de banco terminando em <code>_test</code> e abortar caso contrário.</li>
+</ol>
+<h3>Capítulo 6</h3>
+<ol>
+<li>Para testar via injeção, sem porta e sem efeitos colaterais.</li>
+<li>Ex.: <code>/admin</code> anônimo 302 para login, usuário comum 403, admin 200, <code>/orcamentos/ID-de-outro</code> 404, logout sem CSRF 400.</li>
+<li>Sem login, sessão expirada, corpo inválido, campo <code>role</code> extra, e-mail duplicado.</li>
+</ol>
+<h3>Capítulo 7</h3>
+<ol>
+<li>Deixa a dependência explícita e funciona em qualquer ferramenta e linguagem.</li>
+<li><code>TZ=UTC</code> no ambiente e datas com fuso explícito.</li>
+<li>Processador como função pura; integração com Redis real.</li>
+<li>Duas operações com <code>Promise.allSettled</code> e verificação do invariante (exatamente uma vence).</li>
+</ol>
+<h3>Capítulo 8</h3>
+<ol>
+<li>Linhas executadas não são linhas verificadas.</li>
+<li>Uma alteração no código que nenhum teste detectou: falta asserção.</li>
+<li>Ver a tabela de 8.3.</li>
+</ol>
+<h3>Capítulo 9</h3>
+<ol>
+<li>Prova que o teste é capaz de falhar, e pelo motivo certo.</li>
+<li>Teste que reproduz (vermelho) → correção (verde) → o teste fica para sempre.</li>
+<li>Teste que fixa o comportamento atual de código legado, para permitir refatorar com segurança.</li>
+</ol>
+<h3>Capítulo 10</h3>
+<ol>
+<li>Jobs não compartilham arquivos (máquinas diferentes, a não ser via artifacts). Steps do mesmo job compartilham.</li>
+<li>Por <code>localhost</code> na porta mapeada (o job roda direto no runner).</li>
+<li>O primeiro é um valor descartável que só existe no CI. A chave de deploy dá acesso real.</li>
+<li>Cancelar execuções obsoletas do mesmo branch, economizando tempo e minutos.</li>
+<li>Ruleset/branch protection exigindo o status check.</li>
+</ol>
+</div>
+
+<h2>Revisão intercalada</h2>
+<div class="quiz"><span class="t">Para cada cenário: qual o problema e qual a correção?</span><ol>
+<li><code>it('cria pedido', async () =&gt; { await criarPedido(dados); })</code></li>
+<li>Os testes passam localmente e falham no CI só entre 21h e 0h.</li>
+<li>O teste do serviço de vagas verifica <code>expect(prisma.vaga.findMany).toHaveBeenCalledWith({...})</code>.</li>
+<li>O CI leva 25 minutos, e a equipe passou a fazer merge sem esperar.</li>
+<li>O teste do lembrete usa <code>await sleep(61_000)</code>.</li>
+<li>O workflow tem <code>DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}</code> no job de testes.</li>
+<li>Um bug de arredondamento no orçamento foi corrigido, sem teste novo.</li>
+<li>Os testes do Go passam, mas em produção aparece <code>concurrent map writes</code>.</li>
+</ol></div>
+<div class="gab"><ol>
+<li>Sem asserção (cap. 2.4). Verificar o pedido gravado e o total.</li>
+<li>Fuso horário: em UTC já é o dia seguinte (cap. 7.1). Use <code>TZ=UTC</code> e datas explícitas.</li>
+<li>Teste espelho de dependência gerenciada (cap. 4.2). Use integração com banco real e verifique o resultado.</li>
+<li>Feedback lento (cap. 1.2 e 11). Paralelizar jobs, cache, mover E2E e mutação para um agendamento noturno.</li>
+<li>Tempo real no teste (cap. 7.1 e 8.3). Fake timers ou relógio injetado.</li>
+<li>Testes contra produção! (cap. 5.1). Use um service container, e o segredo de produção nunca no job de teste.</li>
+<li>Faltou o teste de regressão (cap. 9.2). Escrever o caso que reproduz o erro.</li>
+<li>Faltou <code>go test -race</code> e um teste concorrente (cap. 7.4 e 10.4).</li>
+</ol></div>
+
+<h1><span class="num">Apêndice B</span>Flashcards</h1>
+<table>
+<tr><th style="width:4%">#</th><th style="width:50%">Frente</th><th>Verso</th></tr>
+<tr><td>1</td><td>Os 4 pilares de um bom teste (Khorikov)</td><td>Proteção contra regressão, resistência a refatoração, feedback rápido, manutenibilidade</td></tr>
+<tr><td>2</td><td>Falso positivo em teste</td><td>Falha sem haver bug, normalmente por acoplamento à implementação</td></tr>
+<tr><td>3</td><td>AAA</td><td>Arrange, Act (1 linha), Assert</td></tr>
+<tr><td>4</td><td>F.I.R.S.T.</td><td>Fast, Isolated, Repeatable, Self-validating, Timely</td></tr>
+<tr><td>5</td><td>Pirâmide x troféu</td><td>Pirâmide: base de unitários. Troféu: base de integração</td></tr>
+<tr><td>6</td><td>Unidade na escola clássica</td><td>Unidade de comportamento (pode envolver várias classes)</td></tr>
+<tr><td>7</td><td>Stub x mock</td><td>Stub: entrada pronta. Mock: verifica a saída/efeito</td></tr>
+<tr><td>8</td><td>O que mockar</td><td>Só dependências fora do processo e não gerenciadas (APIs externas, e-mail)</td></tr>
+<tr><td>9</td><td>Banco próprio no teste</td><td>Usar o real (container) e verificar o estado</td></tr>
+<tr><td>10</td><td>Por que não SQLite no lugar de Postgres</td><td>É outro banco: tipos, extensões, locks, fuso, ILIKE</td></tr>
+<tr><td>11</td><td>Testcontainers</td><td>Biblioteca que sobe containers descartáveis a partir do teste</td></tr>
+<tr><td>12</td><td>Isolamento por transação: limitação</td><td>Não funciona se o código abre transação própria ou usa várias conexões</td></tr>
+<tr><td>13</td><td>Fastify / Express / Flask / Gin: testar rota sem porta</td><td><code>app.inject</code> / <code>supertest</code> / <code>test_client</code> / <code>httptest</code></td></tr>
+<tr><td>14</td><td>Matriz de permissões</td><td>Rota × papel × status esperado, um teste por linha</td></tr>
+<tr><td>15</td><td>Testar código com tempo</td><td>Injetar o relógio (preferido) ou fake timers</td></tr>
+<tr><td>16</td><td>Teste de idempotência de job</td><td>Processar o mesmo job 2x e verificar 1 efeito</td></tr>
+<tr><td>17</td><td>Detectar corrida em Go</td><td><code>go test -race</code></td></tr>
+<tr><td>18</td><td>Cobertura de linha x de ramo</td><td>Ramo conta os caminhos de cada condição. Linha só se foi executada</td></tr>
+<tr><td>19</td><td>Mutante sobrevivente</td><td>Mudança no código que nenhum teste detectou</td></tr>
+<tr><td>20</td><td>Política para teste flaky</td><td>Quarentena no mesmo dia, correção em até 1 semana</td></tr>
+<tr><td>21</td><td>Ciclo TDD</td><td>Vermelho → verde → refatorar</td></tr>
+<tr><td>22</td><td>Corrigir bug</td><td>Teste que reproduz primeiro (vermelho), depois a correção</td></tr>
+<tr><td>23</td><td>Teste de caracterização</td><td>Fixa o comportamento atual de código legado para permitir refatorar</td></tr>
+<tr><td>24</td><td>Workflow / job / step</td><td>Arquivo / máquina com passos / um comando ou action</td></tr>
+<tr><td>25</td><td>Service container</td><td>Postgres/Redis que sobe ao lado do job, acessível por localhost</td></tr>
+<tr><td>26</td><td>Tornar o CI obrigatório</td><td>Ruleset na main exigindo status check e PR</td></tr>
+<tr><td>27</td><td>Permissão mínima do token do Actions</td><td><code>permissions: { contents: read }</code></td></tr>
+<tr><td>28</td><td>Perigo do <code>pull_request_target</code></td><td>Roda com segredos para PR de fork</td></tr>
+<tr><td>29</td><td>Por que tag do commit e não <code>latest</code> no deploy</td><td>Permite rollback para uma versão exata</td></tr>
+<tr><td>30</td><td>Ordem do pipeline</td><td>Lint → typecheck → unitários → integração → build → deploy</td></tr>
+</table>
+
+<h1><span class="num">Apêndice C</span>Glossário</h1>
+<table>
+<tr><th style="width:24%">Termo</th><th>Definição</th></tr>
+<tr><td>CI</td><td>Integração contínua: integrar e testar o código automaticamente a cada mudança.</td></tr>
+<tr><td>CD</td><td>Entrega/implantação contínua: levar o código aprovado até produção de forma automatizada.</td></tr>
+<tr><td>Dependência gerenciada</td><td>Recurso fora do processo usado só pela sua aplicação (o seu banco).</td></tr>
+<tr><td>Dublê de teste</td><td>Qualquer objeto que substitui uma dependência real no teste.</td></tr>
+<tr><td>Fake</td><td>Implementação simplificada e funcional (repositório em memória).</td></tr>
+<tr><td>Fixture</td><td>Preparação reutilizável de cenário (pytest) ou dados fixos de teste.</td></tr>
+<tr><td>Flaky</td><td>Teste instável, que passa ou falha sem mudança de código.</td></tr>
+<tr><td>Partição de equivalência</td><td>Agrupar entradas que devem se comportar igual e testar um representante.</td></tr>
+<tr><td>Runner</td><td>Máquina que executa um job do GitHub Actions.</td></tr>
+<tr><td>Smoke test</td><td>Teste rápido de que o sistema subiu e responde (ex.: <code>/health</code>).</td></tr>
+<tr><td>Status check</td><td>Resultado de um job reportado no commit/PR.</td></tr>
+<tr><td>Teste de contrato</td><td>Verifica que o formato de troca com outro serviço continua compatível.</td></tr>
+<tr><td>Teste de mutação</td><td>Altera o código automaticamente para verificar se os testes detectam.</td></tr>
+<tr><td>Teste de propriedade</td><td>Gera muitas entradas e verifica uma propriedade geral (ex.: ordenar duas vezes = ordenar uma vez).</td></tr>
+<tr><td>Valor-limite</td><td>Entrada na fronteira entre partições, onde bugs se concentram.</td></tr>
+</table>
+
+<h1><span class="num">Apêndice D</span>Referências</h1>
+<h2>Técnicas</h2>
+<ul>
+<li>Khorikov, V. <i>Unit Testing: Principles, Practices, and Patterns</i>. Manning, 2020. (Base dos capítulos 1 a 4.)</li>
+<li>Meszaros, G. <i>xUnit Test Patterns</i>. Addison-Wesley, 2007. (Taxonomia de dublês.)</li>
+<li>Beck, K. <i>Test-Driven Development: By Example</i>. Addison-Wesley, 2002.</li>
+<li>Feathers, M. <i>Working Effectively with Legacy Code</i>. Prentice Hall, 2004. (Testes de caracterização.)</li>
+<li>Fowler, M. "The Practical Test Pyramid" (martinfowler.com) e "Mocks Aren't Stubs".</li>
+<li>Dodds, K. C. "The Testing Trophy and Testing Classifications" (kentcdodds.com).</li>
+<li>Documentação: Vitest (Mocking, Fake Timers, Coverage, globalSetup), pytest (fixtures, parametrize, monkeypatch), Go (<code>testing</code>, <code>net/http/httptest</code>, race detector), Testcontainers (Node, Python, Go), GitHub Actions (Workflow syntax, Service containers, Rulesets, Security hardening), Dependabot.</li>
+</ul>
+<h2>Didática</h2>
+<p>As mesmas referências do Módulo 1 (Dunlosky et al., 2013; Roediger e Karpicke, 2006; Sweller; Renkl; Brown, Roediger e McDaniel, 2014).</p>
+<div class="box dica" style="margin-top:8mm"><span class="t">Próximo passo</span><p>Refaça o pré-teste e registre na trilha. O Módulo 3 (Linux, redes e Docker) vai usar o CI que você montou aqui para validar o backup e o deploy.</p></div>
+
+</body>
+</html>

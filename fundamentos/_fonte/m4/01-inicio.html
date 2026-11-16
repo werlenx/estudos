@@ -1,0 +1,180 @@
+
+<section class="capa" style="background:linear-gradient(160deg,#4a2a0a 0%,#9a6700 70%,#b8860b 100%)">
+  <div class="k">Trilha de Fundamentos · Módulo 4</div>
+  <h1>Banco de Dados<br>de Verdade</h1>
+  <div class="sub">Modelagem, índices, planos de execução, transações, concorrência e migrações sem derrubar produção. Postgres como foco, com Prisma, SQLAlchemy, GORM e SQL puro.</div>
+  <div class="itens">
+    <span>Modelagem e restrições</span><span>SQL além do CRUD</span><span>Índices</span><span>EXPLAIN ANALYZE</span>
+    <span>Transações e ACID</span><span>Isolamento e anomalias</span><span>Concorrência na prática</span><span>Migrações seguras</span>
+    <span>Pool, timeouts e vacuum</span><span>Oracle e o Winthor</span>
+  </div>
+  <div class="meta">Versão de novembro de 2026 · Duração prevista: 5 semanas, ~6 h por semana · Leitura de apoio: <i>Use The Index, Luke</i> e <i>Designing Data-Intensive Applications</i>, caps. 2, 3 e 7</div>
+</section>
+
+<h1><span class="num">Antes de começar</span>Como usar este material</h1>
+<p>Mesmo método dos módulos anteriores. Neste módulo, quase todo exemplo deve ser <b>executado</b>: suba um Postgres local (<code>docker run -d --name pglab -e POSTGRES_PASSWORD=lab -p 127.0.0.1:55432:5432 postgres:16-alpine</code>), abra <b>dois terminais <code>psql</code></b> lado a lado e reproduza as anomalias de concorrência com as próprias mãos. Ver o lost update acontecer na sua frente ensina mais que qualquer explicação.</p>
+<div class="fable"><span class="t">Passo 0 · Revisão técnica com o Fable</span>
+<p>Troque para o Fable 5.2 com <code>/model</code> e peça: <i>"Revise <code>~/repo/estudos/fundamentos/modulo-4-banco-de-dados.html</code> como especialista em PostgreSQL: aponte afirmações incorretas ou imprecisas sobre isolamento, locks, índices e migrações, e SQL ou código (Prisma, SQLAlchemy, GORM) que não funciona. Corrija no HTML e gere o PDF de novo com <code>_fonte/gerar.py</code>."</i> Depois volte ao Opus e marque na trilha.</p></div>
+
+<h2>O que os seus projetos já mostram</h2>
+<table>
+<tr><th style="width:18%">Projeto</th><th style="width:22%">Acesso ao banco</th><th>Observação</th></tr>
+<tr><td>RH</td><td>Prisma + migrações do Prisma</td><td>Usa <code>$transaction</code> interativo em vários serviços. Bom ponto de partida para o capítulo 5.</td></tr>
+<tr><td>marketZapp</td><td>SQL puro (<code>pg</code>) + migrações numeradas à mão (<code>001_...sql</code> a <code>007_trigram.sql</code>)</td><td>Usa <code>pg_trgm</code> para duplicatas (capítulo 3). Falta uma forma automática de saber quais migrações já rodaram (capítulo 8).</td></tr>
+<tr><td>Julielton</td><td>SQLAlchemy 2 + Alembic</td><td>"Vale o último que salvou" e aviso de edição simultânea: o caso central do capítulo 7.</td></tr>
+<tr><td>MesaPay</td><td>GORM + <code>AutoMigrate</code></td><td>Índice único <b>parcial</b> por estabelecimento ignorando os excluídos (RN-19, RN-24): exemplo excelente do capítulo 1. O <code>AutoMigrate</code> tem limites sérios (capítulo 8).</td></tr>
+<tr><td>Winthor / Data_Analisys</td><td>Oracle</td><td>Leitura para ETL (capítulo 10).</td></tr>
+</table>
+
+<h2>Cronograma de 5 semanas</h2>
+<table>
+<tr><th style="width:16%">Semana</th><th>Capítulos</th><th style="width:36%">Entrega</th></tr>
+<tr><td>1</td><td>Pré-teste · 1. Modelagem · 2. SQL além do CRUD</td><td>Revisão de tipos e restrições de um projeto</td></tr>
+<tr><td>2</td><td>3. Índices · 4. EXPLAIN</td><td>M1: as 3 consultas mais usadas analisadas</td></tr>
+<tr><td>3</td><td>5. Transações · 6. Isolamento</td><td>Anomalias reproduzidas em dois terminais</td></tr>
+<tr><td>4</td><td>7. Concorrência na prática</td><td>M2 e M3</td></tr>
+<tr><td>5</td><td>8. Migrações · 9. Operação · 10. Oracle · revisão</td><td>M4, M5 e M6, refazer o pré-teste</td></tr>
+</table>
+
+<h2>Sumário</h2>
+<div class="toc">
+<div><b>—</b> Pré-teste</div>
+<div><b>1</b> Modelagem e restrições</div>
+<div><b>2</b> SQL além do CRUD</div>
+<div><b>3</b> Índices</div>
+<div><b>4</b> Lendo o EXPLAIN ANALYZE</div>
+<div><b>5</b> Transações e ACID</div>
+<div><b>6</b> Isolamento e anomalias</div>
+<div><b>7</b> Concorrência na prática</div>
+<div><b>8</b> Migrações seguras</div>
+<div><b>9</b> Pool, timeouts e vacuum</div>
+<div><b>10</b> Além do Postgres: Oracle</div>
+<div><b>—</b> Missões</div>
+<div><b>A</b> Gabarito e revisão intercalada</div>
+<div><b>B</b> Flashcards</div>
+<div><b>C</b> Glossário</div>
+<div><b>D</b> Referências</div>
+</div>
+
+<h1><span class="num">Diagnóstico</span>Pré-teste</h1>
+<div class="quiz"><span class="t">Pré-teste · 12 questões</span>
+<ol>
+<li>Por que nunca guardar dinheiro em coluna <code>float</code>/<code>double</code>?</li>
+<li>Um índice em <code>(estabelecimento_id, criado_em)</code> ajuda uma consulta que filtra só por <code>criado_em</code>? Por quê?</li>
+<li>O que é o problema N+1 e como aparece num ORM?</li>
+<li>Qual o nível de isolamento padrão do Postgres? Ele impede o "lost update"?</li>
+<li>Dois usuários editam o mesmo orçamento e ambos salvam. O que acontece com a edição do primeiro? Cite duas soluções.</li>
+<li>No <code>EXPLAIN ANALYZE</code>, o que significa uma grande diferença entre <code>rows</code> estimado e o real?</li>
+<li>Por que <code>CREATE INDEX</code> numa tabela grande de produção pode derrubar o sistema? Qual a alternativa?</li>
+<li>O que é a técnica expand/contract em migrações?</li>
+<li>Para que serve <code>SELECT ... FOR UPDATE SKIP LOCKED</code>?</li>
+<li>Por que não fazer uma chamada HTTP externa dentro de uma transação do banco?</li>
+<li>Restrição <code>UNIQUE</code> no banco ou validação na aplicação: qual garante unicidade sob concorrência?</li>
+<li>O que acontece se o pool de conexões da aplicação for maior que o <code>max_connections</code> do Postgres?</li>
+</ol></div>
+<p class="small">Nota: ____ / 12 · Data: ___/___/____ &nbsp;&nbsp;&nbsp; Semana 5: ____ / 12 · Data: ___/___/____</p>
+
+<h1><span class="num">Capítulo 1</span>Modelagem e restrições</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>A aplicação já valida que o e-mail é único antes de inserir. Por que ainda assim criar um índice <code>UNIQUE</code>?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Escolher</b> os tipos certos para dinheiro, datas, identificadores e texto.</li>
+<li><b>Usar</b> restrições como a última linha de defesa da integridade.</li>
+<li><b>Aplicar</b> índices únicos parciais e entender os riscos de soft delete.</li></ul></div>
+
+<h2>1.1 Tipos que evitam bugs</h2>
+<table>
+<tr><th style="width:18%">Dado</th><th style="width:28%">Use</th><th>Por quê</th></tr>
+<tr><td>Dinheiro</td><td><code>numeric(12,2)</code> ou inteiro em centavos</td><td><code>0.1 + 0.2 = 0.30000000000000004</code> em ponto flutuante. Em JS, o <code>numeric</code> chega como string: converta com cuidado (centavos, ou uma biblioteca decimal)</td></tr>
+<tr><td>Data e hora</td><td><code>timestamptz</code></td><td>Guarda o instante absoluto (internamente em UTC). <code>timestamp</code> sem fuso é ambíguo</td></tr>
+<tr><td>Só data</td><td><code>date</code></td><td>Aniversário, data de vencimento: não tem fuso</td></tr>
+<tr><td>ID</td><td><code>bigint generated always as identity</code> ou UUID (v7 se puder)</td><td>Identity substitui o <code>serial</code>. O UUID v4 é aleatório e espalha as inserções pelo índice. O v7 é ordenado no tempo</td></tr>
+<tr><td>Texto</td><td><code>text</code> + <code>CHECK</code> de tamanho se precisar</td><td>No Postgres, <code>varchar(n)</code> não é mais rápido que <code>text</code></td></tr>
+<tr><td>Estado / enum</td><td><code>text</code> + <code>CHECK (status IN (...))</code>, ou tabela de referência</td><td>O <code>ENUM</code> do Postgres é difícil de alterar (não dá para remover valores)</td></tr>
+<tr><td>Documento flexível</td><td><code>jsonb</code></td><td>Para atributos variáveis, não para fugir da modelagem</td></tr>
+</table>
+
+<h2>1.2 Restrições: a aplicação valida, o banco garante</h2>
+<p>A validação na aplicação dá mensagens amigáveis. A restrição no banco <b>garante</b>, inclusive contra: duas requisições simultâneas (as duas verificam "não existe" e as duas inserem), um script manual, outra aplicação lendo o mesmo banco, ou um bug. A resposta da pergunta-gatilho é concorrência: <i>check-then-insert</i> na aplicação tem uma janela em que as duas requisições passam.</p>
+<pre class="good"><span class="lbl">SQL · as restrições essenciais</span>CREATE TABLE reserva (
+  id               bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  estabelecimento_id bigint NOT NULL REFERENCES estabelecimento(id),
+  mesa_id          bigint NOT NULL REFERENCES mesa(id),
+  inicio           timestamptz NOT NULL,
+  pessoas          int NOT NULL CHECK (pessoas BETWEEN 1 AND 50),
+  valor_sinal      numeric(10,2) NOT NULL DEFAULT 0 CHECK (valor_sinal &gt;= 0),
+  status           text NOT NULL DEFAULT 'ativa' CHECK (status IN ('ativa','cancelada','concluida')),
+  criado_em        timestamptz NOT NULL DEFAULT now()
+);
+-- uma reserva ativa por mesa e horário:
+CREATE UNIQUE INDEX reserva_mesa_horario ON reserva (mesa_id, inicio) WHERE status = 'ativa';</pre>
+
+<h2>1.3 Exemplo resolvido: o índice parcial do MesaPay</h2>
+<div class="box caso"><span class="t">Caso real · <code>models/indices.go</code></span>
+<pre>CREATE UNIQUE INDEX IF NOT EXISTS idx_mesa_restaurante_numero
+  ON mesas (restaurante_id, numero)
+  WHERE deleted_at IS NULL</pre>
+<p>Três decisões num comando só: <b>(1)</b> o número da mesa é único <b>por estabelecimento</b> (composto), e não no sistema todo; <b>(2)</b> só entre as mesas <b>não excluídas</b> (parcial), senão uma mesa apagada com soft delete ocuparia o número para sempre; <b>(3)</b> no índice de usuários, <code>username IS NOT NULL</code> aproveita que <code>NULL</code> não colide com <code>NULL</code>. O comentário no código explica cada uma. É exatamente assim que se faz.</p></div>
+
+<h2>1.4 Soft delete: cuidados</h2>
+<p>Marcar <code>deleted_at</code> em vez de apagar preserva histórico, mas: toda consulta precisa lembrar o filtro (o GORM faz isso automaticamente, o SQL puro não), índices únicos precisam ser parciais (1.3), chaves estrangeiras continuam apontando para linhas "mortas", e a LGPD pode exigir apagar <b>de verdade</b> os dados pessoais. Alternativa: mover para uma tabela de arquivo, ou anonimizar.</p>
+
+<h2>1.5 Normalização na medida</h2>
+<p>Normalizar (até a 3ª forma normal) é guardar cada fato <b>em um lugar só</b>: o nome do cliente fica na tabela de clientes, e não copiado em cada pedido. Isso evita inconsistência quando o dado muda. <b>Desnormalize de propósito</b> quando o dado é um registro histórico: o <i>preço no momento da venda</i> deve ser copiado para o item do pedido, porque o preço do produto vai mudar e o pedido antigo não pode mudar junto.</p>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 1</span><ol>
+<li>Por que <code>timestamptz</code> e não <code>timestamp</code>?</li>
+<li>Explique a janela de concorrência do "check-then-insert".</li>
+<li>Por que o índice único do MesaPay precisa do <code>WHERE deleted_at IS NULL</code>?</li>
+<li>Dê um exemplo de desnormalização correta.</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 2</span>SQL além do CRUD</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>Quantas consultas o ORM faz para listar 50 vagas com o número de candidatos de cada uma?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Escrever</b> agregações, CTEs, funções de janela e upserts.</li>
+<li><b>Identificar e corrigir</b> o problema N+1 nos três ORMs.</li></ul></div>
+
+<h2>2.1 O kit que resolve 90% dos relatórios</h2>
+<pre class="good"><span class="lbl">Agregação com filtro, CTE e função de janela</span>WITH por_vaga AS (
+  SELECT v.id, v.titulo,
+         count(c.id)                                        AS candidatos,
+         count(c.id) FILTER (WHERE c.status = 'aprovado')   AS aprovados
+  FROM vaga v
+  LEFT JOIN candidatura c ON c.vaga_id = v.id
+  WHERE v.empresa_id = $1
+  GROUP BY v.id, v.titulo
+)
+SELECT *,
+       rank() OVER (ORDER BY candidatos DESC) AS posicao   -- ranking sem perder as linhas
+FROM por_vaga
+ORDER BY candidatos DESC
+LIMIT 50;</pre>
+<ul>
+<li><b><code>LEFT JOIN</code></b> mantém as vagas sem candidatos (o <code>INNER</code> as descartaria).</li>
+<li><b><code>FILTER (WHERE ...)</code></b> conta subconjuntos sem precisar de subconsulta.</li>
+<li><b>Funções de janela</b> (<code>rank</code>, <code>row_number</code>, <code>sum() OVER</code>, <code>lag</code>) calculam sobre um grupo <b>sem agrupar</b> as linhas.</li>
+</ul>
+<pre class="good"><span class="lbl">Upsert e RETURNING</span>INSERT INTO evento_processado (evento_id, processado_em)
+VALUES ($1, now())
+ON CONFLICT (evento_id) DO NOTHING
+RETURNING evento_id;          -- vazio se já existia: idempotência do webhook (Módulo 1, cap. 8)</pre>
+
+<h2>2.2 O problema N+1</h2>
+<p>Buscar uma lista (1 consulta) e, para cada item, buscar o relacionado (N consultas). Com 50 vagas, são 51 idas ao banco. O pior é que funciona bem no seu notebook com 5 linhas e fica lento em produção.</p>
+<pre class="bad"><span class="lbl">Errado · Prisma</span>const vagas = await prisma.vaga.findMany({ where: { empresaId } });
+for (const v of vagas) v.total = await prisma.candidatura.count({ where: { vagaId: v.id } });</pre>
+<pre class="good"><span class="lbl">Certo · nos três ORMs</span>// Prisma: contagem de relação numa consulta só
+prisma.vaga.findMany({ where: { empresaId }, include: { _count: { select: { candidaturas: true } } } });
+
+# SQLAlchemy 2: carregar a relação em lote
+select(Projeto).options(selectinload(Projeto.documentos)).where(Projeto.cliente_id == cid)
+
+// GORM: Preload faz uma consulta extra por relação, não uma por linha
+db.Preload("Itens").Where("estabelecimento_id = ?", id).Find(&amp;comandas)</pre>
+<p><b>Como descobrir:</b> ligue o log de consultas em desenvolvimento (Prisma <code>log: ['query']</code>, SQLAlchemy <code>echo=True</code>, GORM <code>Logger.LogMode(logger.Info)</code>) e conte as linhas por requisição.</p>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 2</span><ol>
+<li>Qual a diferença entre <code>GROUP BY</code> e uma função de janela?</li>
+<li>Como o <code>ON CONFLICT DO NOTHING RETURNING</code> ajuda na idempotência?</li>
+<li>Como detectar N+1 em desenvolvimento?</li>
+</ol></div>

@@ -1,0 +1,227 @@
+
+<h1><span class="num">Capítulo 4</span>IP, portas e DNS</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>Desenhe o caminho de uma requisição desde o navegador digitando <code>api.marketzapp.com.br</code> até o código do Fastify. Quantas caixas você consegue pôr no caminho?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Explicar</b> a diferença entre <code>127.0.0.1</code>, <code>0.0.0.0</code> e o IP da rede.</li>
+<li><b>Descobrir</b> o que está escutando em cada porta.</li>
+<li><b>Consultar</b> e interpretar registros DNS.</li>
+<li><b>Desenhar</b> o caminho completo de uma requisição na sua infra.</li></ul></div>
+
+<h2>4.1 O caso do celular que não abria o localhost</h2>
+<p>Um programa que escuta numa porta escolhe também <b>em qual endereço</b> escutar (o <i>bind</i>):</p>
+<table>
+<tr><th style="width:24%">Bind</th><th>Quem consegue conectar</th></tr>
+<tr><td><code>127.0.0.1</code> (loopback)</td><td>Só processos da <b>própria máquina</b></td></tr>
+<tr><td><code>192.168.0.10</code></td><td>Quem alcança esse endereço (a rede local)</td></tr>
+<tr><td><code>0.0.0.0</code></td><td><b>Todas</b> as interfaces: loopback, rede local e internet, se houver IP público</td></tr>
+</table>
+<p>Vite e Next escutam em <code>127.0.0.1</code> por padrão, por segurança. Por isso o celular, que é <i>outra máquina</i>, não conseguia conectar. A correção é <code>vite --host</code> ou <code>next dev -H 0.0.0.0</code>, e às vezes liberar a porta no firewall do notebook. O mesmo princípio explica o <code>HOST: 0.0.0.0</code> no compose do marketZapp: <b>dentro do container</b>, o app precisa escutar em todas as interfaces, porque o tráfego chega pela interface de rede do container, e não pelo loopback dele.</p>
+<div class="box erro"><span class="t">Erro comum: localhost dentro do container</span><p>Dentro de um container, <code>localhost</code> é <b>o próprio container</b>, e não a VPS nem o outro container. O backend fala com o Postgres pelo <b>nome do serviço</b> na rede do Docker (<code>anunciai-db:5432</code>), não por <code>localhost:5432</code>.</p></div>
+
+<h2>4.2 Quem está escutando?</h2>
+<pre>sudo ss -tlnp            # t=TCP l=escutando n=sem resolver nomes p=processo
+State   Local Address:Port   Process
+LISTEN  127.0.0.1:5432       docker-proxy   ← Postgres só no loopback  ✔
+LISTEN  0.0.0.0:443          docker-proxy   ← Caddy aberto para fora   ✔ (é o objetivo)
+LISTEN  0.0.0.0:6379         redis-server   ← Redis aberto para a internet ✘ PERIGO
+
+nc -zv 203.0.113.50 5432    # de FORA da VPS: a porta responde?
+curl -v telnet://host:porta # alternativa quando não há nc</pre>
+<p>Rodar <code>ss -tlnp</code> é o primeiro passo de qualquer auditoria. Qualquer coisa em <code>0.0.0.0</code> que não seja 22, 80 ou 443 merece uma justificativa.</p>
+
+<h2>4.3 DNS</h2>
+<table>
+<tr><th style="width:12%">Tipo</th><th>Para quê</th><th style="width:40%">Exemplo</th></tr>
+<tr><td>A / AAAA</td><td>Nome → IPv4 / IPv6</td><td><code>api.marketzapp.com.br → 203.0.113.50</code></td></tr>
+<tr><td>CNAME</td><td>Nome → outro nome (apelido)</td><td><code>www → marketzapp.com.br</code></td></tr>
+<tr><td>MX</td><td>Servidor de e-mail do domínio</td><td>—</td></tr>
+<tr><td>TXT</td><td>Texto: verificação de domínio, SPF, DKIM, DMARC</td><td><code>v=spf1 include:... -all</code></td></tr>
+<tr><td>CAA</td><td>Quais autoridades podem emitir certificado</td><td><code>0 issue "letsencrypt.org"</code></td></tr>
+</table>
+<p>O <b>TTL</b> é quanto tempo os resolvedores podem guardar a resposta em cache. Antes de trocar o IP de um servidor, baixe o TTL para 300 s com um dia de antecedência. Com <b>proxy da Cloudflare</b> ligado (a nuvem laranja), o DNS público responde o IP da Cloudflare, e não o da sua VPS: é isso que permite ao firewall do RH aceitar só as faixas da Cloudflare.</p>
+<pre>dig +short api.marketzapp.com.br        # resposta curta
+dig api.marketzapp.com.br @1.1.1.1      # pergunta a um resolvedor específico
+dig +trace marketzapp.com.br            # segue a delegação desde a raiz</pre>
+
+<h2>4.4 O caminho de uma requisição na sua infra</h2>
+<figure>
+<svg viewBox="0 0 680 230" width="100%" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="e" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#5b6470"/></marker></defs>
+<g font-size="10.5" text-anchor="middle">
+<rect x="5" y="20" width="90" height="46" rx="5" fill="#f4f6f8" stroke="#8a939e"/><text x="50" y="40" font-weight="700">Navegador</text><text x="50" y="56">HTTPS</text>
+<rect x="115" y="20" width="90" height="46" rx="5" fill="#f4f6f8" stroke="#8a939e"/><text x="160" y="40" font-weight="700">DNS</text><text x="160" y="56">→ IP Cloudflare</text>
+<rect x="225" y="20" width="100" height="46" rx="5" fill="#fff6db" stroke="#9a6700"/><text x="275" y="40" font-weight="700">Cloudflare</text><text x="275" y="56">TLS 1 · WAF · cache</text>
+<rect x="345" y="20" width="100" height="46" rx="5" fill="#fdecea" stroke="#b42318"/><text x="395" y="40" font-weight="700">Firewall VPS</text><text x="395" y="56">DOCKER-USER</text>
+<rect x="465" y="20" width="95" height="46" rx="5" fill="#e8f0fa" stroke="#1f5fa8"/><text x="512" y="40" font-weight="700">Caddy</text><text x="512" y="56">TLS 2 · proxy</text>
+<rect x="580" y="20" width="95" height="46" rx="5" fill="#e7f5ec" stroke="#1a7f37"/><text x="627" y="40" font-weight="700">Container app</text><text x="627" y="56">rede "edge"</text>
+<line x1="95" y1="43" x2="113" y2="43" stroke="#5b6470" marker-end="url(#e)"/><line x1="205" y1="43" x2="223" y2="43" stroke="#5b6470" marker-end="url(#e)"/><line x1="325" y1="43" x2="343" y2="43" stroke="#5b6470" marker-end="url(#e)"/><line x1="445" y1="43" x2="463" y2="43" stroke="#5b6470" marker-end="url(#e)"/><line x1="560" y1="43" x2="578" y2="43" stroke="#5b6470" marker-end="url(#e)"/>
+<rect x="580" y="120" width="95" height="40" rx="5" fill="#e7f5ec" stroke="#1a7f37"/><text x="627" y="144">Postgres / Redis</text>
+<line x1="627" y1="66" x2="627" y2="118" stroke="#5b6470" marker-end="url(#e)"/>
+<text x="50" y="95" fill="#5b6470">erro aqui:</text><text x="50" y="110" fill="#5b6470">sem internet</text>
+<text x="160" y="95" fill="#5b6470">NXDOMAIN</text><text x="160" y="110" fill="#5b6470">DNS errado</text>
+<text x="275" y="95" fill="#5b6470">52x da</text><text x="275" y="110" fill="#5b6470">Cloudflare</text>
+<text x="395" y="95" fill="#5b6470">timeout</text><text x="395" y="110" fill="#5b6470">(pacote descartado)</text>
+<text x="512" y="95" fill="#5b6470">502: app fora</text><text x="512" y="110" fill="#5b6470">ou nome errado</text>
+<text x="340" y="200" fill="#1b1f24" font-size="11.5">Cada caixa tem um sintoma típico quando falha. Diagnóstico = descobrir em qual caixa parou.</text>
+</g></svg>
+<figcaption>Figura 4.1. O caminho real de uma requisição na sua VPS (RH e marketZapp seguem esse desenho).</figcaption>
+</figure>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 4</span><ol>
+<li>Por que o app dentro do container precisa escutar em <code>0.0.0.0</code>, mas a porta publicada do Postgres deve ser <code>127.0.0.1</code>?</li>
+<li>Como o backend encontra o Postgres na rede do Docker?</li>
+<li>Para que baixar o TTL antes de uma migração de servidor?</li>
+<li>Com o proxy da Cloudflare ligado, que IP o <code>dig</code> público mostra?</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 5</span>TLS, proxy reverso e firewall</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>O <code>deploy.md</code> do marketZapp diz que o <code>TRUST_PROXY</code> errado "quebra dois anti-spam em silêncio". Por que uma configuração de proxy afetaria um anti-spam?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Explicar</b> como o TLS e os certificados funcionam, e o papel do Let's Encrypt.</li>
+<li><b>Configurar</b> um proxy reverso e os cabeçalhos <code>X-Forwarded-*</code>.</li>
+<li><b>Explicar</b> por que o ufw não protege portas do Docker e o que faz o script do RH.</li></ul></div>
+
+<h2>5.1 TLS em três ideias</h2>
+<ol>
+<li><b>Cifra</b> o tráfego, para que ninguém no caminho leia.</li>
+<li><b>Autentica o servidor</b>: o certificado prova que quem responde é dono do domínio, assinado por uma autoridade (CA) em que o navegador confia.</li>
+<li><b>Garante integridade</b>: ninguém altera os dados no caminho.</li>
+</ol>
+<p>O <b>Let's Encrypt</b> emite certificados gratuitos de 90 dias pelo protocolo <b>ACME</b>. O Caddy faz isso sozinho: pede, valida o domínio (desafio HTTP-01 na porta 80 ou TLS-ALPN na 443) e renova. Por isso o comentário do firewall do RH diz que o Caddy precisa conseguir sair para a internet.</p>
+<p><b>Com Cloudflare no meio existem dois TLS</b>: navegador ↔ Cloudflare e Cloudflare ↔ VPS. Use o modo <b>Full (strict)</b>, que exige um certificado válido na VPS. O modo "Flexible" deixa o segundo trecho em HTTP puro, e o modo "Full" sem strict aceita qualquer certificado.</p>
+<pre>curl -vI https://api.marketzapp.com.br 2>&amp;1 | grep -E "subject|issuer|expire"
+openssl s_client -connect host:443 -servername host &lt;/dev/null | openssl x509 -noout -dates</pre>
+
+<h2>5.2 Proxy reverso e o <code>X-Forwarded-For</code></h2>
+<p>O Caddy recebe a conexão e a repassa ao container. Para o app, quem conectou foi o <b>Caddy</b>, então o IP de origem é o do Caddy. O IP real do usuário chega num cabeçalho, <code>X-Forwarded-For</code> (ou <code>CF-Connecting-IP</code>, posto pela Cloudflare). Isso cria dois problemas opostos:</p>
+<ul>
+<li><b>Sem confiar no proxy</b> (<code>trustProxy</code> desligado): o app vê todo mundo com o mesmo IP, o do Caddy. O rate limit por IP bloqueia todos de uma vez, ou não bloqueia ninguém. É o "anti-spam quebrado em silêncio" do marketZapp.</li>
+<li><b>Confiando em qualquer um</b>: um atacante que fala direto com o app manda <code>X-Forwarded-For: 1.2.3.4</code> e escolhe o próprio IP, burlando o rate limit.</li>
+</ul>
+<p>Configure para confiar <b>exatamente</b> no número de saltos ou nas faixas de proxy que existem (Caddy, e Cloudflare se houver), e garanta que ninguém fale com o app sem passar por eles, que é o que o firewall faz.</p>
+
+<h2>5.3 Firewall e Docker: o caso do RH</h2>
+<figure>
+<svg viewBox="0 0 680 170" width="100%" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="f" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#5b6470"/></marker></defs>
+<g font-size="11" text-anchor="middle">
+<rect x="10" y="60" width="110" height="44" rx="5" fill="#f4f6f8" stroke="#8a939e"/><text x="65" y="86">pacote chega</text>
+<rect x="160" y="10" width="160" height="44" rx="5" fill="#e8f0fa" stroke="#1f5fa8"/><text x="240" y="30">INPUT (ufw controla)</text><text x="240" y="45" font-size="10">destino: processo do host (sshd)</text>
+<rect x="160" y="110" width="160" height="44" rx="5" fill="#fff6db" stroke="#9a6700"/><text x="240" y="130">FORWARD</text><text x="240" y="145" font-size="10">destino: container (após DNAT)</text>
+<rect x="360" y="110" width="140" height="44" rx="5" fill="#e7f5ec" stroke="#1a7f37"/><text x="430" y="130" font-weight="700">DOCKER-USER</text><text x="430" y="145" font-size="10">suas regras: o script do RH</text>
+<rect x="540" y="110" width="130" height="44" rx="5" fill="#f4f6f8" stroke="#8a939e"/><text x="605" y="130">regras do Docker</text><text x="605" y="145" font-size="10">→ container</text>
+<line x1="120" y1="75" x2="158" y2="35" stroke="#5b6470" marker-end="url(#f)"/><line x1="120" y1="90" x2="158" y2="130" stroke="#5b6470" marker-end="url(#f)"/>
+<line x1="320" y1="132" x2="358" y2="132" stroke="#5b6470" marker-end="url(#f)"/><line x1="500" y1="132" x2="538" y2="132" stroke="#5b6470" marker-end="url(#f)"/>
+<text x="470" y="40" fill="#b42318">Pacote para container NÃO passa pelo INPUT:</text><text x="470" y="57" fill="#b42318">o "ufw deny 5432" não tem efeito sobre ele.</text>
+</g></svg>
+<figcaption>Figura 5.1. Por que o ufw não protege portas publicadas pelo Docker (simplificado).</figcaption>
+</figure>
+<p>Quando você publica <code>-p 5432:5432</code>, o Docker cria uma regra de <b>NAT</b> que redireciona o pacote para o IP do container. Esse pacote segue pela cadeia <b>FORWARD</b>, e não pela <b>INPUT</b>, que é onde o ufw trabalha. Daí as duas defesas da sua infra:</p>
+<ol>
+<li><b>Não publicar</b> o que não precisa ser público, ou publicar só no loopback (<code>127.0.0.1:5432:5432</code>, como no marketZapp). É a defesa principal.</li>
+<li><b>Regras na cadeia <code>DOCKER-USER</code></b>, que o Docker consulta antes das próprias regras e nunca sobrescreve. O <code>cloudflare-only.sh</code> do RH usa essa cadeia para aceitar 80/443 só das faixas da Cloudflare, com <code>-i eth0</code> para não bloquear o tráfego de <i>saída</i> dos containers.</li>
+</ol>
+<div class="box dica"><span class="t">Explique o seu próprio código</span><p>A missão M1 pede que você explique o <code>cloudflare-only.sh</code> linha por linha, sem IA. Se conseguir, entendeu este capítulo.</p></div>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 5</span><ol>
+<li>Que três garantias o TLS dá?</li>
+<li>Por que usar Cloudflare em "Full (strict)" e não em "Flexible"?</li>
+<li>Explique os dois erros opostos de configuração do <code>trust proxy</code>.</li>
+<li>Por que o ufw não bloqueia uma porta publicada pelo Docker? Quais são as duas defesas?</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 6</span>Docker a fundo</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>O compose do marketZapp diz que o Redis da Evolution "roda com volume ANÔNIMO" e "some num <code>docker compose down -v</code>". O que é um volume anônimo e por que isso é perigoso?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Escrever</b> um Dockerfile pequeno, seguro e com bom uso de cache.</li>
+<li><b>Escolher</b> entre volume nomeado, bind mount e volume anônimo.</li>
+<li><b>Configurar</b> redes, healthchecks, limites e rotação de logs no compose.</li></ul></div>
+
+<h2>6.1 Imagem, camadas e cache</h2>
+<p>Uma <b>imagem</b> é uma pilha de camadas somente leitura, uma por instrução do Dockerfile. Um <b>container</b> é uma imagem com uma camada gravável por cima, <b>que some quando o container é removido</b>. O build reaproveita camadas cujo conteúdo não mudou: por isso a ordem das instruções importa.</p>
+<pre class="bad"><span class="lbl">Errado · qualquer mudança no código reinstala tudo, e roda como root</span>FROM node:22
+COPY . .
+RUN npm install
+CMD ["npm", "start"]</pre>
+<pre class="good"><span class="lbl">Certo · multi-stage, cache de dependências, usuário sem privilégio</span># --- build ---
+FROM node:22-alpine AS build
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci                                  # só refaz se o lockfile mudar
+COPY tsconfig.json ./
+COPY src ./src
+RUN npm run build &amp;&amp; npm prune --omit=dev
+
+# --- runtime ---
+FROM node:22-alpine
+ENV NODE_ENV=production
+WORKDIR /app
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/dist ./dist
+COPY package.json ./
+USER node                                   # a imagem oficial já tem esse usuário
+EXPOSE 3001
+CMD ["node", "dist/server.js"]              # node direto: recebe o SIGTERM (npm start não repassa bem)</pre>
+<ul>
+<li><b><code>.dockerignore</code></b> com <code>node_modules</code>, <code>.env*</code>, <code>.git</code>: build mais rápido e sem segredo dentro da imagem.</li>
+<li>Fixe a versão da imagem base (<code>node:22-alpine</code>, não <code>node:latest</code>). Para reprodutibilidade total, use o <i>digest</i> (<code>@sha256:...</code>).</li>
+<li><code>docker history imagem</code> mostra as camadas e o tamanho de cada uma.</li>
+</ul>
+
+<h2>6.2 Onde os dados vivem</h2>
+<table>
+<tr><th style="width:20%">Tipo</th><th>Declaração</th><th>Quando usar</th><th style="width:26%">Risco</th></tr>
+<tr><td><b>Volume nomeado</b></td><td><code>pgdata:/var/lib/postgresql/data</code> + bloco <code>volumes:</code></td><td>Dados de banco, Redis com AOF</td><td>Some com <code>docker compose down -v</code></td></tr>
+<tr><td><b>Bind mount</b></td><td><code>./uploads:/app/uploads</code></td><td>Arquivos que você quer ver no host, config</td><td>Permissões (UID do container ≠ do host)</td></tr>
+<tr><td><b>Anônimo</b></td><td>Criado pela instrução <code>VOLUME</code> da imagem, sem nome no compose</td><td>Nunca de propósito</td><td>Difícil de achar, de fazer backup, e sai fácil com <code>down -v</code> ou <code>--rm</code></td></tr>
+</table>
+<div class="box erro"><span class="t">Comandos perigosos</span><p><code>docker compose down -v</code> apaga os volumes do projeto. <code>docker volume prune -a</code> apaga <b>todos</b> os volumes não usados por algum container, inclusive os nomeados: o banco de um serviço que estava removido some junto. (Nas versões recentes do Docker, o <code>prune</code> sem <code>-a</code> remove só os anônimos. Confira com <code>docker volume prune --help</code>.) Leia duas vezes antes de rodar em produção.</p></div>
+
+<h2>6.3 Redes</h2>
+<p>Cada projeto do compose ganha uma rede própria, e os serviços se encontram <b>pelo nome</b> (DNS interno do Docker). Projetos diferentes ficam isolados, a não ser que compartilhem uma rede declarada como <code>external</code>. É o que faz a rede <code>edge</code> da sua VPS: o Caddy está nela, e cada app que precisa ser publicado é conectado a ela. O Postgres de cada app fica só na rede interna do próprio projeto, invisível ao Caddy e aos outros apps.</p>
+
+<h2>6.4 O compose de produção, item por item</h2>
+<pre class="good"><span class="lbl">Trecho comentado</span>services:
+  api:
+    image: ghcr.io/usuario/app:${TAG:?defina TAG}   # tag do commit, não latest
+    restart: unless-stopped
+    env_file: .env                                  # chmod 600
+    depends_on:
+      db: { condition: service_healthy }            # espera o banco ficar PRONTO, não só "iniciado"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3001/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources: { limits: { memory: 512M } }       # um vazamento não derruba a VPS inteira
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }   # sem isso, o log cresce até encher o disco
+    networks: [interna, edge]
+  db:
+    image: postgres:16-alpine
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U app"], interval: 5s, retries: 10 }
+    networks: [interna]                             # nenhuma porta publicada
+volumes: { pgdata: {} }
+networks: { interna: {}, edge: { external: true } }</pre>
+<div class="box caso"><span class="t">Caso real · o <code>!override</code> do marketZapp</span><p>Ao combinar <code>docker-compose.yml</code> e <code>docker-compose.prod.yml</code>, o Compose <b>concatena</b> listas como <code>ports</code>. Sem o <code>!override</code>, o Postgres ficaria com <code>5432:5432</code> (do arquivo base) <b>e</b> <code>127.0.0.1:5432:5432</code>: abriria para a internet e depois quebraria com "address already in use". Use <code>docker compose -f a.yml -f b.yml config</code> para ver o resultado final da mescla <b>antes</b> de subir.</p></div>
+<p>O "conflito de Postgres no docker-compose" que você já teve costuma vir daí: dois serviços, ou um Postgres instalado no host e outro no container, querendo a mesma porta 5432 do host. Diagnóstico: <code>sudo ss -tlnp | grep 5432</code>. Correção: publicar em outra porta (<code>55432:5432</code>, como no teste do Julielton) ou não publicar.</p>
+
+<h2>6.5 Comandos de investigação</h2>
+<pre>docker compose ps                         # estado e saúde (healthy/unhealthy)
+docker compose logs -f --tail=100 api     # logs de um serviço
+docker inspect --format '{{json .State.Health}}' api | jq   # por que está unhealthy
+docker compose exec api sh                # entrar no container
+docker stats                              # CPU/memória por container, ao vivo
+docker system df                          # espaço ocupado por imagens, volumes, cache
+docker network inspect edge               # quem está na rede</pre>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 6</span><ol>
+<li>Por que copiar <code>package.json</code> e rodar <code>npm ci</code> antes de copiar o código?</li>
+<li>Diferencie volume nomeado, bind mount e volume anônimo.</li>
+<li>O que <code>depends_on</code> com <code>condition: service_healthy</code> garante a mais?</li>
+<li>Que opção do compose evita que os logs dos containers encham o disco?</li>
+<li>Como ver o compose final depois de mesclar dois arquivos?</li>
+</ol></div>

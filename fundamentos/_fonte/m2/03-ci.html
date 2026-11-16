@@ -1,0 +1,307 @@
+
+<h1><span class="num">Capítulo 7</span>Tempo, aleatoriedade, filas e concorrência</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>A fila do marketZapp "espalha ações por dias". Como testar que uma ação marcada para daqui a 3 dias roda na hora certa, sem esperar 3 dias?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Controlar</b> o tempo e a aleatoriedade nos testes.</li>
+<li><b>Testar</b> jobs do BullMQ em dois níveis.</li>
+<li><b>Escrever</b> um teste que reproduz uma condição de corrida.</li></ul></div>
+
+<h2>7.1 Tempo</h2>
+<p>Código que chama <code>new Date()</code> ou <code>time.Now()</code> por dentro é difícil de testar. Duas saídas:</p>
+<ol>
+<li><b>Injetar o relógio</b> (a preferida): a função recebe <code>agora</code> como parâmetro, ou o serviço recebe um <code>Relogio</code>. Foi o que o exemplo do capítulo 1 fez com a multa.</li>
+<li><b>Relógio falso</b> da ferramenta, quando não dá para mudar o código:</li>
+</ol>
+<pre class="good"><span class="lbl">Vitest · fake timers</span>beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(new Date('2026-11-20T19:00:00-03:00')); });
+afterEach(() => vi.useRealTimers());
+
+it('lembrete dispara 1h antes da reserva', async () => {
+  agendarLembrete(reservaAs20h, enviar);
+  await vi.advanceTimersByTimeAsync(59 * 60_000);
+  expect(enviar).not.toHaveBeenCalled();
+  await vi.advanceTimersByTimeAsync(60_000);
+  expect(enviar).toHaveBeenCalledOnce();
+});</pre>
+<div class="box erro"><span class="t">Erro comum: fuso horário</span><p>Testes que passam no seu notebook (America/Belem, UTC-3) e falham no CI (UTC). Fixe o fuso no ambiente de teste (<code>TZ=UTC</code> no script ou no workflow) e escreva as datas dos testes com fuso explícito. No banco, use <code>timestamptz</code>. O Julielton já trata isso em <code>_data_com_fuso</code>.</p></div>
+
+<h2>7.2 Aleatoriedade</h2>
+<p>IDs, tokens, embaralhamentos e sorteios: injete o gerador, ou verifique <b>propriedades</b> em vez de valores (o token tem 43 caracteres base64url, dois tokens seguidos são diferentes). Para lógica com muitas entradas possíveis, considere <b>testes baseados em propriedades</b> (<code>fast-check</code>, <code>hypothesis</code>, <code>testing/quick</code> e fuzzing nativo do Go), que geram centenas de entradas e encolhem o contraexemplo até o mínimo.</p>
+
+<h2>7.3 Filas (BullMQ) em dois níveis</h2>
+<ol>
+<li><b>O processador como função pura</b>: extraia a lógica do job para uma função <code>processarAcao(dados, deps)</code> e teste como qualquer unidade, sem Redis.</li>
+<li><b>Integração com Redis real</b> (container): adicione o job com <code>delay</code>, avance o relógio e verifique o efeito. Teste também o que acontece quando o job <b>falha</b>: ele é reprocessado (<code>attempts</code>, <code>backoff</code>)? É <b>idempotente</b> se rodar duas vezes?</li>
+</ol>
+<pre class="good"><span class="lbl">Vitest · idempotência do processador</span>it('processar o mesmo job duas vezes envia uma mensagem só', async () => {
+  const evolution = { enviarTexto: vi.fn().mockResolvedValue({ ok: true }) };
+  const job = { id: 'msg-123', data: { para: '5591988887777', texto: 'oi' } };
+
+  await processarAcao(job, { evolution, db });
+  await processarAcao(job, { evolution, db });   // reentrega (crash, retry, duplicata)
+
+  expect(evolution.enviarTexto).toHaveBeenCalledTimes(1);
+});</pre>
+
+<h2>7.4 Concorrência</h2>
+<p>A regra "vale o último que salvou" do Julielton é um problema de concorrência, tema do Módulo 4. O teste que prova o problema é simples: disparar duas operações <b>ao mesmo tempo</b> e verificar o invariante.</p>
+<pre class="good"><span class="lbl">Vitest · duas reservas simultâneas para a última mesa</span>it('não aceita duas reservas para a mesma mesa e horário', async () => {
+  const mesa = await fabrica.mesa();
+  const [a, b] = await Promise.allSettled([
+    reservar(mesa.id, '20:00', clienteA),
+    reservar(mesa.id, '20:00', clienteB),
+  ]);
+  const ok = [a, b].filter((r) => r.status === 'fulfilled');
+  expect(ok).toHaveLength(1);                         // exatamente uma vence
+});</pre>
+<p class="small">Com banco real, esse teste falha se a regra for só um <code>SELECT</code> seguido de <code>INSERT</code> sem constraint <code>UNIQUE</code> nem lock. Em Go, rode a suíte com <code>go test -race</code> para detectar acesso concorrente a memória.</p>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 7</span><ol>
+<li>Por que injetar o relógio é melhor do que usar fake timers?</li>
+<li>Como evitar que um teste com datas quebre só no CI?</li>
+<li>Quais os dois níveis de teste de um job de fila?</li>
+<li>Escreva o esqueleto de um teste que prova uma condição de corrida.</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 8</span>Cobertura, mutação e testes instáveis</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>Escreva um teste que dê 100% de cobertura para uma função e mesmo assim não pegue nenhum bug.</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Interpretar</b> a cobertura de linha e de ramo e saber o que ela não diz.</li>
+<li><b>Usar</b> testes de mutação para medir a qualidade das asserções.</li>
+<li><b>Diagnosticar</b> e curar testes instáveis.</li></ul></div>
+
+<h2>8.1 O que a cobertura diz e o que não diz</h2>
+<p>Cobertura mede quais linhas (ou ramos) <b>foram executadas</b> durante os testes, não quais foram <b>verificadas</b>. Um teste sem nenhum <code>expect</code> pode dar 100%. Por isso:</p>
+<ul>
+<li><b>Cobertura baixa é um sinal útil</b>: mostra código que nenhum teste toca.</li>
+<li><b>Cobertura alta não prova nada</b> sobre a qualidade dos testes.</li>
+<li>Metas rígidas ("80% ou o CI falha") incentivam testes vazios. Prefira: "a cobertura do código <b>novo</b> não cai" e olhar o relatório nos módulos críticos.</li>
+<li>Prefira <b>cobertura de ramos</b>: <code>if (a &amp;&amp; b)</code> com um teste dá 100% de linha e 50% de ramos.</li>
+</ul>
+<pre class="good"><span class="lbl">Como gerar</span>npx vitest run --coverage                 # npm i -D @vitest/coverage-v8
+pytest --cov=mabsol_docs --cov-branch --cov-report=term-missing   # pip install pytest-cov
+go test ./... -coverprofile=c.out &amp;&amp; go tool cover -html=c.out</pre>
+
+<h2>8.2 Testes de mutação: quem testa os testes</h2>
+<p>A ferramenta faz pequenas alterações no seu código (troca <code>&gt;</code> por <code>&gt;=</code>, <code>+</code> por <code>-</code>, apaga uma linha) e roda os testes. Se os testes continuarem passando, o <b>mutante sobreviveu</b>: você tem código executado mas não verificado. É a melhor medida da qualidade das asserções. Ferramentas: <b>Stryker</b> (JS/TS), <b>mutmut</b> (Python), <b>Gremlins</b> e <b>go-mutesting</b> (Go). É lento: rode em um módulo crítico por vez, como o cálculo de orçamento do Julielton, não no CI de todo push.</p>
+
+<h2>8.3 Testes instáveis (flaky)</h2>
+<p>Um teste que às vezes passa e às vezes falha sem mudança de código é pior que nenhum teste: ensina a equipe a apertar "rodar de novo". Causas e curas:</p>
+<table>
+<tr><th>Causa</th><th>Cura</th></tr>
+<tr><td>Tempo real, fuso, <code>sleep</code></td><td>Relógio injetado ou falso, <code>TZ=UTC</code></td></tr>
+<tr><td>Ordem entre testes / estado compartilhado</td><td>Limpar o estado por teste. Rodar em ordem aleatória para expor (<code>vitest --sequence.shuffle</code>, <code>pytest-randomly</code>, <code>go test -shuffle=on</code>)</td></tr>
+<tr><td>Rede externa de verdade</td><td>Mock na fronteira (capítulo 4)</td></tr>
+<tr><td>Ordem de resultado sem <code>ORDER BY</code></td><td>Ordenar na consulta ou comparar sem ordem</td></tr>
+<tr><td>Corrida com operação assíncrona</td><td><code>await</code> no lugar certo. Esperar a <b>condição</b>, não um tempo fixo</td></tr>
+</table>
+<p><b>Política:</b> teste instável vai para a quarentena (marcado como <code>skip</code> com um link para uma issue) <b>no mesmo dia</b>, e é corrigido em até uma semana.</p>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 8</span><ol>
+<li>Por que 100% de cobertura de linha não garante nada?</li>
+<li>O que significa um mutante sobreviver?</li>
+<li>Cite três causas de testes instáveis e a cura de cada uma.</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 9</span>TDD, regressão e código legado</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>Quando a IA gera 200 linhas que "funcionam", como você se protege de quebrá-las na próxima mudança, sem entender cada linha de primeira?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Aplicar</b> o ciclo vermelho-verde-refatorar.</li>
+<li><b>Seguir</b> a regra "todo bug vira teste antes da correção".</li>
+<li><b>Escrever</b> testes de caracterização para código que você não escreveu.</li></ul></div>
+
+<h2>9.1 TDD em uma página</h2>
+<ol>
+<li><b>Vermelho</b>: escreva um teste para o próximo pedaço de comportamento. Rode e <b>veja falhar</b>, pelo motivo certo.</li>
+<li><b>Verde</b>: escreva o <b>mínimo</b> de código para passar.</li>
+<li><b>Refatorar</b>: melhore o código (e o teste) com a rede de segurança ligada.</li>
+</ol>
+<p>Ver o teste falhar antes não é ritual: prova que o teste <b>consegue</b> falhar. Um teste que nunca foi visto vermelho pode estar testando nada. TDD funciona muito bem para regras de negócio bem definidas (RN-XX, cálculos) e menos para exploração de UI ou integração com uma API que você ainda não conhece.</p>
+
+<h2>9.2 Todo bug vira teste, antes da correção</h2>
+<ol>
+<li>Reproduza o bug num teste automatizado. Ele <b>deve falhar</b>.</li>
+<li>Corrija o código. O teste passa.</li>
+<li>O teste fica para sempre e garante que o bug não volta.</li>
+</ol>
+<div class="box caso"><span class="t">Caso real · o marketZapp já faz isso</span><p>O <code>whatsapp.test.ts</code> documenta o incidente do webhook ("qualquer um podia forjar um <code>messages.upsert</code>... que foi o que aconteceu") e cobre até o detalhe sutil do <code>apikey</code> da Evolution que sombrearia o segredo. É o padrão a copiar: o comentário conta a história, e os testes impedem a repetição.</p></div>
+
+<h2>9.3 Testes de caracterização</h2>
+<p>Para código que funciona mas que você não entende totalmente (legado, ou gerado por IA), escreva testes que <b>registram o comportamento atual</b>, seja ele certo ou errado: chame com entradas variadas e fixe as saídas observadas. Agora você pode refatorar e entender com segurança. Quando descobrir que um comportamento está errado, mude o teste <b>de propósito</b>, num commit separado, explicando o porquê.</p>
+<div class="box dica"><span class="t">Fluxo com IA recomendado</span><ol>
+<li>Você escreve (ou dita) os <b>casos de teste</b>, que são a especificação.</li>
+<li>A IA implementa.</li>
+<li>Você lê o diff e roda os testes.</li>
+<li>Peça à IA para <b>atacar</b>: "que entradas quebram esta função?". Cada resposta boa vira um caso novo.</li>
+</ol>
+<p>Assim os testes são seus, mesmo que o código não seja.</p></div>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 9</span><ol>
+<li>Por que é importante ver o teste falhar antes de implementar?</li>
+<li>Quais os três passos para corrigir um bug?</li>
+<li>O que é um teste de caracterização e quando usar?</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 10</span>GitHub Actions do zero</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>O que precisa existir numa máquina limpa para rodar os testes do marketZapp? Liste tudo, na ordem.</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Explicar</b> workflow, evento, job, step, runner e action.</li>
+<li><b>Escrever</b> workflows para Node, Python e Go com Postgres de serviço.</li>
+<li><b>Proteger</b> a branch principal exigindo o CI verde.</li></ul></div>
+
+<h2>10.1 O vocabulário</h2>
+<table>
+<tr><th style="width:18%">Termo</th><th>Significado</th></tr>
+<tr><td>Workflow</td><td>Um arquivo YAML em <code>.github/workflows/</code>. Um repositório pode ter vários</td></tr>
+<tr><td>Evento</td><td>O que dispara o workflow: <code>push</code>, <code>pull_request</code>, <code>schedule</code> (cron), <code>workflow_dispatch</code> (botão manual)</td></tr>
+<tr><td>Job</td><td>Um conjunto de passos que roda numa máquina. Jobs diferentes rodam <b>em paralelo</b>, a não ser que haja <code>needs:</code></td></tr>
+<tr><td>Step</td><td>Um comando (<code>run:</code>) ou uma action (<code>uses:</code>). Os steps de um job compartilham o disco</td></tr>
+<tr><td>Runner</td><td>A máquina virtual, por exemplo <code>ubuntu-latest</code>. Nasce limpa a cada job</td></tr>
+<tr><td>Action</td><td>Um passo reutilizável publicado, como <code>actions/checkout</code> e <code>actions/setup-node</code></td></tr>
+<tr><td>Service container</td><td>Um container (Postgres, Redis) que sobe ao lado do job</td></tr>
+</table>
+<p class="small">Nos exemplos abaixo, as actions estão com <code>@v4</code>/<code>@v5</code>. Confira a versão major mais recente no README de cada uma: as actions oficiais migram de versão quando o GitHub muda o runtime do Node.</p>
+
+<h2>10.2 marketZapp (Node + Postgres com pg_trgm + Redis)</h2>
+<pre class="good"><span class="lbl">.github/workflows/ci.yml</span>name: CI
+on:
+  push: { branches: [main] }
+  pull_request:
+
+concurrency:                       # cancela execuções antigas do mesmo branch
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults: { run: { working-directory: backend } }
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env: { POSTGRES_USER: app, POSTGRES_PASSWORD: app, POSTGRES_DB: app_test }
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U app" --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+    env:
+      TZ: UTC
+      NODE_ENV: test
+      DATABASE_URL: postgres://app:app@localhost:5432/app_test
+      REDIS_URL: redis://localhost:6379
+      JWT_SECRET: segredo-so-de-ci-nao-usar-em-producao
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: backend/package-lock.json }
+      - run: npm ci
+      - run: psql "$DATABASE_URL" -c 'CREATE EXTENSION IF NOT EXISTS pg_trgm' -f db/schema.sql
+      - run: npx tsc --noEmit            # typecheck
+      - run: npm test</pre>
+<p class="small">O <code>psql</code> já vem instalado no runner Ubuntu. A extensão <code>pg_trgm</code> faz parte da imagem oficial do Postgres. Note que o <code>JWT_SECRET</code> do CI é um valor de teste, escrito no YAML de propósito: não é segredo. Segredos de verdade (para deploy) vão em <b>Settings › Secrets and variables › Actions</b> e são lidos como <code>${{ secrets.NOME }}</code>.</p>
+
+<h2>10.3 Julielton (Python + Postgres)</h2>
+<pre class="good"><span class="lbl">.github/workflows/ci.yml</span>name: CI
+on: { push: { branches: [main] }, pull_request: {} }
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env: { POSTGRES_USER: mabsol, POSTGRES_PASSWORD: mabsol, POSTGRES_DB: mabsol_test }
+        ports: ['5432:5432']
+        options: --health-cmd "pg_isready -U mabsol" --health-interval 5s --health-retries 10
+    env:
+      TZ: UTC
+      TEST_DATABASE_URL: postgresql+psycopg://mabsol:mabsol@localhost:5432/mabsol_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12', cache: pip }
+      - run: pip install -e '.[dev]' ruff
+      - run: ruff check .
+      - run: pytest -q</pre>
+
+<h2>10.4 MesaPay (Go)</h2>
+<pre class="good"><span class="lbl">.github/workflows/ci.yml</span>name: CI
+on: { push: { branches: [main] }, pull_request: {} }
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: backend } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version-file: backend/go.mod }
+      - run: go vet ./...
+      - run: go test -race -shuffle=on ./...
+      # testcontainers-go usa o Docker que já existe no runner ubuntu-latest</pre>
+
+<h2>10.5 Tornar o CI obrigatório</h2>
+<p>Um CI que só avisa é ignorado na primeira pressa. Em <b>Settings › Rules › Rulesets</b> (ou <i>Branch protection</i>), crie uma regra para <code>main</code>: exigir pull request, exigir os <i>status checks</i> do workflow (selecione o job pelo nome) e bloquear push forçado. Sim, mesmo trabalhando sozinho: abrir PR para si mesmo dá um ponto de revisão do diff (regra da trilha) e garante o CI verde antes do merge.</p>
+
+<h2>10.6 Extras baratos e valiosos</h2>
+<ul>
+<li><b>Dependabot</b> (<code>.github/dependabot.yml</code>): PRs automáticos de atualização de dependências e de actions. O CI testa cada um.</li>
+<li><b>gitleaks</b> no CI (Módulo 1, capítulo 9): uma action oficial do projeto roda a varredura a cada push.</li>
+<li><b><code>npm audit --audit-level=high</code></b> / <b><code>pip-audit</code></b> / <b><code>govulncheck</code></b>: vulnerabilidades conhecidas nas dependências.</li>
+<li><b>Permissões mínimas</b>: <code>permissions: { contents: read }</code> no topo do workflow. O token do Actions não precisa poder escrever no repositório para rodar testes.</li>
+</ul>
+<div class="box erro"><span class="t">Erro comum: <code>pull_request_target</code></span><p>Esse evento roda com acesso aos segredos do repositório mesmo para PRs de forks. Combinado com um checkout do código do PR, permite que um estranho rode código com os seus segredos. Para CI de testes, use <code>pull_request</code>.</p></div>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 10</span><ol>
+<li>Dois jobs no mesmo workflow compartilham arquivos? E dois steps?</li>
+<li>Como o job acessa o Postgres do bloco <code>services</code>?</li>
+<li>Por que o <code>JWT_SECRET</code> pode ficar escrito no YAML do CI e a chave de deploy não?</li>
+<li>Para que serve <code>concurrency</code> com <code>cancel-in-progress</code>?</li>
+<li>Como tornar o CI obrigatório para merge?</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 11</span>O pipeline completo e o CD</h1>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Ordenar</b> as etapas de um pipeline do mais barato ao mais caro.</li>
+<li><b>Descrever</b> um deploy contínuo simples para a sua VPS, com rollback.</li></ul></div>
+
+<h2>11.1 A ordem das etapas</h2>
+<figure>
+<svg viewBox="0 0 680 90" width="100%" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="d" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#5b6470"/></marker></defs>
+<g font-size="11" text-anchor="middle">
+<rect x="5" y="20" width="95" height="40" rx="5" fill="#e8f0fa" stroke="#1f5fa8"/><text x="52" y="44">lint + format</text>
+<rect x="117" y="20" width="95" height="40" rx="5" fill="#e8f0fa" stroke="#1f5fa8"/><text x="164" y="44">typecheck</text>
+<rect x="229" y="20" width="95" height="40" rx="5" fill="#e7f5ec" stroke="#1a7f37"/><text x="276" y="44">unitários</text>
+<rect x="341" y="20" width="95" height="40" rx="5" fill="#e7f5ec" stroke="#1a7f37"/><text x="388" y="44">integração</text>
+<rect x="453" y="20" width="95" height="40" rx="5" fill="#fff6db" stroke="#9a6700"/><text x="500" y="44">build imagem</text>
+<rect x="565" y="20" width="110" height="40" rx="5" fill="#fdecea" stroke="#b42318"/><text x="620" y="40">deploy</text><text x="620" y="54" font-size="9.5">(só main / tag)</text>
+<line x1="100" y1="40" x2="115" y2="40" stroke="#5b6470" marker-end="url(#d)"/><line x1="212" y1="40" x2="227" y2="40" stroke="#5b6470" marker-end="url(#d)"/><line x1="324" y1="40" x2="339" y2="40" stroke="#5b6470" marker-end="url(#d)"/><line x1="436" y1="40" x2="451" y2="40" stroke="#5b6470" marker-end="url(#d)"/><line x1="548" y1="40" x2="563" y2="40" stroke="#5b6470" marker-end="url(#d)"/>
+<text x="340" y="82" fill="#5b6470">segundos → minutos: falhar cedo no que é barato</text></g>
+</svg>
+<figcaption>Figura 11.1. Pipeline típico. Cada etapa só roda se a anterior passou.</figcaption>
+</figure>
+
+<h2>11.2 CD simples para a VPS</h2>
+<ol>
+<li>No push para <code>main</code>, com testes verdes, o job de deploy constrói a imagem Docker e a publica no <b>GitHub Container Registry</b> (<code>ghcr.io</code>) com a tag do commit (<code>sha</code>).</li>
+<li>O job conecta por SSH na VPS (chave guardada em <code>secrets</code>, com um usuário só para deploy) e roda <code>docker compose pull &amp;&amp; docker compose up -d</code>.</li>
+<li>Um <b>smoke test</b> chama <code>/health</code>. Se falhar, volta para a tag anterior.</li>
+<li>Use um <b>environment</b> <code>production</code> no GitHub com aprovação manual, se quiser um botão "aprovar deploy".</li>
+</ol>
+<p><b>Rollback</b> é a razão de usar a tag do commit e não <code>latest</code>: voltar é <code>TAG=&lt;sha-anterior&gt; docker compose up -d</code>. Migrações de banco complicam o rollback. O Módulo 4 trata de migrações compatíveis com a versão anterior.</p>
+<div class="box dica"><span class="t">Não precisa fazer tudo agora</span><p>A prioridade deste módulo é o <b>CI</b>. O CD automatizado só vale quando o CI está confiável. Até lá, o deploy manual documentado (como o <code>deploy.md</code> do marketZapp) é suficiente.</p></div>
+
+<h2>11.3 Checklist do pipeline</h2>
+<ul class="check">
+<li>Workflow roda em <code>push</code> para main e em <code>pull_request</code></li>
+<li>Lint, typecheck e testes, nessa ordem</li>
+<li>Postgres (e Redis) como serviço, com a mesma versão de produção</li>
+<li><code>TZ=UTC</code> e variáveis de teste explícitas</li>
+<li>Cache de dependências</li>
+<li><code>permissions: contents: read</code></li>
+<li>Status check obrigatório na <code>main</code></li>
+<li>Dependabot ativado</li>
+<li>gitleaks e auditoria de dependências</li>
+<li>Tempo total abaixo de 10 minutos</li>
+</ul>

@@ -1,0 +1,797 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Módulo 4: Banco de Dados</title>
+<style>
+:root{
+  --ink:#1b1f24; --muted:#5b6470; --line:#d8dde3; --soft:#f4f6f8;
+  --accent:#1f5fa8; --accent-soft:#e8f0fa;
+  --bad:#b42318; --bad-soft:#fdecea; --good:#1a7f37; --good-soft:#e7f5ec;
+  --warn:#9a6700; --warn-soft:#fff6db; --lab:#6f42c1; --lab-soft:#f1ecfb;
+}
+@page{ size:A4; margin:20mm 18mm 20mm 18mm;
+  @bottom-right{ content: counter(page); font: 9pt "Noto Sans", sans-serif; color:#5b6470; }
+  @bottom-left{ content: "Módulo 4 · Banco de Dados"; font: 8.5pt "Noto Sans", sans-serif; color:#8a939e; }
+}
+@page capa{ margin:0; @bottom-right{content:none} @bottom-left{content:none} }
+html{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+body{ font-family:"Noto Sans","Liberation Sans",sans-serif; font-size:10.3pt; line-height:1.52; color:var(--ink); background:#fff; margin:0; hyphens:auto; }
+h1,h2,h3,h4{ line-height:1.25; break-after:avoid; }
+h1{ font-size:21pt; color:var(--accent); margin:0 0 4mm; padding-bottom:3mm; border-bottom:2px solid var(--accent); break-before:page; }
+h1 .num{ display:block; font-size:10pt; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); font-weight:600; margin-bottom:1mm; }
+h2{ font-size:13.5pt; margin:6mm 0 2mm; color:#14324f; }
+h3{ font-size:11.2pt; margin:4.5mm 0 1.5mm; }
+p{ margin:0 0 2.6mm; text-align:justify; }
+ul,ol{ margin:0 0 3mm; padding-left:6mm; } li{ margin-bottom:1mm; }
+code{ font-family:"DejaVu Sans Mono",monospace; font-size:8.6pt; background:var(--soft); padding:0 1.2mm; border-radius:2px; }
+pre{ font-family:"DejaVu Sans Mono",monospace; font-size:8.1pt; line-height:1.42; background:#f6f8fa; border:1px solid var(--line); border-left:3px solid #8a939e; padding:2.5mm 3mm; margin:0 0 3.5mm; white-space:pre-wrap; word-break:break-word; break-inside:avoid; }
+pre code{ background:none; padding:0; font-size:inherit; }
+pre.bad{ border-left-color:var(--bad); background:#fffafa; }
+pre.good{ border-left-color:var(--good); background:#fbfffc; }
+pre .lbl{ display:block; font-family:"Noto Sans",sans-serif; font-weight:700; font-size:7.8pt; letter-spacing:.06em; text-transform:uppercase; margin-bottom:1mm; }
+pre.bad .lbl{ color:var(--bad); } pre.good .lbl{ color:var(--good); }
+table{ width:100%; border-collapse:collapse; margin:0 0 4mm; font-size:9.2pt; break-inside:auto; }
+th,td{ border:1px solid var(--line); padding:1.6mm 2mm; text-align:left; vertical-align:top; }
+th{ background:var(--soft); font-weight:700; }
+tr{ break-inside:avoid; }
+.box{ border:1px solid var(--line); border-left:4px solid var(--accent); background:var(--accent-soft); padding:2.6mm 3.4mm; margin:0 0 4mm; break-inside:avoid; }
+.box > :last-child{ margin-bottom:0; }
+.box .t{ display:block; font-weight:700; font-size:8.6pt; letter-spacing:.07em; text-transform:uppercase; margin-bottom:1.2mm; }
+.obj{ border-left-color:var(--accent); } .obj .t{ color:var(--accent); }
+.erro{ border-left-color:var(--bad); background:var(--bad-soft); } .erro .t{ color:var(--bad); }
+.dica{ border-left-color:var(--good); background:var(--good-soft); } .dica .t{ color:var(--good); }
+.caso{ border-left-color:var(--warn); background:var(--warn-soft); } .caso .t{ color:var(--warn); }
+.lab{ border-left-color:var(--lab); background:var(--lab-soft); } .lab .t{ color:var(--lab); }
+.gatilho{ border-left-color:#444; background:#f2f2f2; } .gatilho .t{ color:#333; }
+.quiz{ border:1px solid var(--line); border-top:3px solid var(--ink); padding:3mm 4mm; margin:5mm 0 4mm; background:#fff; }
+.quiz .t{ display:block; font-weight:800; font-size:9pt; letter-spacing:.08em; text-transform:uppercase; margin-bottom:2mm; }
+.quiz ol{ margin-bottom:0; }
+.feyn{ border:1.5px dashed #8a939e; padding:2.5mm 3.4mm; margin:0 0 4mm; break-inside:avoid; }
+.feyn .t{ font-weight:700; font-size:8.6pt; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); display:block; margin-bottom:1mm; }
+.linhas{ height:20mm; background:repeating-linear-gradient(#fff 0 6.6mm, #cfd5dc 6.6mm 6.9mm); margin-top:1mm; }
+figure{ margin:0 0 4mm; break-inside:avoid; text-align:center; }
+figcaption{ font-size:8.6pt; color:var(--muted); margin-top:1.2mm; }
+svg text{ font-family:"Noto Sans",sans-serif; }
+.small{ font-size:8.8pt; color:var(--muted); }
+.two{ display:grid; grid-template-columns:1fr 1fr; gap:4mm; }
+.tag{ display:inline-block; font-size:7.6pt; font-weight:700; padding:.3mm 1.6mm; border-radius:2mm; background:var(--soft); color:var(--muted); letter-spacing:.04em; }
+.check li{ list-style:none; margin-left:-5mm; }
+.check li::before{ content:"☐  "; color:var(--muted); }
+.gab h3{ margin-top:3mm; }
+.gab ol li{ margin-bottom:1.4mm; }
+.toc{ columns:2; column-gap:8mm; font-size:9.6pt; }
+.toc div{ break-inside:avoid; margin-bottom:1.4mm; }
+.toc b{ color:var(--accent); display:inline-block; width:8mm; }
+.capa{ page:capa; height:297mm; box-sizing:border-box; padding:34mm 22mm 20mm; background:linear-gradient(160deg,#0f2f52 0%,#1f5fa8 70%,#2c74c4 100%); color:#fff; position:relative; }
+.capa .k{ font-size:10pt; letter-spacing:.2em; text-transform:uppercase; opacity:.8; }
+.capa h1{ break-before:auto; border:none; color:#fff; font-size:34pt; margin:6mm 0 4mm; padding:0; line-height:1.1; }
+.capa .sub{ font-size:13pt; opacity:.92; max-width:150mm; line-height:1.45; }
+.capa .meta{ position:absolute; bottom:22mm; left:22mm; right:22mm; font-size:9.5pt; opacity:.85; border-top:1px solid rgba(255,255,255,.35); padding-top:4mm; }
+.capa .itens{ margin-top:16mm; font-size:10.5pt; line-height:1.9; opacity:.95; }
+.capa .itens span{ display:inline-block; border:1px solid rgba(255,255,255,.45); border-radius:4mm; padding:.4mm 3mm; margin:0 1.6mm 2mm 0; }
+.nobreak{ break-inside:avoid; }
+.fable{ border:1px solid #6f42c1; background:#f6f2fd; padding:3mm 4mm; margin:4mm 0; break-inside:avoid; }
+.fable .t{ display:block; font-weight:700; font-size:8.6pt; letter-spacing:.07em; text-transform:uppercase; color:#6f42c1; margin-bottom:1mm; }
+</style>
+</head>
+<body>
+<section class="capa" style="background:linear-gradient(160deg,#4a2a0a 0%,#9a6700 70%,#b8860b 100%)">
+  <div class="k">Trilha de Fundamentos · Módulo 4</div>
+  <h1>Banco de Dados<br>de Verdade</h1>
+  <div class="sub">Modelagem, índices, planos de execução, transações, concorrência e migrações sem derrubar produção. Postgres como foco, com Prisma, SQLAlchemy, GORM e SQL puro.</div>
+  <div class="itens">
+    <span>Modelagem e restrições</span><span>SQL além do CRUD</span><span>Índices</span><span>EXPLAIN ANALYZE</span>
+    <span>Transações e ACID</span><span>Isolamento e anomalias</span><span>Concorrência na prática</span><span>Migrações seguras</span>
+    <span>Pool, timeouts e vacuum</span><span>Oracle e o Winthor</span>
+  </div>
+  <div class="meta">Versão de novembro de 2026 · Duração prevista: 5 semanas, ~6 h por semana · Leitura de apoio: <i>Use The Index, Luke</i> e <i>Designing Data-Intensive Applications</i>, caps. 2, 3 e 7</div>
+</section>
+
+<h1><span class="num">Antes de começar</span>Como usar este material</h1>
+<p>Mesmo método dos módulos anteriores. Neste módulo, quase todo exemplo deve ser <b>executado</b>: suba um Postgres local (<code>docker run -d --name pglab -e POSTGRES_PASSWORD=lab -p 127.0.0.1:55432:5432 postgres:16-alpine</code>), abra <b>dois terminais <code>psql</code></b> lado a lado e reproduza as anomalias de concorrência com as próprias mãos. Ver o lost update acontecer na sua frente ensina mais que qualquer explicação.</p>
+<div class="fable"><span class="t">Passo 0 · Revisão técnica com o Fable</span>
+<p>Troque para o Fable 5.2 com <code>/model</code> e peça: <i>"Revise <code>~/repo/estudos/fundamentos/modulo-4-banco-de-dados.html</code> como especialista em PostgreSQL: aponte afirmações incorretas ou imprecisas sobre isolamento, locks, índices e migrações, e SQL ou código (Prisma, SQLAlchemy, GORM) que não funciona. Corrija no HTML e gere o PDF de novo com <code>_fonte/gerar.py</code>."</i> Depois volte ao Opus e marque na trilha.</p></div>
+
+<h2>O que os seus projetos já mostram</h2>
+<table>
+<tr><th style="width:18%">Projeto</th><th style="width:22%">Acesso ao banco</th><th>Observação</th></tr>
+<tr><td>RH</td><td>Prisma + migrações do Prisma</td><td>Usa <code>$transaction</code> interativo em vários serviços. Bom ponto de partida para o capítulo 5.</td></tr>
+<tr><td>marketZapp</td><td>SQL puro (<code>pg</code>) + migrações numeradas à mão (<code>001_...sql</code> a <code>007_trigram.sql</code>)</td><td>Usa <code>pg_trgm</code> para duplicatas (capítulo 3). Falta uma forma automática de saber quais migrações já rodaram (capítulo 8).</td></tr>
+<tr><td>Julielton</td><td>SQLAlchemy 2 + Alembic</td><td>"Vale o último que salvou" e aviso de edição simultânea: o caso central do capítulo 7.</td></tr>
+<tr><td>MesaPay</td><td>GORM + <code>AutoMigrate</code></td><td>Índice único <b>parcial</b> por estabelecimento ignorando os excluídos (RN-19, RN-24): exemplo excelente do capítulo 1. O <code>AutoMigrate</code> tem limites sérios (capítulo 8).</td></tr>
+<tr><td>Winthor / Data_Analisys</td><td>Oracle</td><td>Leitura para ETL (capítulo 10).</td></tr>
+</table>
+
+<h2>Cronograma de 5 semanas</h2>
+<table>
+<tr><th style="width:16%">Semana</th><th>Capítulos</th><th style="width:36%">Entrega</th></tr>
+<tr><td>1</td><td>Pré-teste · 1. Modelagem · 2. SQL além do CRUD</td><td>Revisão de tipos e restrições de um projeto</td></tr>
+<tr><td>2</td><td>3. Índices · 4. EXPLAIN</td><td>M1: as 3 consultas mais usadas analisadas</td></tr>
+<tr><td>3</td><td>5. Transações · 6. Isolamento</td><td>Anomalias reproduzidas em dois terminais</td></tr>
+<tr><td>4</td><td>7. Concorrência na prática</td><td>M2 e M3</td></tr>
+<tr><td>5</td><td>8. Migrações · 9. Operação · 10. Oracle · revisão</td><td>M4, M5 e M6, refazer o pré-teste</td></tr>
+</table>
+
+<h2>Sumário</h2>
+<div class="toc">
+<div><b>—</b> Pré-teste</div>
+<div><b>1</b> Modelagem e restrições</div>
+<div><b>2</b> SQL além do CRUD</div>
+<div><b>3</b> Índices</div>
+<div><b>4</b> Lendo o EXPLAIN ANALYZE</div>
+<div><b>5</b> Transações e ACID</div>
+<div><b>6</b> Isolamento e anomalias</div>
+<div><b>7</b> Concorrência na prática</div>
+<div><b>8</b> Migrações seguras</div>
+<div><b>9</b> Pool, timeouts e vacuum</div>
+<div><b>10</b> Além do Postgres: Oracle</div>
+<div><b>—</b> Missões</div>
+<div><b>A</b> Gabarito e revisão intercalada</div>
+<div><b>B</b> Flashcards</div>
+<div><b>C</b> Glossário</div>
+<div><b>D</b> Referências</div>
+</div>
+
+<h1><span class="num">Diagnóstico</span>Pré-teste</h1>
+<div class="quiz"><span class="t">Pré-teste · 12 questões</span>
+<ol>
+<li>Por que nunca guardar dinheiro em coluna <code>float</code>/<code>double</code>?</li>
+<li>Um índice em <code>(estabelecimento_id, criado_em)</code> ajuda uma consulta que filtra só por <code>criado_em</code>? Por quê?</li>
+<li>O que é o problema N+1 e como aparece num ORM?</li>
+<li>Qual o nível de isolamento padrão do Postgres? Ele impede o "lost update"?</li>
+<li>Dois usuários editam o mesmo orçamento e ambos salvam. O que acontece com a edição do primeiro? Cite duas soluções.</li>
+<li>No <code>EXPLAIN ANALYZE</code>, o que significa uma grande diferença entre <code>rows</code> estimado e o real?</li>
+<li>Por que <code>CREATE INDEX</code> numa tabela grande de produção pode derrubar o sistema? Qual a alternativa?</li>
+<li>O que é a técnica expand/contract em migrações?</li>
+<li>Para que serve <code>SELECT ... FOR UPDATE SKIP LOCKED</code>?</li>
+<li>Por que não fazer uma chamada HTTP externa dentro de uma transação do banco?</li>
+<li>Restrição <code>UNIQUE</code> no banco ou validação na aplicação: qual garante unicidade sob concorrência?</li>
+<li>O que acontece se o pool de conexões da aplicação for maior que o <code>max_connections</code> do Postgres?</li>
+</ol></div>
+<p class="small">Nota: ____ / 12 · Data: ___/___/____ &nbsp;&nbsp;&nbsp; Semana 5: ____ / 12 · Data: ___/___/____</p>
+
+<h1><span class="num">Capítulo 1</span>Modelagem e restrições</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>A aplicação já valida que o e-mail é único antes de inserir. Por que ainda assim criar um índice <code>UNIQUE</code>?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Escolher</b> os tipos certos para dinheiro, datas, identificadores e texto.</li>
+<li><b>Usar</b> restrições como a última linha de defesa da integridade.</li>
+<li><b>Aplicar</b> índices únicos parciais e entender os riscos de soft delete.</li></ul></div>
+
+<h2>1.1 Tipos que evitam bugs</h2>
+<table>
+<tr><th style="width:18%">Dado</th><th style="width:28%">Use</th><th>Por quê</th></tr>
+<tr><td>Dinheiro</td><td><code>numeric(12,2)</code> ou inteiro em centavos</td><td><code>0.1 + 0.2 = 0.30000000000000004</code> em ponto flutuante. Em JS, o <code>numeric</code> chega como string: converta com cuidado (centavos, ou uma biblioteca decimal)</td></tr>
+<tr><td>Data e hora</td><td><code>timestamptz</code></td><td>Guarda o instante absoluto (internamente em UTC). <code>timestamp</code> sem fuso é ambíguo</td></tr>
+<tr><td>Só data</td><td><code>date</code></td><td>Aniversário, data de vencimento: não tem fuso</td></tr>
+<tr><td>ID</td><td><code>bigint generated always as identity</code> ou UUID (v7 se puder)</td><td>Identity substitui o <code>serial</code>. O UUID v4 é aleatório e espalha as inserções pelo índice. O v7 é ordenado no tempo</td></tr>
+<tr><td>Texto</td><td><code>text</code> + <code>CHECK</code> de tamanho se precisar</td><td>No Postgres, <code>varchar(n)</code> não é mais rápido que <code>text</code></td></tr>
+<tr><td>Estado / enum</td><td><code>text</code> + <code>CHECK (status IN (...))</code>, ou tabela de referência</td><td>O <code>ENUM</code> do Postgres é difícil de alterar (não dá para remover valores)</td></tr>
+<tr><td>Documento flexível</td><td><code>jsonb</code></td><td>Para atributos variáveis, não para fugir da modelagem</td></tr>
+</table>
+
+<h2>1.2 Restrições: a aplicação valida, o banco garante</h2>
+<p>A validação na aplicação dá mensagens amigáveis. A restrição no banco <b>garante</b>, inclusive contra: duas requisições simultâneas (as duas verificam "não existe" e as duas inserem), um script manual, outra aplicação lendo o mesmo banco, ou um bug. A resposta da pergunta-gatilho é concorrência: <i>check-then-insert</i> na aplicação tem uma janela em que as duas requisições passam.</p>
+<pre class="good"><span class="lbl">SQL · as restrições essenciais</span>CREATE TABLE reserva (
+  id               bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  estabelecimento_id bigint NOT NULL REFERENCES estabelecimento(id),
+  mesa_id          bigint NOT NULL REFERENCES mesa(id),
+  inicio           timestamptz NOT NULL,
+  pessoas          int NOT NULL CHECK (pessoas BETWEEN 1 AND 50),
+  valor_sinal      numeric(10,2) NOT NULL DEFAULT 0 CHECK (valor_sinal &gt;= 0),
+  status           text NOT NULL DEFAULT 'ativa' CHECK (status IN ('ativa','cancelada','concluida')),
+  criado_em        timestamptz NOT NULL DEFAULT now()
+);
+-- uma reserva ativa por mesa e horário:
+CREATE UNIQUE INDEX reserva_mesa_horario ON reserva (mesa_id, inicio) WHERE status = 'ativa';</pre>
+
+<h2>1.3 Exemplo resolvido: o índice parcial do MesaPay</h2>
+<div class="box caso"><span class="t">Caso real · <code>models/indices.go</code></span>
+<pre>CREATE UNIQUE INDEX IF NOT EXISTS idx_mesa_restaurante_numero
+  ON mesas (restaurante_id, numero)
+  WHERE deleted_at IS NULL</pre>
+<p>Três decisões num comando só: <b>(1)</b> o número da mesa é único <b>por estabelecimento</b> (composto), e não no sistema todo; <b>(2)</b> só entre as mesas <b>não excluídas</b> (parcial), senão uma mesa apagada com soft delete ocuparia o número para sempre; <b>(3)</b> no índice de usuários, <code>username IS NOT NULL</code> aproveita que <code>NULL</code> não colide com <code>NULL</code>. O comentário no código explica cada uma. É exatamente assim que se faz.</p></div>
+
+<h2>1.4 Soft delete: cuidados</h2>
+<p>Marcar <code>deleted_at</code> em vez de apagar preserva histórico, mas: toda consulta precisa lembrar o filtro (o GORM faz isso automaticamente, o SQL puro não), índices únicos precisam ser parciais (1.3), chaves estrangeiras continuam apontando para linhas "mortas", e a LGPD pode exigir apagar <b>de verdade</b> os dados pessoais. Alternativa: mover para uma tabela de arquivo, ou anonimizar.</p>
+
+<h2>1.5 Normalização na medida</h2>
+<p>Normalizar (até a 3ª forma normal) é guardar cada fato <b>em um lugar só</b>: o nome do cliente fica na tabela de clientes, e não copiado em cada pedido. Isso evita inconsistência quando o dado muda. <b>Desnormalize de propósito</b> quando o dado é um registro histórico: o <i>preço no momento da venda</i> deve ser copiado para o item do pedido, porque o preço do produto vai mudar e o pedido antigo não pode mudar junto.</p>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 1</span><ol>
+<li>Por que <code>timestamptz</code> e não <code>timestamp</code>?</li>
+<li>Explique a janela de concorrência do "check-then-insert".</li>
+<li>Por que o índice único do MesaPay precisa do <code>WHERE deleted_at IS NULL</code>?</li>
+<li>Dê um exemplo de desnormalização correta.</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 2</span>SQL além do CRUD</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>Quantas consultas o ORM faz para listar 50 vagas com o número de candidatos de cada uma?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Escrever</b> agregações, CTEs, funções de janela e upserts.</li>
+<li><b>Identificar e corrigir</b> o problema N+1 nos três ORMs.</li></ul></div>
+
+<h2>2.1 O kit que resolve 90% dos relatórios</h2>
+<pre class="good"><span class="lbl">Agregação com filtro, CTE e função de janela</span>WITH por_vaga AS (
+  SELECT v.id, v.titulo,
+         count(c.id)                                        AS candidatos,
+         count(c.id) FILTER (WHERE c.status = 'aprovado')   AS aprovados
+  FROM vaga v
+  LEFT JOIN candidatura c ON c.vaga_id = v.id
+  WHERE v.empresa_id = $1
+  GROUP BY v.id, v.titulo
+)
+SELECT *,
+       rank() OVER (ORDER BY candidatos DESC) AS posicao   -- ranking sem perder as linhas
+FROM por_vaga
+ORDER BY candidatos DESC
+LIMIT 50;</pre>
+<ul>
+<li><b><code>LEFT JOIN</code></b> mantém as vagas sem candidatos (o <code>INNER</code> as descartaria).</li>
+<li><b><code>FILTER (WHERE ...)</code></b> conta subconjuntos sem precisar de subconsulta.</li>
+<li><b>Funções de janela</b> (<code>rank</code>, <code>row_number</code>, <code>sum() OVER</code>, <code>lag</code>) calculam sobre um grupo <b>sem agrupar</b> as linhas.</li>
+</ul>
+<pre class="good"><span class="lbl">Upsert e RETURNING</span>INSERT INTO evento_processado (evento_id, processado_em)
+VALUES ($1, now())
+ON CONFLICT (evento_id) DO NOTHING
+RETURNING evento_id;          -- vazio se já existia: idempotência do webhook (Módulo 1, cap. 8)</pre>
+
+<h2>2.2 O problema N+1</h2>
+<p>Buscar uma lista (1 consulta) e, para cada item, buscar o relacionado (N consultas). Com 50 vagas, são 51 idas ao banco. O pior é que funciona bem no seu notebook com 5 linhas e fica lento em produção.</p>
+<pre class="bad"><span class="lbl">Errado · Prisma</span>const vagas = await prisma.vaga.findMany({ where: { empresaId } });
+for (const v of vagas) v.total = await prisma.candidatura.count({ where: { vagaId: v.id } });</pre>
+<pre class="good"><span class="lbl">Certo · nos três ORMs</span>// Prisma: contagem de relação numa consulta só
+prisma.vaga.findMany({ where: { empresaId }, include: { _count: { select: { candidaturas: true } } } });
+
+# SQLAlchemy 2: carregar a relação em lote
+select(Projeto).options(selectinload(Projeto.documentos)).where(Projeto.cliente_id == cid)
+
+// GORM: Preload faz uma consulta extra por relação, não uma por linha
+db.Preload("Itens").Where("estabelecimento_id = ?", id).Find(&amp;comandas)</pre>
+<p><b>Como descobrir:</b> ligue o log de consultas em desenvolvimento (Prisma <code>log: ['query']</code>, SQLAlchemy <code>echo=True</code>, GORM <code>Logger.LogMode(logger.Info)</code>) e conte as linhas por requisição.</p>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 2</span><ol>
+<li>Qual a diferença entre <code>GROUP BY</code> e uma função de janela?</li>
+<li>Como o <code>ON CONFLICT DO NOTHING RETURNING</code> ajuda na idempotência?</li>
+<li>Como detectar N+1 em desenvolvimento?</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 3</span>Índices</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>Se índice deixa a consulta rápida, por que não criar um índice em cada coluna?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Explicar</b> como uma árvore B encontra uma linha.</li>
+<li><b>Definir</b> a ordem das colunas de um índice composto.</li>
+<li><b>Escolher</b> entre índice B-tree, parcial, de expressão, GIN e covering.</li></ul></div>
+
+<h2>3.1 Como um índice B-tree funciona</h2>
+<p>Imagine a lista telefônica: ordenada por sobrenome e nome, você acha "Silva, Maria" sem ler tudo. O índice B-tree é uma estrutura ordenada pelos valores das colunas, com ponteiros para as linhas. Ele acha um valor em poucos passos (logarítmico), e também serve para <b>intervalos</b> (<code>BETWEEN</code>, <code>&gt;</code>) e para <b>ordenar</b> (<code>ORDER BY</code>) sem ordenação extra.</p>
+<p>A mesma lista telefônica explica a regra mais importante: ela <b>não ajuda</b> a achar todas as "Marias" se você não sabe o sobrenome. É a <b>regra do prefixo à esquerda</b>.</p>
+
+<h2>3.2 Índice composto: a ordem importa</h2>
+<table>
+<tr><th>Índice em <code>(estabelecimento_id, criado_em)</code></th><th>Usa o índice?</th></tr>
+<tr><td><code>WHERE estabelecimento_id = 7</code></td><td>Sim (prefixo)</td></tr>
+<tr><td><code>WHERE estabelecimento_id = 7 AND criado_em &gt; now() - '7 days'</code></td><td>Sim, e muito bem: igualdade primeiro, intervalo depois</td></tr>
+<tr><td><code>WHERE estabelecimento_id = 7 ORDER BY criado_em DESC LIMIT 20</code></td><td>Sim, e sem ordenar: lê as 20 primeiras do índice</td></tr>
+<tr><td><code>WHERE criado_em &gt; now() - '7 days'</code></td><td>Em geral, não de forma eficiente (falta o prefixo)</td></tr>
+</table>
+<p><b>Regra prática:</b> colunas comparadas por <b>igualdade</b> primeiro, depois a de <b>intervalo ou ordenação</b>. Em sistemas multi-tenant, o <code>tenant_id</code> quase sempre vai na frente, porque toda consulta filtra por ele (Módulo 1, capítulo 4).</p>
+
+<h2>3.3 Tipos de índice que você vai usar</h2>
+<table>
+<tr><th style="width:20%">Tipo</th><th>Exemplo</th><th style="width:28%">Para quê</th></tr>
+<tr><td>Parcial</td><td><code>... WHERE deleted_at IS NULL</code></td><td>Indexar só as linhas consultadas. Menor e mais rápido (MesaPay)</td></tr>
+<tr><td>De expressão</td><td><code>CREATE INDEX ON usuario (lower(email))</code></td><td>Busca sem diferenciar maiúsculas. A consulta precisa usar a <b>mesma</b> expressão</td></tr>
+<tr><td>Covering</td><td><code>CREATE INDEX ON pedido (cliente_id) INCLUDE (total)</code></td><td>Permite <i>Index Only Scan</i>, sem ler a tabela</td></tr>
+<tr><td>GIN + <code>pg_trgm</code></td><td><code>CREATE INDEX ON anuncio USING gin (titulo gin_trgm_ops)</code></td><td><code>ILIKE '%texto%'</code> e similaridade (o caso do marketZapp)</td></tr>
+<tr><td>GIN em <code>jsonb</code></td><td><code>USING gin (dados jsonb_path_ops)</code></td><td>Consultas <code>@&gt;</code> em documentos</td></tr>
+</table>
+
+<h2>3.4 O custo dos índices</h2>
+<p>Cada índice é uma estrutura a mais para atualizar em <b>todo</b> <code>INSERT</code>, <code>UPDATE</code> de coluna indexada e <code>DELETE</code>. Ele também ocupa disco e memória de cache. Índice que nenhuma consulta usa é só custo. Para encontrá-los:</p>
+<pre>SELECT relname AS tabela, indexrelname AS indice, idx_scan AS usos,
+       pg_size_pretty(pg_relation_size(indexrelid)) AS tamanho
+FROM pg_stat_user_indexes ORDER BY idx_scan ASC LIMIT 20;</pre>
+<p class="small">Chaves estrangeiras <b>não</b> ganham índice automático no Postgres. Indexe a coluna FK do lado "muitos" (<code>candidatura.vaga_id</code>), senão os joins e o <code>DELETE</code> do pai ficam lentos.</p>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 3</span><ol>
+<li>Explique a regra do prefixo à esquerda com a analogia da lista telefônica.</li>
+<li>Qual a ordem correta das colunas para <code>WHERE status = 'ativa' AND inicio BETWEEN ...</code>?</li>
+<li>Por que <code>WHERE lower(email) = $1</code> não usa um índice em <code>email</code>?</li>
+<li>Qual índice faz <code>ILIKE '%joão%'</code> ficar rápido?</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 4</span>Lendo o EXPLAIN ANALYZE</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>Uma consulta leva 2 segundos em produção e 5 ms no seu notebook. Qual a primeira coisa que você faz?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Ler</b> um plano de execução e achar o nó caro.</li>
+<li><b>Diagnosticar</b> estimativas erradas e falta de índice.</li>
+<li><b>Encontrar</b> as consultas mais caras do sistema com <code>pg_stat_statements</code>.</li></ul></div>
+
+<h2>4.1 Exemplo resolvido</h2>
+<pre>EXPLAIN (ANALYZE, BUFFERS)
+SELECT * FROM comanda WHERE estabelecimento_id = 7 AND status = 'aberta' ORDER BY aberta_em DESC LIMIT 20;
+
+Limit  (cost=0.00..4210.33 rows=20 width=96) (actual time=0.03..812.40 rows=20 loops=1)
+  -&gt;  Sort  (actual time=812.38..812.39 rows=20 loops=1)
+        Sort Key: aberta_em DESC
+        -&gt;  Seq Scan on comanda  (cost=0.00..4100.00 rows=150 width=96)
+                                  (actual time=0.02..809.10 rows=1840 loops=1)
+              Filter: ((estabelecimento_id = 7) AND (status = 'aberta'))
+              Rows Removed by Filter: 498160
+  Buffers: shared read=3100
+Planning Time: 0.2 ms
+Execution Time: 812.5 ms</pre>
+<p><b>Leitura, de dentro para fora (o nó mais indentado roda primeiro):</b></p>
+<ol>
+<li><b>Seq Scan</b>: leu a tabela inteira (500 mil linhas) e descartou 498.160 (<i>Rows Removed by Filter</i>). Esse é o nó caro.</li>
+<li><b>Estimativa errada</b>: esperava 150 linhas (<code>rows=150</code>) e vieram 1.840. Estimativas muito erradas levam a planos ruins. Rode <code>ANALYZE comanda</code> para atualizar as estatísticas.</li>
+<li><b>Sort</b> depois do filtro: precisou ordenar porque nenhum índice entrega <code>aberta_em</code> já ordenado.</li>
+<li><code>shared read=3100</code>: 3.100 blocos lidos do disco (não estavam em cache).</li>
+</ol>
+<pre class="good"><span class="lbl">Correção</span>CREATE INDEX CONCURRENTLY comanda_estab_status_aberta
+  ON comanda (estabelecimento_id, status, aberta_em DESC);
+
+-- novo plano:
+Limit  (actual time=0.04..0.09 rows=20 loops=1)
+  -&gt;  Index Scan using comanda_estab_status_aberta on comanda (actual rows=20 loops=1)
+        Index Cond: ((estabelecimento_id = 7) AND (status = 'aberta'))
+Execution Time: 0.12 ms</pre>
+<p>De 812 ms para 0,12 ms: igualdade primeiro, ordenação depois, e o <code>LIMIT</code> para de ler após 20 linhas.</p>
+
+<h2>4.2 Glossário dos nós</h2>
+<table>
+<tr><th style="width:24%">Nó</th><th>Significa</th></tr>
+<tr><td>Seq Scan</td><td>Leitura da tabela inteira. Normal em tabelas pequenas ou quando a maioria das linhas é retornada</td></tr>
+<tr><td>Index Scan</td><td>Percorre o índice e busca cada linha na tabela</td></tr>
+<tr><td>Index Only Scan</td><td>Responde só com o índice (covering). O mais rápido</td></tr>
+<tr><td>Bitmap Heap Scan</td><td>Junta vários resultados de índice e lê a tabela em ordem física. Bom para volumes médios</td></tr>
+<tr><td>Nested Loop</td><td>Para cada linha de um lado, procura no outro. Ótimo se um lado é pequeno e o outro indexado</td></tr>
+<tr><td>Hash Join</td><td>Monta uma tabela hash de um lado. Bom para junções grandes sem ordem</td></tr>
+<tr><td>Sort / "external merge Disk"</td><td>Ordenação. "Disk" indica que não coube no <code>work_mem</code></td></tr>
+</table>
+<div class="box erro"><span class="t">Erro comum</span><p>Testar desempenho com 50 linhas. Com tabela pequena o Postgres <b>prefere</b> Seq Scan, e com razão. Gere volume realista para testar: <code>INSERT ... SELECT FROM generate_series(1, 500000)</code>. E cuidado: <code>EXPLAIN ANALYZE</code> <b>executa</b> a consulta. Num <code>UPDATE</code> ou <code>DELETE</code>, use dentro de <code>BEGIN; ... ROLLBACK;</code>.</p></div>
+
+<h2>4.3 Achar as consultas que importam: <code>pg_stat_statements</code></h2>
+<pre>-- habilitar: shared_preload_libraries = 'pg_stat_statements' (no compose: command: postgres -c shared_preload_libraries=pg_stat_statements)
+CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+
+SELECT round(total_exec_time) AS ms_total, calls, round(mean_exec_time,1) AS ms_media,
+       left(query, 80) AS consulta
+FROM pg_stat_statements ORDER BY total_exec_time DESC LIMIT 10;</pre>
+<p>Otimize pelo <b>tempo total</b> (média × chamadas), não pela consulta mais lenta: uma de 5 ms chamada um milhão de vezes pesa mais que uma de 2 s chamada uma vez por dia.</p>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 4</span><ol>
+<li>Em que ordem se lê um plano?</li>
+<li>O que indica "Rows Removed by Filter" alto?</li>
+<li>Por que o Postgres escolhe Seq Scan na sua base de teste com 50 linhas?</li>
+<li>Por que otimizar pelo tempo total e não pela consulta mais lenta?</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 5</span>Transações e ACID</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>Um pagamento é registrado e, na linha seguinte, a atualização da comanda falha. O que fica gravado no banco?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Explicar</b> as quatro garantias ACID.</li>
+<li><b>Usar</b> transações no Prisma, no SQLAlchemy e no GORM.</li>
+<li><b>Evitar</b> os erros que deixam transações longas ou abertas.</li></ul></div>
+
+<h2>5.1 ACID</h2>
+<table>
+<tr><th style="width:18%">Letra</th><th>Garantia</th></tr>
+<tr><td><b>A</b>tomicidade</td><td>Tudo ou nada. Se algo falha no meio, nada fica gravado. (A resposta da pergunta-gatilho, <b>se</b> as duas operações estiverem na mesma transação.)</td></tr>
+<tr><td><b>C</b>onsistência</td><td>A transação leva o banco de um estado válido a outro: as restrições valem no fim.</td></tr>
+<tr><td><b>I</b>solamento</td><td>Transações simultâneas não se atrapalham... até certo ponto, que é o capítulo 6.</td></tr>
+<tr><td><b>D</b>urabilidade</td><td>Depois do <code>COMMIT</code>, sobrevive a queda de energia (graças ao WAL).</td></tr>
+</table>
+
+<h2>5.2 Nas suas ferramentas</h2>
+<pre class="good"><span class="lbl">Prisma (RH): transação interativa</span>await prisma.$transaction(async (tx) => {
+  const pag = await tx.pagamento.create({ data: { comandaId, valor } });
+  await tx.comanda.update({ where: { id: comandaId }, data: { status: 'paga' } });
+  return pag;
+}, { timeout: 5000 });          // se qualquer linha lançar erro, ROLLBACK de tudo</pre>
+<pre class="good"><span class="lbl">SQLAlchemy 2 (Julielton)</span>with Session(engine) as s, s.begin():     # COMMIT ao sair; ROLLBACK se houver exceção
+    s.add(Pagamento(comanda_id=cid, valor=v))
+    s.get(Comanda, cid).status = "paga"</pre>
+<pre class="good"><span class="lbl">GORM (MesaPay)</span>err := db.Transaction(func(tx *gorm.DB) error {
+    if err := tx.Create(&amp;pagamento).Error; err != nil { return err }       // erro → ROLLBACK
+    return tx.Model(&amp;Comanda{}).Where("id = ?", id).Update("status", "paga").Error
+})</pre>
+<div class="box erro"><span class="t">Três erros clássicos</span><ul>
+<li><b>Usar o cliente global dentro da transação</b>: no Prisma, chamar <code>prisma.x</code> em vez de <code>tx.x</code> dentro do <code>$transaction</code> executa <b>fora</b> da transação. No GORM, o mesmo com <code>db</code> em vez de <code>tx</code>.</li>
+<li><b>Chamada externa dentro da transação</b> (Evolution, e-mail, Anthropic): a transação fica aberta segurando locks enquanto a rede demora. E se a chamada externa der certo e o <code>COMMIT</code> falhar, a mensagem foi enviada para algo que não existe. Faça o externo <b>depois</b> do commit, de preferência via fila (padrão <i>outbox</i>, Módulo 5).</li>
+<li><b>Transação esquecida aberta</b> (<code>idle in transaction</code>): segura locks e impede o vacuum. Configure <code>idle_in_transaction_session_timeout</code> (capítulo 9).</li>
+</ul></div>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 5</span><ol>
+<li>Explique cada letra do ACID com um exemplo do MesaPay.</li>
+<li>Por que <code>prisma.x</code> dentro do <code>$transaction</code> é um bug?</li>
+<li>Por que não enviar a mensagem do WhatsApp dentro da transação?</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 6</span>Isolamento e anomalias</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>Duas transações leem o saldo (R$ 100), cada uma subtrai R$ 30 e grava. Qual o saldo final? Qual deveria ser?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Nomear e reproduzir</b> as anomalias de concorrência.</li>
+<li><b>Prever</b> o que cada nível de isolamento do Postgres impede.</li>
+<li><b>Tratar</b> erros de serialização com retry.</li></ul></div>
+
+<h2>6.1 As anomalias</h2>
+<table>
+<tr><th style="width:22%">Anomalia</th><th>O que acontece</th></tr>
+<tr><td>Leitura suja</td><td>Ler dado não confirmado de outra transação. <b>O Postgres nunca permite.</b></td></tr>
+<tr><td>Leitura não repetível</td><td>Ler a mesma linha duas vezes na transação e obter valores diferentes</td></tr>
+<tr><td>Fantasma</td><td>Repetir uma consulta com <code>WHERE</code> e aparecerem linhas novas</td></tr>
+<tr><td><b>Atualização perdida</b> (lost update)</td><td>Duas transações leem, calculam e gravam: a segunda sobrescreve a primeira (a pergunta-gatilho: o saldo final fica 70 em vez de 40)</td></tr>
+<tr><td><b>Write skew</b></td><td>Duas transações leem o mesmo conjunto, decidem com base nele e gravam linhas <b>diferentes</b>, quebrando uma regra (ex.: "pelo menos um gerente de plantão", e os dois saem ao mesmo tempo)</td></tr>
+</table>
+
+<h2>6.2 Os níveis no Postgres</h2>
+<table>
+<tr><th style="width:22%">Nível</th><th>Como funciona</th><th style="width:34%">Lost update / write skew</th></tr>
+<tr><td><b>Read Committed</b> (padrão)</td><td>Cada <b>comando</b> vê o que estava confirmado quando ele começou</td><td>Lost update <b>acontece</b> no padrão "ler → calcular na aplicação → gravar"</td></tr>
+<tr><td>Repeatable Read</td><td>A <b>transação inteira</b> vê um retrato (snapshot) do início</td><td>Lost update vira erro <code>40001</code> (precisa de retry). Write skew ainda passa</td></tr>
+<tr><td>Serializable</td><td>Garante resultado equivalente a alguma execução em série (SSI)</td><td>Ambos viram erro <code>40001</code>. Exige retry sempre</td></tr>
+</table>
+<h2>6.3 Reproduza com dois terminais</h2>
+<pre>-- preparação:  CREATE TABLE conta (id int PRIMARY KEY, saldo numeric); INSERT INTO conta VALUES (1, 100);
+-- Terminal A                              -- Terminal B
+BEGIN;                                     BEGIN;
+SELECT saldo FROM conta WHERE id=1; -- 100
+                                           SELECT saldo FROM conta WHERE id=1; -- 100
+UPDATE conta SET saldo = 70 WHERE id=1;    -- (a aplicação calculou 100 - 30)
+COMMIT;
+                                           UPDATE conta SET saldo = 70 WHERE id=1;  -- também calculou 100 - 30
+                                           COMMIT;
+SELECT saldo FROM conta;  -- 70   ← os R$ 30 da transação A sumiram</pre>
+<p>Agora repita com <code>BEGIN ISOLATION LEVEL REPEATABLE READ;</code> nos dois terminais: o <code>UPDATE</code> do B falha com <i>could not serialize access due to concurrent update</i>. Por fim, repita no Read Committed, mas escrevendo <code>SET saldo = saldo - 30</code>: o resultado fica correto (40), porque o cálculo foi para dentro do banco (capítulo 7).</p>
+<pre class="good"><span class="lbl">Retry de erro de serialização (TypeScript, genérico)</span>async function comRetry&lt;T&gt;(fn: () =&gt; Promise&lt;T&gt;, tentativas = 3): Promise&lt;T&gt; {
+  for (let i = 1; ; i++) {
+    try { return await fn(); }
+    catch (e: any) {
+      const serializacao = e?.code === '40001' || e?.code === '40P01';   // serialização / deadlock
+      if (!serializacao || i &gt;= tentativas) throw e;
+      await new Promise((r) =&gt; setTimeout(r, 20 * i + Math.random() * 30));  // backoff com jitter
+    }
+  }
+}
+// no Prisma, o erro chega embrulhado (P2034 para conflito de transação); confira o código no erro real</pre>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 6</span><ol>
+<li>Qual anomalia o Read Committed permite no padrão ler-calcular-gravar?</li>
+<li>Dê um exemplo de write skew num sistema de reservas.</li>
+<li>O que fazer quando o Postgres devolve o erro 40001?</li>
+</ol></div>
+<div class="feyn"><span class="t">Explique com suas palavras</span>"O lost update acontece no nível padrão porque..."<div class="linhas"></div></div>
+
+<h1><span class="num">Capítulo 7</span>Concorrência na prática</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>No Julielton, o vendedor e o projetista abrem o mesmo projeto, cada um muda um campo e salva. Hoje "vale o último que salvou". O que o primeiro perde? Qual seria o comportamento ideal?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Escolher</b> entre atualização atômica, lock otimista, lock pessimista e restrição única.</li>
+<li><b>Implementar</b> lock otimista com coluna de versão nos três ORMs.</li>
+<li><b>Montar</b> uma fila no Postgres com <code>SKIP LOCKED</code> e evitar deadlocks.</li></ul></div>
+
+<h2>7.1 O cardápio de soluções</h2>
+<table>
+<tr><th style="width:24%">Técnica</th><th>Como</th><th style="width:30%">Use quando</th></tr>
+<tr><td><b>Atualização atômica</b></td><td><code>UPDATE conta SET saldo = saldo - 30 WHERE id = 1 AND saldo &gt;= 30</code></td><td>O cálculo cabe no SQL (contadores, estoque, saldo). É sempre a primeira opção</td></tr>
+<tr><td><b>Restrição única</b></td><td>Índice <code>UNIQUE</code> + tratar o erro <code>23505</code></td><td>"Só pode existir um" (reserva por mesa e horário, nome de usuário)</td></tr>
+<tr><td><b>Lock otimista</b></td><td>Coluna <code>versao</code>. <code>UPDATE ... WHERE id = $1 AND versao = $2</code>. Se 0 linhas mudarem, alguém mexeu antes: responda <b>409</b></td><td>Edição humana em formulário (minutos entre ler e salvar): <b>o caso do Julielton</b></td></tr>
+<tr><td><b>Lock pessimista</b></td><td><code>SELECT ... FOR UPDATE</code> dentro da transação: a outra espera</td><td>Leitura e escrita em sequência curta no servidor, com conflito frequente</td></tr>
+</table>
+
+<h2>7.2 Exemplo resolvido: lock otimista</h2>
+<figure>
+<svg viewBox="0 0 680 150" width="100%" xmlns="http://www.w3.org/2000/svg">
+<g font-size="11">
+<text x="10" y="20" font-weight="700">Vendedor</text><text x="10" y="100" font-weight="700">Projetista</text>
+<rect x="90" y="8" width="150" height="22" fill="#e8f0fa" stroke="#1f5fa8"/><text x="165" y="23" text-anchor="middle">abre projeto (versao=4)</text>
+<rect x="90" y="88" width="150" height="22" fill="#e8f0fa" stroke="#1f5fa8"/><text x="165" y="103" text-anchor="middle">abre projeto (versao=4)</text>
+<rect x="270" y="8" width="190" height="22" fill="#e7f5ec" stroke="#1a7f37"/><text x="365" y="23" text-anchor="middle">salva WHERE versao=4 → ok, vira 5</text>
+<rect x="400" y="88" width="270" height="22" fill="#fdecea" stroke="#b42318"/><text x="535" y="103" text-anchor="middle">salva WHERE versao=4 → 0 linhas → 409</text>
+<text x="400" y="138" fill="#5b6470">Tela: "Este projeto foi alterado por Vendedor às 14:32. Reveja antes de salvar."</text>
+</g></svg>
+<figcaption>Figura 7.1. Ninguém espera, ninguém perde trabalho em silêncio.</figcaption>
+</figure>
+<pre class="good"><span class="lbl">SQLAlchemy 2: suporte nativo</span>class Projeto(Base):
+    __tablename__ = "projeto"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    versao: Mapped[int] = mapped_column(nullable=False, default=1)
+    __mapper_args__ = {"version_id_col": versao}   # o UPDATE passa a incluir "AND versao = :antiga"
+
+# no formulário: &lt;input type="hidden" name="versao" value="{{ projeto.versao }}"&gt;
+# ao salvar:
+if int(request.form["versao"]) != projeto.versao:      # alguém salvou depois que a tela abriu
+    return render_template(..., conflito=True), 409
+try:
+    projeto.titulo = ...; s.commit()
+except StaleDataError:                                  # corrida entre a checagem e o commit
+    s.rollback(); return render_template(..., conflito=True), 409</pre>
+<pre class="good"><span class="lbl">Prisma</span>const r = await prisma.projeto.updateMany({
+  where: { id, versao: versaoDoFormulario },
+  data:  { ...campos, versao: { increment: 1 } },
+});
+if (r.count === 0) throw new ConflitoError();          // → HTTP 409</pre>
+<pre class="good"><span class="lbl">GORM</span>res := db.Model(&amp;Projeto{}).Where("id = ? AND versao = ?", id, versaoForm).
+    Updates(map[string]any{"titulo": t, "versao": gorm.Expr("versao + 1")})
+if res.RowsAffected == 0 { ctx.JSON(http.StatusConflict, gin.H{"erro": "alterado por outra pessoa"}); return }</pre>
+<p class="small">O <code>atualizado_em</code> que o Julielton já tem pode fazer o papel de versão, mas um inteiro é mais seguro: dois saves no mesmo milissegundo, ou relógios diferentes, quebram a comparação por data.</p>
+
+<h2>7.3 Fila no Postgres com <code>SKIP LOCKED</code></h2>
+<pre class="good"><span class="lbl">Vários workers pegando tarefas sem pegar a mesma</span>WITH proxima AS (
+  SELECT id FROM tarefa
+  WHERE status = 'pendente' AND executar_em &lt;= now()
+  ORDER BY executar_em
+  FOR UPDATE SKIP LOCKED          -- pula as linhas que outro worker já travou
+  LIMIT 10
+)
+UPDATE tarefa SET status = 'processando', inicio = now()
+FROM proxima WHERE tarefa.id = proxima.id
+RETURNING tarefa.*;</pre>
+<p>Para volumes pequenos e médios, isso dispensa o Redis. <b>O Julielton já faz exatamente isso</b> em <code>src/mabsol_docs/tarefas.py</code>: o web só grava a tarefa, e o worker reserva com <code>FOR UPDATE SKIP LOCKED</code>, com tentativas máximas e devolução das tarefas travadas há mais de 30 minutos. Leia o arquivo com este capítulo ao lado. O marketZapp usa BullMQ (Redis), que também é uma boa escolha. O Módulo 5 compara os dois.</p>
+
+<h2>7.4 Deadlocks</h2>
+<p>A transação A trava a linha 1 e quer a 2. A B trava a 2 e quer a 1. O Postgres detecta, mata uma delas (erro <code>40P01</code>) e a outra segue. Prevenção: <b>sempre travar na mesma ordem</b> (por exemplo, ordenar os IDs antes de atualizar vários registros), manter as transações curtas, e fazer retry do erro.</p>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 7</span><ol>
+<li>Qual técnica você usaria para: estoque, reserva única, edição de formulário longo, fila de tarefas?</li>
+<li>Por que o lock pessimista é ruim para formulários que ficam minutos abertos?</li>
+<li>Como o <code>SKIP LOCKED</code> evita que dois workers peguem a mesma tarefa?</li>
+<li>Como prevenir deadlocks?</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 8</span>Migrações seguras</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>Você precisa renomear a coluna <code>nome</code> para <code>nome_completo</code> numa tabela com 2 milhões de linhas, com o sistema no ar. Quantos deploys isso leva?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Escolher</b> uma ferramenta de migração e saber o que ela garante.</li>
+<li><b>Aplicar</b> expand/contract para mudanças sem downtime.</li>
+<li><b>Identificar</b> as operações que travam tabelas e as alternativas.</li></ul></div>
+
+<h2>8.1 O que uma ferramenta de migração precisa fazer</h2>
+<ol>
+<li>Guardar no próprio banco <b>quais migrações já rodaram</b> (tabela de controle).</li>
+<li>Aplicar as pendentes <b>em ordem</b>, cada uma numa transação quando possível.</li>
+<li>Ser <b>versionada no Git</b> junto com o código que depende dela.</li>
+</ol>
+<table>
+<tr><th style="width:18%">Projeto</th><th style="width:26%">Hoje</th><th>Avaliação</th></tr>
+<tr><td>RH</td><td>Prisma Migrate</td><td>Cumpre os três itens. Use <code>prisma migrate deploy</code> em produção (nunca <code>migrate dev</code> nem <code>db push</code>)</td></tr>
+<tr><td>Julielton</td><td>Alembic</td><td>Cumpre os três. Revise o autogenerate: ele não detecta renomeação (gera DROP + ADD)</td></tr>
+<tr><td>marketZapp</td><td>Arquivos <code>NNN_*.sql</code> aplicados à mão</td><td>Falta o item 1: qual já rodou em produção? Adote <b>node-pg-migrate</b>, <b>dbmate</b> ou uma tabela <code>schema_migrations</code> com um script de 30 linhas</td></tr>
+<tr><td>MesaPay</td><td>GORM <code>AutoMigrate</code> na subida</td><td>Cria tabelas e colunas, mas <b>não</b> remove nem renomeia colunas, não guarda histórico e roda a cada boot. Para produção, use <b>goose</b>, <b>golang-migrate</b> ou <b>Atlas</b></td></tr>
+</table>
+
+<h2>8.2 Expand/contract (mudança em várias etapas)</h2>
+<p>Durante um deploy, a versão nova e a antiga do app rodam ao mesmo tempo por alguns segundos, e no rollback a antiga volta a rodar. Toda migração precisa ser <b>compatível com a versão anterior do código</b>. A resposta à pergunta-gatilho é <b>3 a 4 deploys</b>:</p>
+<ol>
+<li><b>Expand</b>: adicionar <code>nome_completo</code> (nulo). O app novo grava nas <b>duas</b> colunas e lê da antiga.</li>
+<li><b>Backfill</b>: copiar os dados em lotes (<code>UPDATE ... WHERE id BETWEEN x AND y</code>), sem uma transação gigante.</li>
+<li><b>Migrar a leitura</b>: o app passa a ler de <code>nome_completo</code> e ainda grava nas duas.</li>
+<li><b>Contract</b>: o app para de usar <code>nome</code>. No deploy seguinte, <code>DROP COLUMN nome</code>.</li>
+</ol>
+<p>Parece muito trabalho, e é. Para sistemas pequenos com janela de manutenção aceitável, um único deploy com 30 segundos fora do ar pode ser uma <b>decisão consciente</b>. O importante é saber que existe a alternativa e o risco de cada caminho.</p>
+
+<h2>8.3 Operações que travam e as alternativas</h2>
+<table>
+<tr><th style="width:36%">Operação</th><th>Problema</th><th style="width:34%">Alternativa</th></tr>
+<tr><td><code>CREATE INDEX</code></td><td>Bloqueia escritas na tabela durante a criação</td><td><code>CREATE INDEX CONCURRENTLY</code> (fora de transação: no Prisma/Alembic, uma migração separada)</td></tr>
+<tr><td><code>ADD COLUMN ... DEFAULT x</code></td><td>Rápido desde o PG 11 para default constante. Com default volátil (<code>now()</code>, <code>random()</code>), reescreve a tabela</td><td>Adicionar sem default e fazer backfill em lotes</td></tr>
+<tr><td><code>SET NOT NULL</code></td><td>Varre a tabela inteira com lock exclusivo</td><td><code>ADD CONSTRAINT ... CHECK (col IS NOT NULL) NOT VALID</code>, depois <code>VALIDATE CONSTRAINT</code> (lock mais leve). No PG 12+ o <code>SET NOT NULL</code> aproveita esse CHECK</td></tr>
+<tr><td><code>ALTER COLUMN TYPE</code></td><td>Em geral reescreve a tabela</td><td>Coluna nova + expand/contract</td></tr>
+<tr><td><code>ADD FOREIGN KEY</code></td><td>Valida todas as linhas com lock</td><td><code>NOT VALID</code> + <code>VALIDATE CONSTRAINT</code> depois</td></tr>
+</table>
+<div class="box erro"><span class="t">A fila de locks</span><p>Mesmo uma operação rápida precisa de um lock exclusivo por um instante. Se houver uma consulta longa rodando, o <code>ALTER</code> espera, e <b>todas as consultas novas ficam na fila atrás dele</b>: o sistema trava sem que a migração tenha feito nada ainda. Proteção: <code>SET lock_timeout = '5s';</code> no início da migração. Se não conseguir o lock, ela falha e você tenta de novo, em vez de travar a produção.</p></div>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 8</span><ol>
+<li>Quais os três requisitos de uma ferramenta de migração? Qual falta no marketZapp?</li>
+<li>Por que a migração precisa ser compatível com a versão anterior do código?</li>
+<li>Descreva as etapas para renomear uma coluna sem downtime.</li>
+<li>Para que serve <code>lock_timeout</code> numa migração?</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 9</span>Pool, timeouts e vacuum</h1>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Dimensionar</b> o pool de conexões.</li>
+<li><b>Configurar</b> timeouts que protegem o banco.</li>
+<li><b>Explicar</b> o que o vacuum faz e por que ele importa.</li></ul></div>
+
+<h2>9.1 Pool de conexões</h2>
+<p>Cada conexão no Postgres é um processo, com alguns MB de memória. O <code>max_connections</code> padrão é 100. Some os pools de <b>todas</b> as instâncias e processos que falam com o banco (API, workers, scripts) e mantenha o total bem abaixo desse limite. Mais conexões <b>não</b> é mais rápido: além do número de núcleos, elas competem entre si.</p>
+<table>
+<tr><th>Ferramenta</th><th>Onde configurar</th></tr>
+<tr><td><code>pg</code> (marketZapp)</td><td><code>new Pool({ max: 10, idleTimeoutMillis: 30000, connectionTimeoutMillis: 5000 })</code></td></tr>
+<tr><td>Prisma (RH)</td><td><code>?connection_limit=10&amp;pool_timeout=10</code> na <code>DATABASE_URL</code> (ou as opções do driver adapter, nas versões novas)</td></tr>
+<tr><td>SQLAlchemy (Julielton)</td><td><code>create_engine(url, pool_size=5, max_overflow=5, pool_pre_ping=True)</code></td></tr>
+<tr><td>GORM (MesaPay)</td><td><code>sqlDB.SetMaxOpenConns(10); sqlDB.SetMaxIdleConns(5); sqlDB.SetConnMaxLifetime(time.Hour)</code></td></tr>
+</table>
+<p>Quando houver muitas instâncias, um <b>PgBouncer</b> na frente do Postgres multiplexa conexões. Para os seus volumes, um pool bem configurado basta.</p>
+
+<h2>9.2 Timeouts que protegem</h2>
+<pre class="good"><span class="lbl">Por usuário da aplicação (vale para todas as conexões dele)</span>ALTER ROLE app SET statement_timeout = '15s';                   -- consulta descontrolada não roda para sempre
+ALTER ROLE app SET idle_in_transaction_session_timeout = '60s'; -- transação esquecida aberta é encerrada
+ALTER ROLE app SET lock_timeout = '10s';</pre>
+
+<h2>9.3 MVCC e vacuum em um parágrafo</h2>
+<p>O Postgres não sobrescreve linhas: um <code>UPDATE</code> cria uma <b>nova versão</b> e marca a antiga como morta. É isso que permite que leitores não bloqueiem escritores (MVCC). As versões mortas são limpas pelo <b>vacuum</b>, que o <b>autovacuum</b> roda sozinho. Ele falha quando uma transação fica aberta por horas (a limpeza não pode remover versões que ela ainda pode ver), e a tabela incha. Monitore com <code>pg_stat_user_tables</code> (<code>n_dead_tup</code>, <code>last_autovacuum</code>) e não deixe transações abertas: o timeout de 9.2 já ajuda.</p>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 9</span><ol>
+<li>Por que aumentar o pool nem sempre deixa o sistema mais rápido?</li>
+<li>Que três timeouts você configuraria para o usuário da aplicação?</li>
+<li>Por que uma transação aberta por horas faz as tabelas incharem?</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 10</span>Além do Postgres: Oracle e o Winthor</h1>
+<p>O ETL do Data_Analisys e a integração com o Winthor leem de um <b>Oracle</b> que não é seu: é o ERP da empresa. Os conceitos deste módulo valem lá, com diferenças práticas:</p>
+<table>
+<tr><th style="width:30%">Tema</th><th>No Oracle</th></tr>
+<tr><td>Parâmetros</td><td>Bind variables <code>:nome</code> (<code>cursor.execute(sql, cod=123)</code> no <code>oracledb</code>). Além da segurança, o Oracle <b>reaproveita o plano</b> de consultas com bind. Concatenar valores enche o cache de planos do servidor do ERP</td></tr>
+<tr><td>Limitar linhas</td><td><code>FETCH FIRST 50 ROWS ONLY</code> (12c+) ou <code>ROWNUM</code> em versões antigas</td></tr>
+<tr><td>Leitura consistente</td><td>Cada consulta vê um retrato consistente (como o Read Committed do Postgres). Consultas muito longas podem falhar com <code>ORA-01555 snapshot too old</code></td></tr>
+<tr><td>Plano</td><td><code>EXPLAIN PLAN FOR ...</code> + <code>SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY)</code></td></tr>
+<tr><td>Commit</td><td>Ferramentas como o SQL*Plus <b>não</b> fazem commit automático por padrão</td></tr>
+</table>
+<div class="box dica"><span class="t">Regras de convivência com o banco de outro sistema</span><ul>
+<li><b>Usuário só de leitura</b>, com acesso apenas às tabelas e views necessárias. Nunca o usuário do ERP.</li>
+<li><b>Extração incremental</b> (por data de alteração ou sequência), e não "SELECT tudo" a cada execução.</li>
+<li>Rodar em horário de pouco uso e com <code>FETCH</code> em lotes (<code>cursor.arraysize</code>).</li>
+<li>Combinar com o DBA ou o suporte do ERP antes de criar índices. Mudar o schema de um ERP pode violar o suporte.</li>
+</ul></div>
+
+<h1><span class="num">Prática</span>Missões</h1>
+<table>
+<tr><th style="width:7%">#</th><th style="width:24%">Missão</th><th>O que fazer</th><th style="width:30%">Pronto quando</th></tr>
+<tr><td>M1</td><td>As 3 consultas que importam</td><td>Num projeto com dados reais (ou uma cópia restaurada, Módulo 3), habilite <code>pg_stat_statements</code>, pegue as 3 consultas de maior tempo total e analise com <code>EXPLAIN (ANALYZE, BUFFERS)</code>.</td><td>Para cada uma: plano antes, mudança (índice ou reescrita) ou justificativa para não mudar, e plano depois.</td></tr>
+<tr><td>M2</td><td>Julielton: lock otimista</td><td>Coluna <code>versao</code> via migração do Alembic, <code>version_id_col</code> no modelo, campo oculto no formulário e tela de conflito (409) mostrando quem alterou.</td><td>Teste: duas edições a partir da mesma versão, a segunda recebe 409 e nada é sobrescrito.</td></tr>
+<tr><td>M3</td><td>MesaPay: corrida provada</td><td>Teste em Go com Postgres real (testcontainers-go, Módulo 2) que dispara 10 goroutines tentando criar a mesma mesa/reserva. O índice parcial deve garantir uma só, e a API deve responder com erro amigável (não 500) para as outras.</td><td>Teste verde com <code>go test -race</code>, e o erro <code>23505</code> traduzido para 409.</td></tr>
+<tr><td>M4</td><td>marketZapp: controle de migrações</td><td>Adotar uma ferramenta (dbmate ou node-pg-migrate) ou criar <code>schema_migrations</code> + script. Marcar 001–007 como aplicadas em produção, depois de conferir uma a uma.</td><td><code>npm run migrate</code> num banco vazio cria o schema completo. Em produção, informa "nada a aplicar".</td></tr>
+<tr><td>M5</td><td>MesaPay: sair do AutoMigrate</td><td>Gerar a migração inicial a partir do schema atual (goose ou Atlas), mover os índices de <code>indices.go</code> para migrações e remover o <code>AutoMigrate</code> da subida.</td><td>Banco novo criado só pelas migrações é idêntico ao de produção (compare com <code>pg_dump --schema-only</code>).</td></tr>
+<tr><td>M6</td><td>Timeouts e pool</td><td>Aplicar os timeouts de 9.2 ao usuário da aplicação em produção e conferir o tamanho dos pools contra o <code>max_connections</code>.</td><td>Soma dos pools documentada e abaixo do limite, e timeouts ativos (<code>SHOW statement_timeout</code> conectado como o usuário da app).</td></tr>
+</table>
+
+<h1><span class="num">Apêndice A</span>Gabarito e revisão intercalada</h1>
+<div class="gab">
+<h3>Pré-teste</h3>
+<ol>
+<li>Ponto flutuante não representa decimais exatamente: aparecem centavos errados. Use <code>numeric</code> ou centavos inteiros. (1.1)</li>
+<li>Não de forma eficiente: falta o prefixo à esquerda. (3.2)</li>
+<li>1 consulta para a lista + N para os relacionados. Aparece em loops com acesso preguiçoso às relações. (2.2)</li>
+<li>Read Committed. Não impede o lost update no padrão ler-calcular-gravar. (6.2)</li>
+<li>É sobrescrita sem aviso. Soluções: lock otimista (409) ou lock pessimista. (7.1)</li>
+<li>Estatísticas desatualizadas ou distribuição irregular, o que leva a um plano ruim: rode <code>ANALYZE</code>. (4.1)</li>
+<li>Bloqueia as escritas na tabela durante a criação. Use <code>CONCURRENTLY</code>. (8.3)</li>
+<li>Mudar o schema em etapas compatíveis: adicionar, migrar dados e leitura, e só depois remover. (8.2)</li>
+<li>Vários workers pegam tarefas diferentes, sem esperar nem duplicar. (7.3)</li>
+<li>Segura locks e conexão durante a latência da rede, e cria inconsistência se o commit falhar. (5.2)</li>
+<li>A restrição <code>UNIQUE</code> no banco. A validação na aplicação tem janela de corrida. (1.2)</li>
+<li>Conexões recusadas (<i>too many clients</i>) e erros intermitentes sob carga. (9.1)</li>
+</ol>
+<h3>Capítulos 1 e 2</h3>
+<ol>
+<li>Guarda o instante absoluto. Sem fuso, o mesmo valor significa horas diferentes conforme o servidor.</li>
+<li>As duas requisições consultam "não existe" antes de qualquer uma inserir, e as duas inserem.</li>
+<li>Sem ele, mesas excluídas (soft delete) continuariam ocupando o número.</li>
+<li>Preço unitário copiado para o item do pedido no momento da venda.</li>
+<li><code>GROUP BY</code> colapsa as linhas em grupos. A janela calcula sobre o grupo e mantém as linhas.</li>
+<li>Se o evento já existia, nada é inserido e nada volta: sabe-se que é duplicata.</li>
+<li>Log de consultas ligado e contagem de consultas por requisição.</li>
+</ol>
+<h3>Capítulos 3 e 4</h3>
+<ol>
+<li>A lista ordenada por sobrenome não acha "todas as Marias" sem o sobrenome.</li>
+<li><code>(status, inicio)</code>: igualdade, depois intervalo.</li>
+<li>O índice guarda <code>email</code>, não <code>lower(email)</code>: crie um índice de expressão.</li>
+<li>GIN com <code>gin_trgm_ops</code>.</li>
+<li>De dentro para fora: o nó mais indentado executa primeiro.</li>
+<li>Muita leitura descartada: falta um índice adequado.</li>
+<li>Com poucas linhas, ler a tabela inteira é mais barato.</li>
+<li>O impacto real é média × chamadas.</li>
+</ol>
+<h3>Capítulos 5 a 7</h3>
+<ol>
+<li>Ex.: pagamento + fechar comanda juntos (A), valor não negativo (C), dois caixas simultâneos (I), sobrevive à queda (D).</li>
+<li>Executa fora da transação: não reverte junto.</li>
+<li>Lock segurado durante a rede, e mensagem enviada para algo que pode não ser confirmado.</li>
+<li>Lost update.</li>
+<li>Duas pessoas reservam as duas últimas mesas de uma área com limite de lotação, cada uma lendo "1 vaga".</li>
+<li>Repetir a transação inteira (com backoff).</li>
+<li>Estoque: atômica. Reserva única: UNIQUE. Formulário: otimista. Fila: SKIP LOCKED.</li>
+<li>Seguraria o lock durante minutos e bloquearia os outros usuários.</li>
+<li>As linhas travadas por um worker são puladas pelos outros.</li>
+<li>Travar sempre na mesma ordem, transações curtas, retry.</li>
+</ol>
+<h3>Capítulos 8 e 9</h3>
+<ol>
+<li>Tabela de controle, ordem, versionamento no Git. No marketZapp falta a tabela de controle.</li>
+<li>Durante o deploy e no rollback a versão antiga roda com o schema novo.</li>
+<li>Adicionar coluna e gravar nas duas → backfill → ler da nova → parar de usar a antiga → drop.</li>
+<li>Falhar rápido em vez de enfileirar todo o tráfego atrás do <code>ALTER</code>.</li>
+<li>Além dos núcleos, as conexões competem por CPU e locks.</li>
+<li><code>statement_timeout</code>, <code>idle_in_transaction_session_timeout</code>, <code>lock_timeout</code>.</li>
+<li>O vacuum não pode remover versões que a transação antiga ainda pode enxergar.</li>
+</ol>
+</div>
+<h2>Revisão intercalada</h2>
+<div class="quiz"><span class="t">Qual o problema e a correção?</span><ol>
+<li><code>const n = await count(); await insert({ numero: n + 1 })</code> para gerar o número do pedido.</li>
+<li>Migração do Alembic: <code>op.create_index('ix_x', 'grande', ['col'])</code> rodando em horário de pico.</li>
+<li>Listagem de candidatos lenta. O log mostra 201 consultas por requisição.</li>
+<li>Relatório soma <code>valor</code> (<code>double precision</code>) e dá R$ 1.234,5699999.</li>
+<li>Webhook processa o mesmo evento duas vezes quando a Evolution reenvia.</li>
+<li>O Postgres fica lento toda tarde, e <code>pg_stat_activity</code> mostra uma conexão <code>idle in transaction</code> desde a manhã.</li>
+</ol></div>
+<div class="gab"><ol>
+<li>Corrida: duas requisições pegam o mesmo <code>n</code> (cap. 6 e 7). Use sequence/identity, ou UNIQUE + retry.</li>
+<li>Bloqueia escritas (cap. 8.3). Use <code>postgresql_concurrently=True</code> numa migração fora de transação, em horário de pouco uso.</li>
+<li>N+1 (cap. 2.2). Use <code>include</code>/<code>selectinload</code>/<code>Preload</code> ou um join.</li>
+<li>Tipo de ponto flutuante para dinheiro (cap. 1.1). Migre para <code>numeric(12,2)</code>.</li>
+<li>Falta idempotência (cap. 2.1). <code>INSERT ... ON CONFLICT DO NOTHING</code> com o ID do evento.</li>
+<li>Transação esquecida aberta (cap. 5.2 e 9). Corrija o código e configure <code>idle_in_transaction_session_timeout</code>.</li>
+</ol></div>
+
+<h1><span class="num">Apêndice B</span>Flashcards</h1>
+<table>
+<tr><th style="width:4%">#</th><th style="width:50%">Frente</th><th>Verso</th></tr>
+<tr><td>1</td><td>Tipo para dinheiro</td><td><code>numeric(p,2)</code> ou centavos inteiros</td></tr>
+<tr><td>2</td><td>Tipo para instante</td><td><code>timestamptz</code></td></tr>
+<tr><td>3</td><td>Por que UNIQUE no banco se a app valida</td><td>Concorrência: o check-then-insert tem janela</td></tr>
+<tr><td>4</td><td>Índice único parcial</td><td><code>CREATE UNIQUE INDEX ... WHERE condição</code></td></tr>
+<tr><td>5</td><td>N+1</td><td>1 consulta da lista + 1 por item. Resolver com carga em lote</td></tr>
+<tr><td>6</td><td>Função de janela</td><td>Cálculo sobre um grupo mantendo as linhas (<code>OVER</code>)</td></tr>
+<tr><td>7</td><td>Regra do prefixo</td><td>O índice composto só serve a partir da 1ª coluna</td></tr>
+<tr><td>8</td><td>Ordem no índice composto</td><td>Igualdade primeiro, intervalo/ordenação depois</td></tr>
+<tr><td>9</td><td>Índice para <code>ILIKE '%x%'</code></td><td>GIN + <code>gin_trgm_ops</code></td></tr>
+<tr><td>10</td><td>FK ganha índice automático no Postgres?</td><td>Não. Indexe a coluna do lado "muitos"</td></tr>
+<tr><td>11</td><td>Ler plano</td><td>De dentro para fora. Comparar estimado x real</td></tr>
+<tr><td>12</td><td>Achar as consultas caras</td><td><code>pg_stat_statements</code> por tempo total</td></tr>
+<tr><td>13</td><td>EXPLAIN ANALYZE em UPDATE</td><td>Executa de verdade: use BEGIN/ROLLBACK</td></tr>
+<tr><td>14</td><td>ACID</td><td>Atomicidade, Consistência, Isolamento, Durabilidade</td></tr>
+<tr><td>15</td><td>Bug no <code>$transaction</code> do Prisma</td><td>Usar <code>prisma.</code> em vez de <code>tx.</code></td></tr>
+<tr><td>16</td><td>Isolamento padrão do Postgres</td><td>Read Committed</td></tr>
+<tr><td>17</td><td>Lost update</td><td>Ler-calcular-gravar concorrente: uma gravação some</td></tr>
+<tr><td>18</td><td>Write skew</td><td>Leem o mesmo conjunto, gravam linhas diferentes, quebram a regra</td></tr>
+<tr><td>19</td><td>Erro 40001</td><td>Falha de serialização: repetir a transação</td></tr>
+<tr><td>20</td><td>Atualização atômica</td><td><code>SET x = x - 1 WHERE x &gt;= 1</code></td></tr>
+<tr><td>21</td><td>Lock otimista</td><td>Coluna versão no WHERE. 0 linhas = conflito (409)</td></tr>
+<tr><td>22</td><td>Lock pessimista</td><td><code>SELECT ... FOR UPDATE</code></td></tr>
+<tr><td>23</td><td>Fila com Postgres</td><td><code>FOR UPDATE SKIP LOCKED</code></td></tr>
+<tr><td>24</td><td>Prevenir deadlock</td><td>Travar na mesma ordem, transações curtas</td></tr>
+<tr><td>25</td><td>Expand/contract</td><td>Adicionar → migrar → remover, em deploys separados</td></tr>
+<tr><td>26</td><td>Criar índice sem travar</td><td><code>CREATE INDEX CONCURRENTLY</code></td></tr>
+<tr><td>27</td><td>NOT NULL sem lock longo</td><td>CHECK NOT VALID → VALIDATE → SET NOT NULL</td></tr>
+<tr><td>28</td><td><code>lock_timeout</code> na migração</td><td>Falha rápido em vez de enfileirar todo o tráfego</td></tr>
+<tr><td>29</td><td>Limites do AutoMigrate do GORM</td><td>Não remove/renomeia, sem histórico</td></tr>
+<tr><td>30</td><td>Três timeouts do usuário da app</td><td>statement, idle_in_transaction_session, lock</td></tr>
+<tr><td>31</td><td>MVCC</td><td>Update cria versão nova. Vacuum limpa as mortas</td></tr>
+<tr><td>32</td><td>Bind variable no Oracle</td><td><code>:nome</code>. Segurança + reaproveitamento de plano</td></tr>
+</table>
+
+<h1><span class="num">Apêndice C</span>Glossário</h1>
+<table>
+<tr><th style="width:22%">Termo</th><th>Definição</th></tr>
+<tr><td>Backfill</td><td>Preencher dados de uma coluna nova a partir dos existentes.</td></tr>
+<tr><td>B-tree</td><td>Árvore balanceada ordenada: o tipo padrão de índice.</td></tr>
+<tr><td>Covering index</td><td>Índice que contém todas as colunas de que a consulta precisa.</td></tr>
+<tr><td>Deadlock</td><td>Duas transações esperando uma pela outra.</td></tr>
+<tr><td>GIN</td><td>Índice invertido, para valores compostos (trigramas, jsonb, arrays).</td></tr>
+<tr><td>MVCC</td><td>Controle de concorrência por múltiplas versões das linhas.</td></tr>
+<tr><td>Outbox</td><td>Gravar a intenção de efeito externo na mesma transação e executar depois (Módulo 5).</td></tr>
+<tr><td>Pool</td><td>Conjunto de conexões reutilizadas pela aplicação.</td></tr>
+<tr><td>Seq Scan</td><td>Leitura sequencial da tabela inteira.</td></tr>
+<tr><td>Snapshot</td><td>Retrato consistente do banco num instante.</td></tr>
+<tr><td>SSI</td><td>Serializable Snapshot Isolation: a implementação do Serializable no Postgres.</td></tr>
+<tr><td>WAL</td><td>Log de escrita antecipada. Garante durabilidade e replicação.</td></tr>
+</table>
+
+<h1><span class="num">Apêndice D</span>Referências</h1>
+<ul>
+<li>Winand, M. <i>Use The Index, Luke!</i> (use-the-index-luke.com, gratuito) e <i>SQL Performance Explained</i>.</li>
+<li>Kleppmann, M. <i>Designing Data-Intensive Applications</i>. O'Reilly, 2017. Caps. 2 (modelos de dados), 3 (armazenamento e índices) e 7 (transações).</li>
+<li>PostgreSQL Documentation: Data Types, Indexes, Using EXPLAIN, Transaction Isolation, Explicit Locking, Routine Vacuuming, ALTER TABLE (notas sobre locks), pg_stat_statements.</li>
+<li>Documentação: Prisma (Transactions, Migrate in production), SQLAlchemy (Configuring a Version Counter), Alembic, GORM (Transactions, Migration), goose, Atlas, dbmate, python-oracledb.</li>
+<li>"Zero-downtime Postgres migrations": guias da GoCardless, da Braintree e do <i>strong_migrations</i> (lista de operações perigosas).</li>
+<li>Didática: as mesmas referências do Módulo 1.</li>
+</ul>
+<div class="box dica" style="margin-top:8mm"><span class="t">Próximo passo</span><p>Refaça o pré-teste. O Módulo 5 parte daqui: filas, idempotência, outbox e consistência eventual são o capítulo 7 deste módulo aplicado entre sistemas.</p></div>
+
+</body>
+</html>

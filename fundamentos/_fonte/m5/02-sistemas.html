@@ -1,0 +1,196 @@
+
+<h1><span class="num">Capítulo 3</span>Comunicação entre partes</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>No MesaPay, a tela da cozinha precisa mostrar pedidos novos. Polling a cada 3 s com 40 estabelecimentos e 3 telas cada: quantas requisições por minuto? É muito?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Escolher</b> entre comunicação síncrona e assíncrona.</li>
+<li><b>Aplicar</b> timeouts, retries com backoff e jitter, e circuit breaker.</li>
+<li><b>Comparar</b> polling, SSE e WebSocket para atualizações em tempo real.</li></ul></div>
+
+<h2>3.1 Síncrona x assíncrona</h2>
+<p><b>Síncrona</b> (HTTP request/response): quem chama espera a resposta. É simples e dá o resultado na hora, mas <b>acopla a disponibilidade</b>: se a Evolution está fora, a sua rota que chama a Evolution também falha. <b>Assíncrona</b> (fila, evento): quem chama registra o pedido e segue. É resiliente a falhas temporárias e absorve picos, mas o resultado vem depois, e você precisa lidar com reentrega e ordem (capítulos 4 e 5).</p>
+<p><b>Regra prática:</b> se o usuário precisa da resposta para continuar, use síncrono. Se é um efeito colateral (enviar mensagem, gerar PDF, notificar), use assíncrono.</p>
+
+<h2>3.2 Toda chamada de rede precisa de timeout</h2>
+<p>Sem timeout, uma dependência lenta prende conexões e memória até o seu app inteiro parar, o que é uma <b>falha em cascata</b>. O <code>fetch</code> do Node <b>não tem timeout padrão</b>.</p>
+<pre class="good"><span class="lbl">Timeout + retry com backoff exponencial e jitter</span>async function chamarComRetry(url: string, init: RequestInit, tentativas = 3) {
+  for (let i = 0; ; i++) {
+    try {
+      const r = await fetch(url, { ...init, signal: AbortSignal.timeout(5000) });   // 5 s
+      if (r.status &gt;= 500 || r.status === 429) throw new Error(`HTTP ${r.status}`); // só o que vale repetir
+      return r;
+    } catch (e) {
+      if (i + 1 &gt;= tentativas) throw e;
+      const base = 500 * 2 ** i;                         // 0,5 s, 1 s, 2 s...
+      await new Promise((ok) =&gt; setTimeout(ok, base / 2 + Math.random() * base / 2));  // jitter
+    }
+  }
+}</pre>
+<ul>
+<li><b>Só repita o que é transitório</b>: 5xx, 429, timeout, conexão recusada. Um 400 vai falhar de novo.</li>
+<li><b>Só repita o que é idempotente</b>, ou use uma chave de idempotência (capítulo 5). Repetir um <code>POST</code> que cobra pode cobrar duas vezes.</li>
+<li><b>Jitter</b>: sem ele, mil clientes que falharam juntos tentam de novo juntos, no mesmo milissegundo, e derrubam o serviço que estava voltando (efeito manada).</li>
+<li><b>Circuit breaker</b>: depois de N falhas seguidas, pare de chamar por um tempo e falhe na hora (ou use um plano B). Isso protege o seu app e dá fôlego para a dependência se recuperar. Em Node, a biblioteca <code>opossum</code>.</li>
+</ul>
+
+<h2>3.3 Tempo real: polling, SSE ou WebSocket</h2>
+<table>
+<tr><th style="width:18%"></th><th>Polling</th><th>Server-Sent Events (SSE)</th><th>WebSocket</th></tr>
+<tr><td>Direção</td><td>Cliente pergunta</td><td>Servidor → cliente</td><td>Duas vias</td></tr>
+<tr><td>Infra</td><td>HTTP comum, cache, nada especial</td><td>HTTP comum, conexão longa, reconexão automática no navegador</td><td>Protocolo próprio. Proxy e balanceador precisam suportar</td></tr>
+<tr><td>Latência</td><td>Até o intervalo (3 s)</td><td>Imediata</td><td>Imediata</td></tr>
+<tr><td>Custo</td><td>Requisições vazias constantes</td><td>Uma conexão aberta por tela</td><td>Uma conexão aberta por tela</td></tr>
+<tr><td>Escalar para várias instâncias</td><td>Trivial</td><td>Precisa de pub/sub entre instâncias (Redis, <code>LISTEN/NOTIFY</code> do Postgres)</td><td>Idem</td></tr>
+</table>
+<p><b>Resposta à pergunta-gatilho:</b> 40 × 3 telas × 20 por minuto = 2.400 req/min, ou 40 req/s. Se cada uma é uma consulta indexada de 1 ms (Módulo 4), é carga trivial para uma VPS. Polling de 3 s é uma <b>ótima decisão</b> nesse contexto: simples, sem estado e fácil de depurar. Vale migrar para SSE quando a latência de 3 s incomodar o negócio ou o volume crescer 10×. Uma melhoria intermediária é o polling condicional: <code>ETag</code>/<code>If-None-Match</code> devolve 304 sem corpo quando nada mudou.</p>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 3</span><ol>
+<li>Quando preferir comunicação assíncrona?</li>
+<li>Que erros vale repetir, e com que condição?</li>
+<li>Que problema o jitter resolve?</li>
+<li>Por que o polling de 3 s do MesaPay é defensável? Quando migrar?</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 4</span>Filas e trabalho em segundo plano</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>O worker do marketZapp envia a mensagem no WhatsApp e, antes de marcar o job como concluído, o processo morre. O que acontece com esse job?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Explicar</b> as garantias de entrega "no máximo uma vez" e "pelo menos uma vez".</li>
+<li><b>Configurar</b> tentativas, backoff, fila de mortos e detecção de jobs travados.</li>
+<li><b>Comparar</b> fila em Redis (BullMQ) e fila no Postgres.</li></ul></div>
+
+<h2>4.1 Por que uma fila</h2>
+<p>O Julielton resume na primeira linha de <code>tarefas.py</code>: <i>"O web só recebe e guarda; o trabalho pesado roda no worker."</i> Isso dá: <b>resposta rápida</b> ao usuário, <b>isolamento</b> (OCR pesado não deixa o site lento), <b>resiliência</b> (se a dependência cai, a tarefa espera e tenta de novo), <b>controle de vazão</b> (o marketZapp espalha envios para não ser bloqueado pelo WhatsApp) e <b>agendamento</b>.</p>
+
+<h2>4.2 Garantias de entrega</h2>
+<table>
+<tr><th style="width:24%">Garantia</th><th>Como</th><th style="width:34%">Consequência</th></tr>
+<tr><td>No máximo uma vez</td><td>Marca como feito <b>antes</b> de processar</td><td>Se morrer no meio, o efeito <b>nunca</b> acontece</td></tr>
+<tr><td><b>Pelo menos uma vez</b></td><td>Marca como feito <b>depois</b> de processar</td><td>Se morrer entre o efeito e a marcação, o job <b>roda de novo</b>. É o padrão do BullMQ e do <code>tarefas.py</code></td></tr>
+<tr><td>Exatamente uma vez</td><td>Não existe de verdade entre sistemas</td><td>O que existe é "pelo menos uma vez" + <b>efeito idempotente</b> = "efetivamente uma vez" (capítulo 5)</td></tr>
+</table>
+<p>A resposta à pergunta-gatilho: o BullMQ detecta o job "travado" (<i>stalled</i>) e o devolve à fila, e a mensagem pode ser enviada <b>duas vezes</b>. O <code>TRAVADA_APOS = 30 min</code> do Julielton faz o mesmo papel. Por isso o processador precisa ser idempotente: o teste de 7.3 do Módulo 2.</p>
+
+<h2>4.3 A configuração que importa</h2>
+<ul>
+<li><b>Tentativas e backoff</b>: o marketZapp usa <code>attempts: 5</code> e <code>backoff: exponential, 60 s</code>, ou seja, esperas de cerca de 1, 2, 4 e 8 minutos. Adequado para uma API externa instável.</li>
+<li><b>Fila de mortos</b> (<i>dead letter</i>): o que esgotou as tentativas precisa ir para algum lugar <b>visível</b> e gerar alerta, não sumir. No BullMQ, os jobs com status <code>failed</code>: monitore a contagem. No <code>tarefas.py</code>, o status de erro com o traceback.</li>
+<li><b>Erros permanentes x transitórios</b>: número de WhatsApp inválido nunca vai funcionar. Não gaste 5 tentativas, marque como falha definitiva (no BullMQ, <code>UnrecoverableError</code>).</li>
+<li><b>Desligamento gracioso</b>: no <code>SIGTERM</code> (Módulo 3), pare de pegar jobs novos e termine o atual (<code>worker.close()</code>).</li>
+<li><b>Retenção</b>: o <code>removeOnComplete: { count: 200 }</code> do marketZapp evita que o Redis cresça sem limite.</li>
+</ul>
+
+<h2>4.4 Redis (BullMQ) ou Postgres?</h2>
+<table>
+<tr><th style="width:22%"></th><th>BullMQ / Redis (marketZapp)</th><th>Tabela + SKIP LOCKED (Julielton)</th></tr>
+<tr><td>Peças a operar</td><td>+1 (Redis com persistência, backup)</td><td>Nenhuma nova</td></tr>
+<tr><td>Recursos prontos</td><td>Atraso, prioridade, repetição (cron), limite de taxa, painel</td><td>Você implementa o que precisar</td></tr>
+<tr><td>Transação com os dados</td><td>Não: gravar no banco e enfileirar são duas operações (capítulo 6)</td><td><b>Sim</b>: a tarefa é criada na mesma transação do dado</td></tr>
+<tr><td>Vazão</td><td>Muito alta</td><td>Centenas a milhares por segundo: suficiente para você</td></tr>
+</table>
+<p>As duas escolhas foram boas para os seus contextos. O marketZapp precisa de agendamento por dias e de controle de taxa, e o BullMQ entrega isso pronto. O Julielton precisa de simplicidade e de consistência com o banco.</p>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 4</span><ol>
+<li>Por que "pelo menos uma vez" é o padrão e o que ele exige do processador?</li>
+<li>O que é uma fila de mortos e por que precisa gerar alerta?</li>
+<li>Qual a vantagem decisiva da fila no Postgres?</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 5</span>Idempotência</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>O cliente do MesaPay toca em "Pagar", a internet do celular oscila, ele não vê a confirmação e toca de novo. Quantas vezes ele foi cobrado?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Identificar</b> operações que precisam ser idempotentes.</li>
+<li><b>Implementar</b> o padrão de chave de idempotência numa API.</li>
+<li><b>Tornar</b> consumidores de fila e de webhook idempotentes.</li></ul></div>
+
+<h2>5.1 Definição</h2>
+<p>Uma operação é <b>idempotente</b> se executá-la várias vezes tem o <b>mesmo efeito</b> que executá-la uma vez. <code>GET</code>, <code>PUT</code> (substituir) e <code>DELETE</code> são idempotentes por definição do HTTP. <code>POST</code> (criar) não é. Em sistemas com rede, retries e filas, <b>toda operação com efeito precisa ser idempotente</b>, porque toda operação pode chegar mais de uma vez.</p>
+
+<h2>5.2 Chave de idempotência numa API</h2>
+<ol>
+<li>O cliente gera um UUID <b>por intenção</b> ("este pagamento") e o envia no cabeçalho <code>Idempotency-Key</code>. Se tentar de novo, reenvia o <b>mesmo</b> UUID.</li>
+<li>O servidor grava a chave com uma restrição <code>UNIQUE</code>, na mesma transação do efeito.</li>
+<li>Se a chave já existe, devolve a <b>resposta guardada</b>, sem executar de novo.</li>
+</ol>
+<pre class="good"><span class="lbl">Esqueleto em Go + GORM (MesaPay)</span>type ChaveIdempotencia struct {
+    Chave      string `gorm:"primaryKey"`
+    UsuarioID  uint   // a chave vale por usuário: evita colisão e abuso
+    Status     int
+    Resposta   []byte
+    CriadoEm   time.Time
+}
+
+func (h *Handler) Pagar(ctx *gin.Context) {
+    chave := ctx.GetHeader("Idempotency-Key")
+    if chave == "" { ctx.JSON(400, gin.H{"erro": "Idempotency-Key obrigatório"}); return }
+    var anterior ChaveIdempotencia
+    if h.db.First(&amp;anterior, "chave = ? AND usuario_id = ?", chave, usuarioID(ctx)).Error == nil {
+        ctx.Data(anterior.Status, "application/json", anterior.Resposta)   // repete a resposta
+        return
+    }
+    err := h.db.Transaction(func(tx *gorm.DB) error {
+        pag, err := h.svc.RegistrarPagamento(tx, ...)
+        if err != nil { return err }
+        corpo, _ := json.Marshal(pag)
+        return tx.Create(&amp;ChaveIdempotencia{Chave: chave, UsuarioID: usuarioID(ctx), Status: 201, Resposta: corpo}).Error
+        // duas requisições simultâneas com a mesma chave: a segunda viola a PK e faz ROLLBACK
+    })
+    ...
+}</pre>
+<p class="small">Expire as chaves depois de 24 a 48 h. Rejeite a mesma chave com um corpo diferente (422): é um bug do cliente.</p>
+
+<h2>5.3 Consumidores idempotentes</h2>
+<ul>
+<li><b>Tabela de processados</b>: <code>INSERT INTO evento_processado (id) ... ON CONFLICT DO NOTHING RETURNING id</code>. Se não voltou nada, já foi processado (Módulo 4, 2.1).</li>
+<li><b>Operação naturalmente idempotente</b>: <code>UPDATE pedido SET status = 'pronto' WHERE id = 7</code> pode rodar 10 vezes. <code>UPDATE estoque SET qtd = qtd - 1</code> não pode.</li>
+<li><b>Efeito externo</b>: se a API externa aceita uma chave de idempotência (Stripe e muitos gateways de pagamento aceitam), repasse o ID do job. Se não aceita (envio de WhatsApp), registre "enviado" logo após o sucesso e confira antes de enviar. Sobra uma janela pequena, que é aceitável para mensagem e inaceitável para dinheiro.</li>
+</ul>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 5</span><ol>
+<li>Quais métodos HTTP são idempotentes por definição?</li>
+<li>Descreva o fluxo da chave de idempotência e o papel do <code>UNIQUE</code>.</li>
+<li>Por que a mesma chave com corpo diferente deve ser rejeitada?</li>
+</ol></div>
+<div class="feyn"><span class="t">Explique com suas palavras</span>"Exatamente uma vez não existe, o que existe é..."<div class="linhas"></div></div>
+
+<h1><span class="num">Capítulo 6</span>Consistência entre sistemas e outbox</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>O código faz <code>await db.anuncio.create(...)</code> e depois <code>await fila.add('publicar', ...)</code>. Liste o que pode dar errado entre essas duas linhas.</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Explicar</b> o problema da escrita dupla.</li>
+<li><b>Implementar</b> o padrão outbox.</li>
+<li><b>Descrever</b> consistência eventual e sagas sem jargão.</li></ul></div>
+
+<h2>6.1 O problema da escrita dupla</h2>
+<p>Gravar em dois sistemas (banco + fila, banco + e-mail, banco + API externa) <b>não é atômico</b>. Na pergunta-gatilho: o processo pode morrer entre as duas linhas (anúncio criado, nunca publicado), o Redis pode estar fora (idem), ou, se inverter a ordem, o job pode rodar <b>antes</b> do commit e não achar o anúncio, ou achar um anúncio que depois sofreu rollback.</p>
+
+<h2>6.2 Padrão outbox</h2>
+<figure>
+<svg viewBox="0 0 680 150" width="100%" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="g" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#5b6470"/></marker></defs>
+<g font-size="11" text-anchor="middle">
+<rect x="10" y="20" width="240" height="100" rx="6" fill="#e8f0fa" stroke="#1f5fa8"/><text x="130" y="40" font-weight="700">Uma transação do banco</text>
+<rect x="30" y="52" width="95" height="50" fill="#fff" stroke="#1f5fa8"/><text x="77" y="75">INSERT</text><text x="77" y="90">anuncio</text>
+<rect x="140" y="52" width="95" height="50" fill="#fff" stroke="#1f5fa8"/><text x="187" y="75">INSERT</text><text x="187" y="90">outbox</text>
+<rect x="300" y="45" width="150" height="50" rx="6" fill="#fff6db" stroke="#9a6700"/><text x="375" y="66">Relay (loop)</text><text x="375" y="82" font-size="10">lê outbox pendente</text>
+<rect x="500" y="45" width="170" height="50" rx="6" fill="#e7f5ec" stroke="#1a7f37"/><text x="585" y="66">Fila / API externa</text><text x="585" y="82" font-size="10">consumidor idempotente</text>
+<line x1="250" y1="70" x2="298" y2="70" stroke="#5b6470" marker-end="url(#g)"/><line x1="450" y1="70" x2="498" y2="70" stroke="#5b6470" marker-end="url(#g)"/>
+<text x="340" y="140" fill="#5b6470">O dado e a intenção de efeito são gravados juntos. Ou existem os dois, ou nenhum.</text>
+</g></svg>
+<figcaption>Figura 6.1. O padrão transactional outbox.</figcaption>
+</figure>
+<ol>
+<li>Na <b>mesma transação</b> do dado, grave uma linha na tabela <code>outbox</code> com o evento (<code>tipo</code>, <code>payload</code>, <code>criado_em</code>, <code>enviado_em NULL</code>).</li>
+<li>Um <b>relay</b> (um loop no worker) lê os pendentes com <code>FOR UPDATE SKIP LOCKED</code>, publica na fila ou chama a API, e marca <code>enviado_em</code>.</li>
+<li>Se o relay morrer entre publicar e marcar, publica de novo: <b>pelo menos uma vez</b>, então o consumidor precisa ser idempotente (capítulo 5). As peças se encaixam.</li>
+</ol>
+<p>Repare: a fila no Postgres do Julielton já é, na prática, um outbox, porque a tarefa nasce na mesma transação que o dado. Com BullMQ, o outbox é a ponte que falta entre o banco e o Redis.</p>
+
+<h2>6.3 Consistência eventual e sagas</h2>
+<p><b>Consistência eventual</b>: depois de uma mudança, as partes do sistema vão concordar <i>em algum momento</i>, e não instantaneamente. A contagem de candidatos no painel pode estar 2 segundos atrasada. Isso é aceitável quando o negócio tolera, e precisa ser uma decisão explícita.</p>
+<p><b>Saga</b>: uma operação de negócio que atravessa vários sistemas como uma sequência de passos locais, cada um com uma <b>ação de compensação</b> se algo der errado depois. Exemplo: reservar mesa → cobrar sinal → confirmar. Se a cobrança falha, a compensação é liberar a mesa. Não existe rollback entre sistemas, só compensação.</p>
+<div class="box dica"><span class="t">Sobre o teorema CAP</span><p>Você vai ouvir "CAP: escolha 2 de 3". A versão útil é: <b>quando a rede entre partes falha</b>, você escolhe entre responder (com dado possivelmente desatualizado) ou recusar (para não mostrar dado errado). Com um banco só numa VPS, esse dilema praticamente não aparece. Ele surge quando há réplicas ou sistemas separados.</p></div>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 6</span><ol>
+<li>Por que inverter a ordem (enfileirar antes de gravar) não resolve a escrita dupla?</li>
+<li>Descreva o outbox em três passos.</li>
+<li>Por que o consumidor de um outbox precisa ser idempotente?</li>
+<li>O que é uma ação de compensação? Dê um exemplo no MesaPay.</li>
+</ol></div>

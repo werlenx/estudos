@@ -1,0 +1,872 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Módulo 3: Linux, Redes e Docker</title>
+<style>
+:root{
+  --ink:#1b1f24; --muted:#5b6470; --line:#d8dde3; --soft:#f4f6f8;
+  --accent:#1f5fa8; --accent-soft:#e8f0fa;
+  --bad:#b42318; --bad-soft:#fdecea; --good:#1a7f37; --good-soft:#e7f5ec;
+  --warn:#9a6700; --warn-soft:#fff6db; --lab:#6f42c1; --lab-soft:#f1ecfb;
+}
+@page{ size:A4; margin:20mm 18mm 20mm 18mm;
+  @bottom-right{ content: counter(page); font: 9pt "Noto Sans", sans-serif; color:#5b6470; }
+  @bottom-left{ content: "Módulo 3 · Linux, Redes e Docker"; font: 8.5pt "Noto Sans", sans-serif; color:#8a939e; }
+}
+@page capa{ margin:0; @bottom-right{content:none} @bottom-left{content:none} }
+html{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+body{ font-family:"Noto Sans","Liberation Sans",sans-serif; font-size:10.3pt; line-height:1.52; color:var(--ink); background:#fff; margin:0; hyphens:auto; }
+h1,h2,h3,h4{ line-height:1.25; break-after:avoid; }
+h1{ font-size:21pt; color:var(--accent); margin:0 0 4mm; padding-bottom:3mm; border-bottom:2px solid var(--accent); break-before:page; }
+h1 .num{ display:block; font-size:10pt; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); font-weight:600; margin-bottom:1mm; }
+h2{ font-size:13.5pt; margin:6mm 0 2mm; color:#14324f; }
+h3{ font-size:11.2pt; margin:4.5mm 0 1.5mm; }
+p{ margin:0 0 2.6mm; text-align:justify; }
+ul,ol{ margin:0 0 3mm; padding-left:6mm; } li{ margin-bottom:1mm; }
+code{ font-family:"DejaVu Sans Mono",monospace; font-size:8.6pt; background:var(--soft); padding:0 1.2mm; border-radius:2px; }
+pre{ font-family:"DejaVu Sans Mono",monospace; font-size:8.1pt; line-height:1.42; background:#f6f8fa; border:1px solid var(--line); border-left:3px solid #8a939e; padding:2.5mm 3mm; margin:0 0 3.5mm; white-space:pre-wrap; word-break:break-word; break-inside:avoid; }
+pre code{ background:none; padding:0; font-size:inherit; }
+pre.bad{ border-left-color:var(--bad); background:#fffafa; }
+pre.good{ border-left-color:var(--good); background:#fbfffc; }
+pre .lbl{ display:block; font-family:"Noto Sans",sans-serif; font-weight:700; font-size:7.8pt; letter-spacing:.06em; text-transform:uppercase; margin-bottom:1mm; }
+pre.bad .lbl{ color:var(--bad); } pre.good .lbl{ color:var(--good); }
+table{ width:100%; border-collapse:collapse; margin:0 0 4mm; font-size:9.2pt; break-inside:auto; }
+th,td{ border:1px solid var(--line); padding:1.6mm 2mm; text-align:left; vertical-align:top; }
+th{ background:var(--soft); font-weight:700; }
+tr{ break-inside:avoid; }
+.box{ border:1px solid var(--line); border-left:4px solid var(--accent); background:var(--accent-soft); padding:2.6mm 3.4mm; margin:0 0 4mm; break-inside:avoid; }
+.box > :last-child{ margin-bottom:0; }
+.box .t{ display:block; font-weight:700; font-size:8.6pt; letter-spacing:.07em; text-transform:uppercase; margin-bottom:1.2mm; }
+.obj{ border-left-color:var(--accent); } .obj .t{ color:var(--accent); }
+.erro{ border-left-color:var(--bad); background:var(--bad-soft); } .erro .t{ color:var(--bad); }
+.dica{ border-left-color:var(--good); background:var(--good-soft); } .dica .t{ color:var(--good); }
+.caso{ border-left-color:var(--warn); background:var(--warn-soft); } .caso .t{ color:var(--warn); }
+.lab{ border-left-color:var(--lab); background:var(--lab-soft); } .lab .t{ color:var(--lab); }
+.gatilho{ border-left-color:#444; background:#f2f2f2; } .gatilho .t{ color:#333; }
+.quiz{ border:1px solid var(--line); border-top:3px solid var(--ink); padding:3mm 4mm; margin:5mm 0 4mm; background:#fff; }
+.quiz .t{ display:block; font-weight:800; font-size:9pt; letter-spacing:.08em; text-transform:uppercase; margin-bottom:2mm; }
+.quiz ol{ margin-bottom:0; }
+.feyn{ border:1.5px dashed #8a939e; padding:2.5mm 3.4mm; margin:0 0 4mm; break-inside:avoid; }
+.feyn .t{ font-weight:700; font-size:8.6pt; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); display:block; margin-bottom:1mm; }
+.linhas{ height:20mm; background:repeating-linear-gradient(#fff 0 6.6mm, #cfd5dc 6.6mm 6.9mm); margin-top:1mm; }
+figure{ margin:0 0 4mm; break-inside:avoid; text-align:center; }
+figcaption{ font-size:8.6pt; color:var(--muted); margin-top:1.2mm; }
+svg text{ font-family:"Noto Sans",sans-serif; }
+.small{ font-size:8.8pt; color:var(--muted); }
+.two{ display:grid; grid-template-columns:1fr 1fr; gap:4mm; }
+.tag{ display:inline-block; font-size:7.6pt; font-weight:700; padding:.3mm 1.6mm; border-radius:2mm; background:var(--soft); color:var(--muted); letter-spacing:.04em; }
+.check li{ list-style:none; margin-left:-5mm; }
+.check li::before{ content:"☐  "; color:var(--muted); }
+.gab h3{ margin-top:3mm; }
+.gab ol li{ margin-bottom:1.4mm; }
+.toc{ columns:2; column-gap:8mm; font-size:9.6pt; }
+.toc div{ break-inside:avoid; margin-bottom:1.4mm; }
+.toc b{ color:var(--accent); display:inline-block; width:8mm; }
+.capa{ page:capa; height:297mm; box-sizing:border-box; padding:34mm 22mm 20mm; background:linear-gradient(160deg,#0f2f52 0%,#1f5fa8 70%,#2c74c4 100%); color:#fff; position:relative; }
+.capa .k{ font-size:10pt; letter-spacing:.2em; text-transform:uppercase; opacity:.8; }
+.capa h1{ break-before:auto; border:none; color:#fff; font-size:34pt; margin:6mm 0 4mm; padding:0; line-height:1.1; }
+.capa .sub{ font-size:13pt; opacity:.92; max-width:150mm; line-height:1.45; }
+.capa .meta{ position:absolute; bottom:22mm; left:22mm; right:22mm; font-size:9.5pt; opacity:.85; border-top:1px solid rgba(255,255,255,.35); padding-top:4mm; }
+.capa .itens{ margin-top:16mm; font-size:10.5pt; line-height:1.9; opacity:.95; }
+.capa .itens span{ display:inline-block; border:1px solid rgba(255,255,255,.45); border-radius:4mm; padding:.4mm 3mm; margin:0 1.6mm 2mm 0; }
+.nobreak{ break-inside:avoid; }
+.fable{ border:1px solid #6f42c1; background:#f6f2fd; padding:3mm 4mm; margin:4mm 0; break-inside:avoid; }
+.fable .t{ display:block; font-weight:700; font-size:8.6pt; letter-spacing:.07em; text-transform:uppercase; color:#6f42c1; margin-bottom:1mm; }
+</style>
+</head>
+<body>
+<section class="capa" style="background:linear-gradient(160deg,#2b1d4f 0%,#6f42c1 70%,#8a63d2 100%)">
+  <div class="k">Trilha de Fundamentos · Módulo 3</div>
+  <h1>Linux, Redes<br>e Docker</h1>
+  <div class="sub">O que acontece entre o navegador do usuário e o seu container, e como descobrir sozinho onde quebrou. Com a infraestrutura real da sua VPS como material de estudo.</div>
+  <div class="itens">
+    <span>Linux de servidor</span><span>Shell que salva</span><span>systemd e timers</span><span>IP, portas e DNS</span>
+    <span>TLS e proxy reverso</span><span>Firewall e Docker</span><span>Docker a fundo</span><span>Logs e monitoramento</span>
+    <span>Backup e restauração</span><span>Diagnóstico</span><span>Segurança da VPS</span>
+  </div>
+  <div class="meta">Versão de novembro de 2026 · Duração prevista: 4 semanas, ~6 h por semana · Pré-requisito: acesso SSH à VPS e Docker local</div>
+</section>
+
+<h1><span class="num">Antes de começar</span>Como usar este material</h1>
+<p>O método é o mesmo dos módulos anteriores: pré-teste, pergunta-gatilho, exemplo resolvido, questões de recuperação com gabarito, revisão intercalada, flashcards com revisão espaçada e missões. Este módulo tem um ingrediente a mais: o <b>game day</b> (missão M3), em que você quebra coisas de propósito numa máquina de teste e conserta. Diagnóstico se aprende diagnosticando.</p>
+<div class="fable"><span class="t">Passo 0 · Revisão técnica com o Fable</span>
+<p>Troque para o Fable 5.2 com <code>/model</code> e peça: <i>"Revise <code>~/repo/estudos/fundamentos/modulo-3-linux-redes-docker.html</code> como especialista em Linux, redes e Docker: aponte afirmações incorretas, desatualizadas ou imprecisas e comandos que não funcionam como descrito. Corrija no HTML e gere o PDF de novo com <code>_fonte/gerar.py</code>."</i> Depois volte ao Opus e marque na trilha.</p></div>
+
+<h2>Por que este módulo é diferente</h2>
+<p>Levantando os repositórios (13/11/2026), a sua infraestrutura já está acima da média: o RH tem firewall na cadeia <code>DOCKER-USER</code> liberando só a Cloudflare, Caddy compartilhado com um arquivo por site, backup diário com <b>restic</b> criptografado disparado por <b>timer do systemd</b>, e o compose de produção do marketZapp publica o Postgres só no loopback, com um comentário explicando por que o ufw não protege portas do Docker.</p>
+<p>Isso foi feito com a IA, e os comentários mostram que as decisões foram bem pensadas. A lacuna que você mesmo apontou é outra: <b>"não sei para onde olhar"</b> quando algo quebra. Por isso o objetivo deste módulo não é montar infraestrutura, e sim <b>entender a que você já tem, linha por linha, e ganhar um método de diagnóstico</b>. Cada capítulo usa um arquivo real seu como exemplo.</p>
+
+<h2>Ambiente de prática</h2>
+<p>Não treine na VPS de produção. Use uma <b>máquina virtual local</b> (Multipass: <code>multipass launch --name lab 24.04</code>) ou uma VPS descartável de poucos reais por mês. Tudo que este material mandar "quebrar" é para quebrar lá.</p>
+
+<h2>Cronograma de 4 semanas</h2>
+<table>
+<tr><th style="width:16%">Semana</th><th>Capítulos</th><th style="width:36%">Entrega</th></tr>
+<tr><td>1</td><td>Pré-teste · 1. Linux de servidor · 2. Shell · 3. systemd</td><td>M1: explicar a infra do RH</td></tr>
+<tr><td>2</td><td>4. IP, portas e DNS · 5. TLS, proxy e firewall</td><td>M2: diagrama da requisição</td></tr>
+<tr><td>3</td><td>6. Docker a fundo · 7. Logs e monitoramento</td><td>M4 e M5</td></tr>
+<tr><td>4</td><td>8. Backup · 9. Diagnóstico · 10. Segurança da VPS</td><td>M3 (game day), M6 (restauração), refazer o pré-teste</td></tr>
+</table>
+
+<h2>Sumário</h2>
+<div class="toc">
+<div><b>—</b> Pré-teste</div>
+<div><b>1</b> Linux de servidor</div>
+<div><b>2</b> O shell que salva</div>
+<div><b>3</b> systemd: serviços e timers</div>
+<div><b>4</b> IP, portas e DNS</div>
+<div><b>5</b> TLS, proxy reverso e firewall</div>
+<div><b>6</b> Docker a fundo</div>
+<div><b>7</b> Logs e monitoramento</div>
+<div><b>8</b> Backup e restauração</div>
+<div><b>9</b> Diagnóstico: onde olhar</div>
+<div><b>10</b> Segurança da VPS</div>
+<div><b>—</b> Missões</div>
+<div><b>A</b> Gabarito e revisão intercalada</div>
+<div><b>B</b> Flashcards</div>
+<div><b>C</b> Glossário e cola de comandos</div>
+<div><b>D</b> Referências</div>
+</div>
+
+<h1><span class="num">Diagnóstico</span>Pré-teste</h1>
+<div class="quiz"><span class="t">Pré-teste · 12 questões</span>
+<ol>
+<li>Seu app roda em <code>localhost:3000</code> no notebook. Por que o celular, no mesmo Wi-Fi, não abre <code>http://192.168.0.10:3000</code>?</li>
+<li>Que comando mostra quais processos estão escutando em quais portas?</li>
+<li>Você mandou <code>ufw deny 5432</code>, mas o Postgres no Docker continua acessível pela internet. Por quê?</li>
+<li>Qual a diferença entre um volume nomeado e um bind mount no Docker?</li>
+<li>O navegador mostra <b>502 Bad Gateway</b>. Em qual camada provavelmente está o problema?</li>
+<li>O que significam RPO e RTO num plano de backup?</li>
+<li>Como ver os logs de um serviço do systemd desde a última hora?</li>
+<li>Para que serve um registro DNS do tipo CNAME? E o TTL?</li>
+<li>Dentro de um container, <code>localhost</code> aponta para onde?</li>
+<li>O disco da VPS encheu. Cite dois culpados comuns num servidor com Docker.</li>
+<li>Qual a diferença entre <code>SIGTERM</code> e <code>SIGKILL</code>?</li>
+<li>Por que um backup que nunca foi restaurado não conta como backup?</li>
+</ol></div>
+<p class="small">Nota: ____ / 12 · Data: ___/___/____ &nbsp;&nbsp;&nbsp; Semana 4: ____ / 12 · Data: ___/___/____</p>
+
+<h1><span class="num">Capítulo 1</span>Linux de servidor</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>Você entra por SSH na VPS. Liste, de cabeça, cinco comandos que daria para entender o estado da máquina.</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Navegar</b> pela hierarquia de diretórios de um servidor e saber onde cada coisa fica.</li>
+<li><b>Ler e ajustar</b> permissões e donos de arquivos.</li>
+<li><b>Inspecionar</b> processos, memória e disco, e encerrar processos do jeito certo.</li></ul></div>
+
+<h2>1.1 Onde as coisas ficam</h2>
+<table>
+<tr><th style="width:18%">Caminho</th><th>O que guarda</th><th style="width:32%">Na sua VPS</th></tr>
+<tr><td><code>/etc</code></td><td>Configuração do sistema e dos serviços</td><td><code>/etc/systemd/system/*.service</code>, <code>/etc/ssh/sshd_config</code></td></tr>
+<tr><td><code>/var/log</code></td><td>Logs em arquivo (muitos serviços usam o journal do systemd)</td><td><code>/var/log/auth.log</code>: tentativas de SSH</td></tr>
+<tr><td><code>/var/lib</code></td><td>Estado persistente dos programas</td><td><code>/var/lib/docker</code>: imagens, volumes, logs dos containers</td></tr>
+<tr><td><code>/opt</code></td><td>Software instalado "à parte"</td><td><code>/opt/infra</code>, <code>/opt/francal</code></td></tr>
+<tr><td><code>/home</code>, <code>/root</code></td><td>Diretórios de usuários</td><td><code>~/.ssh/authorized_keys</code></td></tr>
+<tr><td><code>/tmp</code></td><td>Temporários (podem sumir no reboot)</td><td>—</td></tr>
+<tr><td><code>/proc</code>, <code>/sys</code></td><td>Arquivos virtuais com o estado do kernel</td><td><code>/proc/meminfo</code></td></tr>
+</table>
+
+<h2>1.2 Usuários e permissões</h2>
+<p>Cada arquivo tem um <b>dono</b>, um <b>grupo</b> e permissões de leitura (<code>r</code>=4), escrita (<code>w</code>=2) e execução (<code>x</code>=1) para dono, grupo e outros.</p>
+<pre>$ ls -l /opt/infra/backup/backup.sh
+-rwxr-x--- 1 root deploy 9120 nov 10 03:00 backup.sh
+ │└┬┘└┬┘└┬┘
+ │ │  │  └── outros: nada (0)
+ │ │  └───── grupo deploy: ler e executar (5)
+ │ └──────── dono root: ler, escrever, executar (7)   → chmod 750
+ └────────── "-" arquivo comum, "d" diretório, "l" link</pre>
+<ul>
+<li><code>chmod 600 .env</code>: só o dono lê e escreve. É o certo para arquivos com segredo.</li>
+<li><code>chown deploy:deploy arquivo</code>: muda dono e grupo.</li>
+<li>Em <b>diretório</b>, o <code>x</code> significa "pode entrar". Sem ele, nem listando você acessa os arquivos de dentro.</li>
+<li><b>Menor privilégio</b>: a aplicação roda com um usuário sem poderes, e só você usa <code>sudo</code>. O <code>deploy.md</code> do marketZapp já cria um "usuário sem root para a aplicação".</li>
+</ul>
+<div class="box erro"><span class="t">Erro comum: estar no grupo <code>docker</code></span><p>Colocar um usuário no grupo <code>docker</code> é dar <b>root</b> a ele: quem fala com o daemon do Docker consegue montar <code>/</code> do host num container e fazer qualquer coisa. Trate o grupo <code>docker</code> como trata o <code>sudo</code>.</p></div>
+
+<h2>1.3 Processos e sinais</h2>
+<pre>ps aux --sort=-%mem | head      # quem mais usa memória
+htop                            # visão interativa (F6 ordena, F9 envia sinal)
+pgrep -af node                  # processos cujo comando contém "node"
+kill -TERM 1234                 # pede para encerrar (o programa pode limpar e sair)
+kill -KILL 1234                 # mata na hora; sem limpeza (último recurso)</pre>
+<p><code>SIGTERM</code> (15) é um pedido educado: o app pode fechar conexões, terminar o job atual da fila e sair. <code>SIGKILL</code> (9) não pode ser capturado nem ignorado. O <code>docker stop</code> manda <code>SIGTERM</code>, espera 10 segundos e depois manda <code>SIGKILL</code>. Por isso o app precisa tratar o <code>SIGTERM</code> (<code>app.close()</code> no Fastify, <code>worker.close()</code> no BullMQ) para não perder jobs no meio.</p>
+<p><b>Código de saída</b>: 0 é sucesso, qualquer outro valor é erro. O 137 (128+9) indica que o processo foi morto por <code>SIGKILL</code>, normalmente pelo <b>OOM killer</b> por falta de memória.</p>
+
+<h2>1.4 Memória e disco</h2>
+<pre>free -h                         # "available" é o que importa, não "free"
+df -h                           # espaço por partição
+df -i                           # inodes: dá para "encher" com milhões de arquivos pequenos
+du -sh /var/lib/docker/* | sort -h   # quem ocupa espaço
+sudo dmesg -T | grep -i -E "killed process|out of memory"   # houve OOM?</pre>
+<p>O Linux usa a memória livre como cache de disco, então "free" baixo é normal. Preocupe-se quando o <b>available</b> for baixo e o <b>swap</b> estiver sendo usado o tempo todo.</p>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 1</span><ol>
+<li>Que permissão (número) você daria a um <code>.env</code> e a um script de backup que só o root executa?</li>
+<li>Por que estar no grupo <code>docker</code> equivale a ser root?</li>
+<li>O container saiu com código 137. O que aconteceu e onde você confirma?</li>
+<li>Por que <code>free</code> baixo não é motivo de alarme?</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 2</span>O shell que salva</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>Como você descobriria quais IPs mais tentaram logar por SSH na VPS na última semana?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Combinar</b> comandos com pipes para responder perguntas sobre logs.</li>
+<li><b>Escrever</b> scripts bash que falham de forma segura.</li>
+<li><b>Configurar</b> o SSH para trabalhar rápido e com segurança.</li></ul></div>
+
+<h2>2.1 A filosofia: pequenos comandos, ligados por pipes</h2>
+<pre class="good"><span class="lbl">Resposta à pergunta-gatilho</span>sudo journalctl -u ssh --since "7 days ago" \
+  | grep "Failed password" \
+  | grep -oE "from [0-9.]+" \
+  | sort | uniq -c | sort -rn | head
+# journalctl: lê o log │ grep: filtra │ grep -o: extrai o IP │ uniq -c: conta │ sort -rn: ordena</pre>
+<table>
+<tr><th style="width:22%">Comando</th><th>Uso típico</th></tr>
+<tr><td><code>grep -rn "texto" .</code></td><td>Procurar em arquivos, com número de linha. <code>-i</code> ignora maiúsculas, <code>-v</code> inverte</td></tr>
+<tr><td><code>less +F arquivo</code></td><td>Ler arquivo grande. <code>/</code> busca, <code>F</code> segue como <code>tail -f</code></td></tr>
+<tr><td><code>tail -f -n 100</code></td><td>Acompanhar log em tempo real</td></tr>
+<tr><td><code>find / -size +500M</code></td><td>Achar arquivos grandes (com <code>2&gt;/dev/null</code> para esconder erros)</td></tr>
+<tr><td><code>awk '{print $1}'</code></td><td>Pegar uma coluna</td></tr>
+<tr><td><code>jq '.level'</code></td><td>Filtrar log JSON (o pino do Fastify escreve JSON)</td></tr>
+<tr><td><code>curl -sv URL</code></td><td>Testar HTTP mostrando cabeçalhos e o handshake TLS</td></tr>
+<tr><td><code>watch -n 2 cmd</code></td><td>Repetir um comando a cada 2 s</td></tr>
+</table>
+
+<h2>2.2 Scripts que falham de forma segura</h2>
+<p>O <code>backup.sh</code> do RH começa com <code>set -euo pipefail</code>. É o cabeçalho que todo script de operação deveria ter:</p>
+<ul>
+<li><code>-e</code>: para no primeiro comando que falhar, em vez de seguir e fazer estrago.</li>
+<li><code>-u</code>: erro ao usar uma variável não definida. Sem isso, <code>rm -rf "$PASTA/"</code> com <code>PASTA</code> vazia vira <code>rm -rf /</code>.</li>
+<li><code>-o pipefail</code>: um pipe falha se <b>qualquer</b> parte falhar. Sem isso, <code>pg_dump | gzip</code> "dá certo" mesmo se o <code>pg_dump</code> falhar, porque o <code>gzip</code> terminou bem. Imagine isso num backup.</li>
+</ul>
+<p>Sempre coloque variáveis <b>entre aspas</b> (<code>"$ARQ"</code>) e valide os scripts com <b>shellcheck</b> (<code>apt install shellcheck</code>), que acha esses problemas automaticamente.</p>
+
+<h2>2.3 SSH produtivo</h2>
+<pre class="good"><span class="lbl">~/.ssh/config no seu notebook</span>Host vps
+    HostName 203.0.113.50        # IP da VPS
+    User deploy
+    IdentityFile ~/.ssh/id_ed25519
+    ServerAliveInterval 30
+
+# agora: ssh vps · scp arquivo vps:/tmp/ · rsync -avz pasta/ vps:/opt/app/
+# túnel para acessar o Postgres da VPS (publicado só no loopback) do seu notebook:
+ssh -L 5433:127.0.0.1:5432 vps     # e conecte em localhost:5433</pre>
+<p>O <b>túnel SSH</b> é o jeito certo de acessar serviços que você (corretamente) não expôs na internet, como o Postgres do marketZapp em <code>127.0.0.1:5432</code>. Use <b>tmux</b> na VPS para que comandos longos (uma restauração, por exemplo) não morram se a conexão cair.</p>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 2</span><ol>
+<li>O que cada parte de <code>set -euo pipefail</code> evita? Dê o exemplo do <code>pg_dump | gzip</code>.</li>
+<li>Como acessar do notebook um Postgres publicado só em <code>127.0.0.1</code> na VPS?</li>
+<li>Monte um pipeline que conte quantas respostas 500 o Caddy deu hoje (log em JSON).</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 3</span>systemd: serviços e timers</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>A VPS ficou desligada das 3h às 5h para manutenção. O backup das 3h30 rodou? Como você descobre?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Ler</b> e escrever units de serviço e de timer.</li>
+<li><b>Operar</b> serviços com <code>systemctl</code> e investigar com <code>journalctl</code>.</li>
+<li><b>Justificar</b> o uso de timers em vez de cron.</li></ul></div>
+
+<h2>3.1 O exemplo resolvido: o timer do backup do RH</h2>
+<pre>[Timer]
+OnCalendar=*-*-* 03:30:00     # todo dia às 03:30
+RandomizedDelaySec=20m        # sorteia um atraso de até 20 min (evita todo mundo no minuto cheio)
+Persistent=true               # se a máquina estava desligada, roda assim que ligar
+[Install]
+WantedBy=timers.target</pre>
+<p>A resposta à pergunta-gatilho é o <code>Persistent=true</code>: o systemd guarda quando o timer rodou pela última vez e, ao ligar, executa o que ficou para trás. O cron simplesmente pula. Essa é uma das vantagens dos timers, junto com: logs automáticos no journal, dependências (rodar só depois que a rede subir), limites de recursos e <code>systemctl list-timers</code> para ver a próxima execução.</p>
+<p>O timer dispara um <b>serviço</b> de mesmo nome (<code>francal-backup.service</code>), normalmente do tipo <code>Type=oneshot</code> (roda e termina).</p>
+
+<h2>3.2 Os comandos do dia a dia</h2>
+<pre>systemctl status francal-backup.service      # estado, últimas linhas de log, PID
+systemctl list-timers --all                  # próximos e últimos disparos
+sudo systemctl start francal-backup.service  # roda agora, à mão
+sudo systemctl enable --now algo.timer       # habilita no boot e já inicia
+sudo systemctl daemon-reload                 # OBRIGATÓRIO depois de editar uma unit
+journalctl -u francal-backup.service --since today
+journalctl -u francal-backup.service -n 50 --no-pager
+journalctl -p err -b                         # só erros desde o último boot</pre>
+
+<h2>3.3 Um serviço que se recupera sozinho</h2>
+<pre class="good"><span class="lbl">/etc/systemd/system/exemplo.service</span>[Unit]
+Description=Exemplo de API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=deploy
+WorkingDirectory=/opt/app
+EnvironmentFile=/opt/app/.env
+ExecStart=/usr/bin/node dist/server.js
+Restart=on-failure          # reinicia se cair com erro
+RestartSec=5
+# endurecimento barato:
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/opt/app/uploads
+
+[Install]
+WantedBy=multi-user.target</pre>
+<p class="small">Nos seus projetos, os apps rodam em Docker com <code>restart: always</code>, e o systemd cuida do Docker e dos timers. O exemplo acima serve para entender o que o <code>restart</code> do Docker faz por você, e para scripts que não precisam de container.</p>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 3</span><ol>
+<li>O que faz <code>Persistent=true</code> e que problema do cron ele resolve?</li>
+<li>Você editou um <code>.service</code> e nada mudou. Que comando faltou?</li>
+<li>Como ver só as mensagens de erro do sistema desde o último boot?</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 4</span>IP, portas e DNS</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>Desenhe o caminho de uma requisição desde o navegador digitando <code>api.marketzapp.com.br</code> até o código do Fastify. Quantas caixas você consegue pôr no caminho?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Explicar</b> a diferença entre <code>127.0.0.1</code>, <code>0.0.0.0</code> e o IP da rede.</li>
+<li><b>Descobrir</b> o que está escutando em cada porta.</li>
+<li><b>Consultar</b> e interpretar registros DNS.</li>
+<li><b>Desenhar</b> o caminho completo de uma requisição na sua infra.</li></ul></div>
+
+<h2>4.1 O caso do celular que não abria o localhost</h2>
+<p>Um programa que escuta numa porta escolhe também <b>em qual endereço</b> escutar (o <i>bind</i>):</p>
+<table>
+<tr><th style="width:24%">Bind</th><th>Quem consegue conectar</th></tr>
+<tr><td><code>127.0.0.1</code> (loopback)</td><td>Só processos da <b>própria máquina</b></td></tr>
+<tr><td><code>192.168.0.10</code></td><td>Quem alcança esse endereço (a rede local)</td></tr>
+<tr><td><code>0.0.0.0</code></td><td><b>Todas</b> as interfaces: loopback, rede local e internet, se houver IP público</td></tr>
+</table>
+<p>Vite e Next escutam em <code>127.0.0.1</code> por padrão, por segurança. Por isso o celular, que é <i>outra máquina</i>, não conseguia conectar. A correção é <code>vite --host</code> ou <code>next dev -H 0.0.0.0</code>, e às vezes liberar a porta no firewall do notebook. O mesmo princípio explica o <code>HOST: 0.0.0.0</code> no compose do marketZapp: <b>dentro do container</b>, o app precisa escutar em todas as interfaces, porque o tráfego chega pela interface de rede do container, e não pelo loopback dele.</p>
+<div class="box erro"><span class="t">Erro comum: localhost dentro do container</span><p>Dentro de um container, <code>localhost</code> é <b>o próprio container</b>, e não a VPS nem o outro container. O backend fala com o Postgres pelo <b>nome do serviço</b> na rede do Docker (<code>anunciai-db:5432</code>), não por <code>localhost:5432</code>.</p></div>
+
+<h2>4.2 Quem está escutando?</h2>
+<pre>sudo ss -tlnp            # t=TCP l=escutando n=sem resolver nomes p=processo
+State   Local Address:Port   Process
+LISTEN  127.0.0.1:5432       docker-proxy   ← Postgres só no loopback  ✔
+LISTEN  0.0.0.0:443          docker-proxy   ← Caddy aberto para fora   ✔ (é o objetivo)
+LISTEN  0.0.0.0:6379         redis-server   ← Redis aberto para a internet ✘ PERIGO
+
+nc -zv 203.0.113.50 5432    # de FORA da VPS: a porta responde?
+curl -v telnet://host:porta # alternativa quando não há nc</pre>
+<p>Rodar <code>ss -tlnp</code> é o primeiro passo de qualquer auditoria. Qualquer coisa em <code>0.0.0.0</code> que não seja 22, 80 ou 443 merece uma justificativa.</p>
+
+<h2>4.3 DNS</h2>
+<table>
+<tr><th style="width:12%">Tipo</th><th>Para quê</th><th style="width:40%">Exemplo</th></tr>
+<tr><td>A / AAAA</td><td>Nome → IPv4 / IPv6</td><td><code>api.marketzapp.com.br → 203.0.113.50</code></td></tr>
+<tr><td>CNAME</td><td>Nome → outro nome (apelido)</td><td><code>www → marketzapp.com.br</code></td></tr>
+<tr><td>MX</td><td>Servidor de e-mail do domínio</td><td>—</td></tr>
+<tr><td>TXT</td><td>Texto: verificação de domínio, SPF, DKIM, DMARC</td><td><code>v=spf1 include:... -all</code></td></tr>
+<tr><td>CAA</td><td>Quais autoridades podem emitir certificado</td><td><code>0 issue "letsencrypt.org"</code></td></tr>
+</table>
+<p>O <b>TTL</b> é quanto tempo os resolvedores podem guardar a resposta em cache. Antes de trocar o IP de um servidor, baixe o TTL para 300 s com um dia de antecedência. Com <b>proxy da Cloudflare</b> ligado (a nuvem laranja), o DNS público responde o IP da Cloudflare, e não o da sua VPS: é isso que permite ao firewall do RH aceitar só as faixas da Cloudflare.</p>
+<pre>dig +short api.marketzapp.com.br        # resposta curta
+dig api.marketzapp.com.br @1.1.1.1      # pergunta a um resolvedor específico
+dig +trace marketzapp.com.br            # segue a delegação desde a raiz</pre>
+
+<h2>4.4 O caminho de uma requisição na sua infra</h2>
+<figure>
+<svg viewBox="0 0 680 230" width="100%" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="e" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#5b6470"/></marker></defs>
+<g font-size="10.5" text-anchor="middle">
+<rect x="5" y="20" width="90" height="46" rx="5" fill="#f4f6f8" stroke="#8a939e"/><text x="50" y="40" font-weight="700">Navegador</text><text x="50" y="56">HTTPS</text>
+<rect x="115" y="20" width="90" height="46" rx="5" fill="#f4f6f8" stroke="#8a939e"/><text x="160" y="40" font-weight="700">DNS</text><text x="160" y="56">→ IP Cloudflare</text>
+<rect x="225" y="20" width="100" height="46" rx="5" fill="#fff6db" stroke="#9a6700"/><text x="275" y="40" font-weight="700">Cloudflare</text><text x="275" y="56">TLS 1 · WAF · cache</text>
+<rect x="345" y="20" width="100" height="46" rx="5" fill="#fdecea" stroke="#b42318"/><text x="395" y="40" font-weight="700">Firewall VPS</text><text x="395" y="56">DOCKER-USER</text>
+<rect x="465" y="20" width="95" height="46" rx="5" fill="#e8f0fa" stroke="#1f5fa8"/><text x="512" y="40" font-weight="700">Caddy</text><text x="512" y="56">TLS 2 · proxy</text>
+<rect x="580" y="20" width="95" height="46" rx="5" fill="#e7f5ec" stroke="#1a7f37"/><text x="627" y="40" font-weight="700">Container app</text><text x="627" y="56">rede "edge"</text>
+<line x1="95" y1="43" x2="113" y2="43" stroke="#5b6470" marker-end="url(#e)"/><line x1="205" y1="43" x2="223" y2="43" stroke="#5b6470" marker-end="url(#e)"/><line x1="325" y1="43" x2="343" y2="43" stroke="#5b6470" marker-end="url(#e)"/><line x1="445" y1="43" x2="463" y2="43" stroke="#5b6470" marker-end="url(#e)"/><line x1="560" y1="43" x2="578" y2="43" stroke="#5b6470" marker-end="url(#e)"/>
+<rect x="580" y="120" width="95" height="40" rx="5" fill="#e7f5ec" stroke="#1a7f37"/><text x="627" y="144">Postgres / Redis</text>
+<line x1="627" y1="66" x2="627" y2="118" stroke="#5b6470" marker-end="url(#e)"/>
+<text x="50" y="95" fill="#5b6470">erro aqui:</text><text x="50" y="110" fill="#5b6470">sem internet</text>
+<text x="160" y="95" fill="#5b6470">NXDOMAIN</text><text x="160" y="110" fill="#5b6470">DNS errado</text>
+<text x="275" y="95" fill="#5b6470">52x da</text><text x="275" y="110" fill="#5b6470">Cloudflare</text>
+<text x="395" y="95" fill="#5b6470">timeout</text><text x="395" y="110" fill="#5b6470">(pacote descartado)</text>
+<text x="512" y="95" fill="#5b6470">502: app fora</text><text x="512" y="110" fill="#5b6470">ou nome errado</text>
+<text x="340" y="200" fill="#1b1f24" font-size="11.5">Cada caixa tem um sintoma típico quando falha. Diagnóstico = descobrir em qual caixa parou.</text>
+</g></svg>
+<figcaption>Figura 4.1. O caminho real de uma requisição na sua VPS (RH e marketZapp seguem esse desenho).</figcaption>
+</figure>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 4</span><ol>
+<li>Por que o app dentro do container precisa escutar em <code>0.0.0.0</code>, mas a porta publicada do Postgres deve ser <code>127.0.0.1</code>?</li>
+<li>Como o backend encontra o Postgres na rede do Docker?</li>
+<li>Para que baixar o TTL antes de uma migração de servidor?</li>
+<li>Com o proxy da Cloudflare ligado, que IP o <code>dig</code> público mostra?</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 5</span>TLS, proxy reverso e firewall</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>O <code>deploy.md</code> do marketZapp diz que o <code>TRUST_PROXY</code> errado "quebra dois anti-spam em silêncio". Por que uma configuração de proxy afetaria um anti-spam?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Explicar</b> como o TLS e os certificados funcionam, e o papel do Let's Encrypt.</li>
+<li><b>Configurar</b> um proxy reverso e os cabeçalhos <code>X-Forwarded-*</code>.</li>
+<li><b>Explicar</b> por que o ufw não protege portas do Docker e o que faz o script do RH.</li></ul></div>
+
+<h2>5.1 TLS em três ideias</h2>
+<ol>
+<li><b>Cifra</b> o tráfego, para que ninguém no caminho leia.</li>
+<li><b>Autentica o servidor</b>: o certificado prova que quem responde é dono do domínio, assinado por uma autoridade (CA) em que o navegador confia.</li>
+<li><b>Garante integridade</b>: ninguém altera os dados no caminho.</li>
+</ol>
+<p>O <b>Let's Encrypt</b> emite certificados gratuitos de 90 dias pelo protocolo <b>ACME</b>. O Caddy faz isso sozinho: pede, valida o domínio (desafio HTTP-01 na porta 80 ou TLS-ALPN na 443) e renova. Por isso o comentário do firewall do RH diz que o Caddy precisa conseguir sair para a internet.</p>
+<p><b>Com Cloudflare no meio existem dois TLS</b>: navegador ↔ Cloudflare e Cloudflare ↔ VPS. Use o modo <b>Full (strict)</b>, que exige um certificado válido na VPS. O modo "Flexible" deixa o segundo trecho em HTTP puro, e o modo "Full" sem strict aceita qualquer certificado.</p>
+<pre>curl -vI https://api.marketzapp.com.br 2>&amp;1 | grep -E "subject|issuer|expire"
+openssl s_client -connect host:443 -servername host &lt;/dev/null | openssl x509 -noout -dates</pre>
+
+<h2>5.2 Proxy reverso e o <code>X-Forwarded-For</code></h2>
+<p>O Caddy recebe a conexão e a repassa ao container. Para o app, quem conectou foi o <b>Caddy</b>, então o IP de origem é o do Caddy. O IP real do usuário chega num cabeçalho, <code>X-Forwarded-For</code> (ou <code>CF-Connecting-IP</code>, posto pela Cloudflare). Isso cria dois problemas opostos:</p>
+<ul>
+<li><b>Sem confiar no proxy</b> (<code>trustProxy</code> desligado): o app vê todo mundo com o mesmo IP, o do Caddy. O rate limit por IP bloqueia todos de uma vez, ou não bloqueia ninguém. É o "anti-spam quebrado em silêncio" do marketZapp.</li>
+<li><b>Confiando em qualquer um</b>: um atacante que fala direto com o app manda <code>X-Forwarded-For: 1.2.3.4</code> e escolhe o próprio IP, burlando o rate limit.</li>
+</ul>
+<p>Configure para confiar <b>exatamente</b> no número de saltos ou nas faixas de proxy que existem (Caddy, e Cloudflare se houver), e garanta que ninguém fale com o app sem passar por eles, que é o que o firewall faz.</p>
+
+<h2>5.3 Firewall e Docker: o caso do RH</h2>
+<figure>
+<svg viewBox="0 0 680 170" width="100%" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="f" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#5b6470"/></marker></defs>
+<g font-size="11" text-anchor="middle">
+<rect x="10" y="60" width="110" height="44" rx="5" fill="#f4f6f8" stroke="#8a939e"/><text x="65" y="86">pacote chega</text>
+<rect x="160" y="10" width="160" height="44" rx="5" fill="#e8f0fa" stroke="#1f5fa8"/><text x="240" y="30">INPUT (ufw controla)</text><text x="240" y="45" font-size="10">destino: processo do host (sshd)</text>
+<rect x="160" y="110" width="160" height="44" rx="5" fill="#fff6db" stroke="#9a6700"/><text x="240" y="130">FORWARD</text><text x="240" y="145" font-size="10">destino: container (após DNAT)</text>
+<rect x="360" y="110" width="140" height="44" rx="5" fill="#e7f5ec" stroke="#1a7f37"/><text x="430" y="130" font-weight="700">DOCKER-USER</text><text x="430" y="145" font-size="10">suas regras: o script do RH</text>
+<rect x="540" y="110" width="130" height="44" rx="5" fill="#f4f6f8" stroke="#8a939e"/><text x="605" y="130">regras do Docker</text><text x="605" y="145" font-size="10">→ container</text>
+<line x1="120" y1="75" x2="158" y2="35" stroke="#5b6470" marker-end="url(#f)"/><line x1="120" y1="90" x2="158" y2="130" stroke="#5b6470" marker-end="url(#f)"/>
+<line x1="320" y1="132" x2="358" y2="132" stroke="#5b6470" marker-end="url(#f)"/><line x1="500" y1="132" x2="538" y2="132" stroke="#5b6470" marker-end="url(#f)"/>
+<text x="470" y="40" fill="#b42318">Pacote para container NÃO passa pelo INPUT:</text><text x="470" y="57" fill="#b42318">o "ufw deny 5432" não tem efeito sobre ele.</text>
+</g></svg>
+<figcaption>Figura 5.1. Por que o ufw não protege portas publicadas pelo Docker (simplificado).</figcaption>
+</figure>
+<p>Quando você publica <code>-p 5432:5432</code>, o Docker cria uma regra de <b>NAT</b> que redireciona o pacote para o IP do container. Esse pacote segue pela cadeia <b>FORWARD</b>, e não pela <b>INPUT</b>, que é onde o ufw trabalha. Daí as duas defesas da sua infra:</p>
+<ol>
+<li><b>Não publicar</b> o que não precisa ser público, ou publicar só no loopback (<code>127.0.0.1:5432:5432</code>, como no marketZapp). É a defesa principal.</li>
+<li><b>Regras na cadeia <code>DOCKER-USER</code></b>, que o Docker consulta antes das próprias regras e nunca sobrescreve. O <code>cloudflare-only.sh</code> do RH usa essa cadeia para aceitar 80/443 só das faixas da Cloudflare, com <code>-i eth0</code> para não bloquear o tráfego de <i>saída</i> dos containers.</li>
+</ol>
+<div class="box dica"><span class="t">Explique o seu próprio código</span><p>A missão M1 pede que você explique o <code>cloudflare-only.sh</code> linha por linha, sem IA. Se conseguir, entendeu este capítulo.</p></div>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 5</span><ol>
+<li>Que três garantias o TLS dá?</li>
+<li>Por que usar Cloudflare em "Full (strict)" e não em "Flexible"?</li>
+<li>Explique os dois erros opostos de configuração do <code>trust proxy</code>.</li>
+<li>Por que o ufw não bloqueia uma porta publicada pelo Docker? Quais são as duas defesas?</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 6</span>Docker a fundo</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>O compose do marketZapp diz que o Redis da Evolution "roda com volume ANÔNIMO" e "some num <code>docker compose down -v</code>". O que é um volume anônimo e por que isso é perigoso?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Escrever</b> um Dockerfile pequeno, seguro e com bom uso de cache.</li>
+<li><b>Escolher</b> entre volume nomeado, bind mount e volume anônimo.</li>
+<li><b>Configurar</b> redes, healthchecks, limites e rotação de logs no compose.</li></ul></div>
+
+<h2>6.1 Imagem, camadas e cache</h2>
+<p>Uma <b>imagem</b> é uma pilha de camadas somente leitura, uma por instrução do Dockerfile. Um <b>container</b> é uma imagem com uma camada gravável por cima, <b>que some quando o container é removido</b>. O build reaproveita camadas cujo conteúdo não mudou: por isso a ordem das instruções importa.</p>
+<pre class="bad"><span class="lbl">Errado · qualquer mudança no código reinstala tudo, e roda como root</span>FROM node:22
+COPY . .
+RUN npm install
+CMD ["npm", "start"]</pre>
+<pre class="good"><span class="lbl">Certo · multi-stage, cache de dependências, usuário sem privilégio</span># --- build ---
+FROM node:22-alpine AS build
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci                                  # só refaz se o lockfile mudar
+COPY tsconfig.json ./
+COPY src ./src
+RUN npm run build &amp;&amp; npm prune --omit=dev
+
+# --- runtime ---
+FROM node:22-alpine
+ENV NODE_ENV=production
+WORKDIR /app
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/dist ./dist
+COPY package.json ./
+USER node                                   # a imagem oficial já tem esse usuário
+EXPOSE 3001
+CMD ["node", "dist/server.js"]              # node direto: recebe o SIGTERM (npm start não repassa bem)</pre>
+<ul>
+<li><b><code>.dockerignore</code></b> com <code>node_modules</code>, <code>.env*</code>, <code>.git</code>: build mais rápido e sem segredo dentro da imagem.</li>
+<li>Fixe a versão da imagem base (<code>node:22-alpine</code>, não <code>node:latest</code>). Para reprodutibilidade total, use o <i>digest</i> (<code>@sha256:...</code>).</li>
+<li><code>docker history imagem</code> mostra as camadas e o tamanho de cada uma.</li>
+</ul>
+
+<h2>6.2 Onde os dados vivem</h2>
+<table>
+<tr><th style="width:20%">Tipo</th><th>Declaração</th><th>Quando usar</th><th style="width:26%">Risco</th></tr>
+<tr><td><b>Volume nomeado</b></td><td><code>pgdata:/var/lib/postgresql/data</code> + bloco <code>volumes:</code></td><td>Dados de banco, Redis com AOF</td><td>Some com <code>docker compose down -v</code></td></tr>
+<tr><td><b>Bind mount</b></td><td><code>./uploads:/app/uploads</code></td><td>Arquivos que você quer ver no host, config</td><td>Permissões (UID do container ≠ do host)</td></tr>
+<tr><td><b>Anônimo</b></td><td>Criado pela instrução <code>VOLUME</code> da imagem, sem nome no compose</td><td>Nunca de propósito</td><td>Difícil de achar, de fazer backup, e sai fácil com <code>down -v</code> ou <code>--rm</code></td></tr>
+</table>
+<div class="box erro"><span class="t">Comandos perigosos</span><p><code>docker compose down -v</code> apaga os volumes do projeto. <code>docker volume prune -a</code> apaga <b>todos</b> os volumes não usados por algum container, inclusive os nomeados: o banco de um serviço que estava removido some junto. (Nas versões recentes do Docker, o <code>prune</code> sem <code>-a</code> remove só os anônimos. Confira com <code>docker volume prune --help</code>.) Leia duas vezes antes de rodar em produção.</p></div>
+
+<h2>6.3 Redes</h2>
+<p>Cada projeto do compose ganha uma rede própria, e os serviços se encontram <b>pelo nome</b> (DNS interno do Docker). Projetos diferentes ficam isolados, a não ser que compartilhem uma rede declarada como <code>external</code>. É o que faz a rede <code>edge</code> da sua VPS: o Caddy está nela, e cada app que precisa ser publicado é conectado a ela. O Postgres de cada app fica só na rede interna do próprio projeto, invisível ao Caddy e aos outros apps.</p>
+
+<h2>6.4 O compose de produção, item por item</h2>
+<pre class="good"><span class="lbl">Trecho comentado</span>services:
+  api:
+    image: ghcr.io/usuario/app:${TAG:?defina TAG}   # tag do commit, não latest
+    restart: unless-stopped
+    env_file: .env                                  # chmod 600
+    depends_on:
+      db: { condition: service_healthy }            # espera o banco ficar PRONTO, não só "iniciado"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3001/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources: { limits: { memory: 512M } }       # um vazamento não derruba a VPS inteira
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }   # sem isso, o log cresce até encher o disco
+    networks: [interna, edge]
+  db:
+    image: postgres:16-alpine
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U app"], interval: 5s, retries: 10 }
+    networks: [interna]                             # nenhuma porta publicada
+volumes: { pgdata: {} }
+networks: { interna: {}, edge: { external: true } }</pre>
+<div class="box caso"><span class="t">Caso real · o <code>!override</code> do marketZapp</span><p>Ao combinar <code>docker-compose.yml</code> e <code>docker-compose.prod.yml</code>, o Compose <b>concatena</b> listas como <code>ports</code>. Sem o <code>!override</code>, o Postgres ficaria com <code>5432:5432</code> (do arquivo base) <b>e</b> <code>127.0.0.1:5432:5432</code>: abriria para a internet e depois quebraria com "address already in use". Use <code>docker compose -f a.yml -f b.yml config</code> para ver o resultado final da mescla <b>antes</b> de subir.</p></div>
+<p>O "conflito de Postgres no docker-compose" que você já teve costuma vir daí: dois serviços, ou um Postgres instalado no host e outro no container, querendo a mesma porta 5432 do host. Diagnóstico: <code>sudo ss -tlnp | grep 5432</code>. Correção: publicar em outra porta (<code>55432:5432</code>, como no teste do Julielton) ou não publicar.</p>
+
+<h2>6.5 Comandos de investigação</h2>
+<pre>docker compose ps                         # estado e saúde (healthy/unhealthy)
+docker compose logs -f --tail=100 api     # logs de um serviço
+docker inspect --format '{{json .State.Health}}' api | jq   # por que está unhealthy
+docker compose exec api sh                # entrar no container
+docker stats                              # CPU/memória por container, ao vivo
+docker system df                          # espaço ocupado por imagens, volumes, cache
+docker network inspect edge               # quem está na rede</pre>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 6</span><ol>
+<li>Por que copiar <code>package.json</code> e rodar <code>npm ci</code> antes de copiar o código?</li>
+<li>Diferencie volume nomeado, bind mount e volume anônimo.</li>
+<li>O que <code>depends_on</code> com <code>condition: service_healthy</code> garante a mais?</li>
+<li>Que opção do compose evita que os logs dos containers encham o disco?</li>
+<li>Como ver o compose final depois de mesclar dois arquivos?</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 7</span>Logs e monitoramento</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>Se o backup do RH falhar todas as noites a partir de hoje, quando você vai ficar sabendo?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Escrever</b> logs úteis para diagnóstico.</li>
+<li><b>Montar</b> monitoramento externo de disponibilidade e de tarefas agendadas.</li>
+<li><b>Diferenciar</b> logs, métricas e alertas.</li></ul></div>
+
+<h2>7.1 Logs que ajudam</h2>
+<ul>
+<li><b>Estruturados (JSON)</b>: <code>{"level":"error","msg":"falha ao enviar","jobId":"msg-123","ms":5021}</code>. Dá para filtrar com <code>jq</code> e agregar. O pino do Fastify já faz isso. No Express, use <code>pino-http</code>. No Go, o <code>log/slog</code> da biblioteca padrão.</li>
+<li><b>Um ID por requisição</b> (<code>reqId</code>) em todas as linhas daquela requisição, para seguir o caminho dela.</li>
+<li><b>Níveis</b>: <code>error</code> = alguém precisa agir; <code>warn</code> = estranho, mas tratado; <code>info</code> = eventos de negócio; <code>debug</code> desligado em produção.</li>
+<li><b>Contexto, não segredo</b> (Módulo 1, 10.5): IDs, durações e status, nunca tokens, senhas ou CPF.</li>
+</ul>
+
+<h2>7.2 Três camadas de observação</h2>
+<table>
+<tr><th style="width:18%">Camada</th><th>Pergunta</th><th style="width:40%">Ferramenta mínima</th></tr>
+<tr><td>Logs</td><td>O que aconteceu, em detalhe?</td><td><code>docker compose logs</code>, <code>journalctl</code>, rotação configurada</td></tr>
+<tr><td>Métricas</td><td>Como está ao longo do tempo (CPU, disco, latência)?</td><td>Painel do provedor da VPS. Depois: Netdata, ou Prometheus + Grafana</td></tr>
+<tr><td>Alertas</td><td>Quando preciso agir?</td><td>Monitor externo de uptime + "dead man's switch"</td></tr>
+</table>
+
+<h2>7.3 Monitoramento externo: o mínimo que vale ouro</h2>
+<ol>
+<li><b>Uptime</b>: um serviço externo (UptimeRobot, Better Stack, ou o Uptime Kuma em <i>outra</i> máquina) chama <code>https://.../health</code> a cada minuto e avisa por e-mail ou Telegram se falhar. Tem que ser externo: um monitor dentro da VPS morre junto com ela.</li>
+<li><b>Dead man's switch para tarefas agendadas</b>: o backup, ao terminar <b>com sucesso</b>, faz um <code>curl</code> para uma URL do <i>healthchecks.io</i> (ou similar). Se o ping não chegar no horário esperado, você recebe o alerta. Isso responde à pergunta-gatilho: sem ele, a resposta é "quando precisar restaurar e descobrir que não tem backup".</li>
+<li><b>Disco</b>: alerta com 80% de uso. Disco cheio derruba o Postgres, e o Postgres derruba tudo.</li>
+</ol>
+<pre class="good"><span class="lbl">Final de um script de backup com ping de sucesso e de falha</span>trap 'curl -fsS -m 10 --retry 3 "$HC_URL/fail" &gt;/dev/null' ERR   # avisa a falha
+# ... backup ...
+curl -fsS -m 10 --retry 3 "$HC_URL" &gt;/dev/null                   # avisa o sucesso</pre>
+
+<h2>7.4 O endpoint <code>/health</code></h2>
+<p>Separe dois conceitos: <b>liveness</b> ("o processo está vivo?", que só responde 200) e <b>readiness</b> ("consigo atender?", que testa o banco e o Redis com timeout curto). O healthcheck do Docker e o monitor externo usam o de readiness. Não exponha detalhes internos nele: <code>{"ok":true}</code> basta.</p>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 7</span><ol>
+<li>Por que o monitor de uptime precisa estar fora da VPS?</li>
+<li>O que é um dead man's switch e qual problema ele resolve?</li>
+<li>Diferencie liveness de readiness.</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 8</span>Backup e restauração</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>A VPS do RH foi perdida agora. Quantas horas de dados você perde, e quanto tempo leva para o site voltar? Escreva os números antes de ler.</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Definir</b> RPO e RTO para cada sistema.</li>
+<li><b>Explicar</b> as decisões do backup do RH (restic, stdin, banco + arquivos juntos).</li>
+<li><b>Executar</b> e cronometrar uma restauração completa.</li></ul></div>
+
+<h2>8.1 Vocabulário</h2>
+<ul>
+<li><b>RPO</b> (<i>Recovery Point Objective</i>): quanto dado você aceita perder. Backup diário = RPO de até 24 h.</li>
+<li><b>RTO</b> (<i>Recovery Time Objective</i>): em quanto tempo o sistema precisa voltar.</li>
+<li><b>Regra 3-2-1</b>: 3 cópias, em 2 mídias diferentes, 1 fora do local. Versão moderna: 3-2-1-1-0, com 1 cópia imutável ou offline e <b>0 erros na restauração testada</b>.</li>
+</ul>
+
+<h2>8.2 Exemplo resolvido: as decisões do <code>backup.sh</code> do RH</h2>
+<table>
+<tr><th style="width:30%">Decisão</th><th>Por quê</th></tr>
+<tr><td>Banco e currículos <b>juntos</b></td><td>Os arquivos têm nome sorteado. Quem é dono de cada PDF está só no banco. Restaurar um sem o outro devolve "uma pilha de PDFs anônimos".</td></tr>
+<tr><td><b>restic</b></td><td>Criptografa (currículo é dado pessoal e vai para o armazenamento de terceiros), deduplica (o PDF que não mudou é guardado uma vez) e expira sozinho (<code>forget --prune</code>).</td></tr>
+<tr><td>Dump do banco por <b>stdin</b></td><td>O dump nunca existe em disco em texto claro, nem ocupa espaço.</td></tr>
+<tr><td>Timer com <code>Persistent=true</code></td><td>Não pula o dia se a VPS estava desligada (capítulo 3).</td></tr>
+<tr><td>Timer separado de <b>verificação</b></td><td><code>restic check</code> confere a integridade do repositório periodicamente.</td></tr>
+</table>
+<p>É um desenho bom. O que falta, e que nenhum script resolve sozinho: <b>(1)</b> confirmar que está rodando na VPS, <b>(2)</b> alerta quando falhar (capítulo 7) e <b>(3)</b> uma restauração <b>testada e cronometrada</b>, que é a missão M6.</p>
+
+<h2>8.3 Dump lógico x físico</h2>
+<table>
+<tr><th style="width:24%"></th><th><code>pg_dump</code> (lógico)</th><th><code>pg_basebackup</code> + WAL (físico)</th></tr>
+<tr><td>O que gera</td><td>Comandos SQL / formato custom</td><td>Cópia dos arquivos do cluster + log contínuo</td></tr>
+<tr><td>RPO</td><td>Intervalo entre dumps</td><td>Segundos (PITR: volta a qualquer instante)</td></tr>
+<tr><td>Complexidade</td><td>Baixa</td><td>Alta (pgBackRest, WAL-G)</td></tr>
+<tr><td>Bom para</td><td>Bancos de até dezenas de GB e RPO de horas: <b>o seu caso</b></td><td>Bancos grandes, RPO de minutos</td></tr>
+</table>
+<pre class="good"><span class="lbl">Dump e restauração no formato custom</span># dump (de dentro do container, saída no host)
+docker compose exec -T db pg_dump -U app -Fc app &gt; app.dump
+# restauração num banco vazio
+docker compose exec -T db createdb -U app app_restaurado
+docker compose exec -T db pg_restore -U app -d app_restaurado --no-owner &lt; app.dump</pre>
+
+<h2>8.4 O que entra no backup (e o que se esquece)</h2>
+<ul class="check">
+<li>Banco de dados</li>
+<li>Uploads (currículos, PDFs gerados do Julielton)</li>
+<li>Arquivos <code>.env</code> de produção, num cofre separado e criptografado</li>
+<li>A <b>senha do repositório restic</b>, fora da VPS. Sem ela o backup é ilegível, inclusive para você</li>
+<li>Configuração da infra (<code>/opt/infra</code>), que já está no Git do RH: ótimo</li>
+<li>Volumes de serviços de terceiros com estado (sessão do WhatsApp na Evolution)</li>
+</ul>
+
+<h2>8.5 O roteiro de restauração</h2>
+<ol>
+<li>Máquina limpa (VM de teste), cronômetro ligado.</li>
+<li>Instalar Docker e restic, e clonar o repositório da infra.</li>
+<li><code>backup.sh --listar</code> e <code>--restaurar latest /restauracao</code>.</li>
+<li>Subir o Postgres, restaurar o dump, apontar os uploads.</li>
+<li>Subir a aplicação e conferir: login funciona, um currículo abre, a contagem de registros bate.</li>
+<li>Parar o cronômetro: esse é o seu <b>RTO real</b>. Anotar tudo que não estava documentado.</li>
+</ol>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 8</span><ol>
+<li>Defina RPO e RTO e dê os valores atuais do RH.</li>
+<li>Por que banco e uploads precisam ir juntos no RH?</li>
+<li>Por que guardar a senha do restic fora da VPS?</li>
+<li>Quando faria sentido trocar <code>pg_dump</code> por backup físico com WAL?</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 9</span>Diagnóstico: onde olhar</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>Um cliente manda "o sistema não abre". Escreva os seus 5 primeiros passos, na ordem.</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Seguir</b> um método de diagnóstico em vez de tentar coisas ao acaso.</li>
+<li><b>Mapear</b> cada sintoma comum para a camada provável.</li>
+<li><b>Escrever</b> um runbook para os seus sistemas.</li></ul></div>
+
+<h2>9.1 O método</h2>
+<ol>
+<li><b>Reproduza e delimite</b>: falha para todos ou para um? Em todas as páginas ou numa rota? Desde quando? O que mudou (deploy, renovação de certificado, disco)?</li>
+<li><b>Siga o caminho da requisição</b> (figura 4.1), de fora para dentro, e ache a primeira caixa que falha.</li>
+<li><b>Hipótese → teste → conclusão</b>, uma de cada vez. Anote o que testou: na terceira hora ninguém lembra.</li>
+<li><b>Mitigue antes de entender tudo</b>: se o deploy de 10 minutos atrás é o suspeito, faça rollback primeiro e investigue depois.</li>
+<li><b>Depois</b>: escreva o que aconteceu (sem culpados), e transforme a causa em teste, alerta ou item de checklist.</li>
+</ol>
+
+<h2>9.2 Sintoma → camada provável</h2>
+<table>
+<tr><th style="width:28%">Sintoma</th><th>Camada provável</th><th style="width:36%">Primeiro comando</th></tr>
+<tr><td>DNS_PROBE / NXDOMAIN</td><td>DNS</td><td><code>dig +short dominio</code></td></tr>
+<tr><td>Erro de certificado</td><td>TLS (expirou, domínio errado, modo da Cloudflare)</td><td><code>curl -vI https://...</code></td></tr>
+<tr><td>Erro 52x da Cloudflare</td><td>A Cloudflare não alcança a VPS (firewall, Caddy fora)</td><td>Na VPS: <code>ss -tlnp | grep 443</code></td></tr>
+<tr><td>Timeout sem resposta</td><td>Firewall descartando, ou VPS fora</td><td><code>nc -zv ip 443</code> de fora</td></tr>
+<tr><td><b>502 Bad Gateway</b></td><td>O Caddy funciona, mas não alcança o app: container parado, nome ou porta errados, app fora da rede <code>edge</code></td><td><code>docker compose ps</code> e logs do Caddy</td></tr>
+<tr><td>504 Gateway Timeout</td><td>O app recebe, mas demora demais (consulta lenta, travado)</td><td>Logs do app, <code>docker stats</code></td></tr>
+<tr><td>500</td><td>Erro na aplicação</td><td><code>docker compose logs api | jq 'select(.level&gt;=50)'</code></td></tr>
+<tr><td>Container reiniciando em loop</td><td>Crash na subida: variável faltando, banco indisponível, OOM (137)</td><td><code>docker compose logs --tail=50 api</code></td></tr>
+<tr><td>"address already in use"</td><td>Porta do host já ocupada</td><td><code>sudo ss -tlnp | grep :PORTA</code></td></tr>
+<tr><td>Tudo lento, erros estranhos</td><td>Disco cheio ou memória esgotada</td><td><code>df -h</code>, <code>free -h</code>, <code>dmesg -T | tail</code></td></tr>
+</table>
+
+<h2>9.3 Runbook</h2>
+<p>Um runbook é o roteiro escrito para "quando X acontecer, faça Y". Ele é escrito com calma para ser seguido sob pressão. Estrutura sugerida para cada sistema: <b>(1)</b> como entrar (host, usuário, onde está o compose), <b>(2)</b> verificação rápida (os 5 comandos), <b>(3)</b> problemas conhecidos com a solução, <b>(4)</b> como fazer rollback, <b>(5)</b> como restaurar o backup e <b>(6)</b> quem avisar. É a missão M2.</p>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 9</span><ol>
+<li>Por que mitigar (rollback) antes de entender a causa?</li>
+<li>502 e 504: qual a diferença de diagnóstico?</li>
+<li>O container reinicia sem parar. Quais as três causas mais prováveis?</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 10</span>Segurança da VPS</h1>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Auditar</b> a sua VPS com um checklist e corrigir o que faltar.</li></ul></div>
+<div class="two">
+<div>
+<h3>Acesso</h3>
+<ul class="check">
+<li>SSH só por chave: <code>PasswordAuthentication no</code></li>
+<li><code>PermitRootLogin no</code> (ou <code>prohibit-password</code>)</li>
+<li>Usuário próprio com <code>sudo</code>. A aplicação com usuário sem privilégio</li>
+<li>fail2ban ou equivalente no SSH</li>
+<li>Chaves antigas removidas de <code>authorized_keys</code></li>
+</ul>
+<h3>Superfície exposta</h3>
+<ul class="check">
+<li><code>ss -tlnp</code>: só 22, 80 e 443 em <code>0.0.0.0</code></li>
+<li>Bancos e Redis sem porta publicada, ou só em loopback</li>
+<li>Firewall na <code>DOCKER-USER</code> quando houver proxy (Cloudflare)</li>
+<li>Painéis administrativos (Evolution, pgAdmin) atrás de túnel SSH, não públicos</li>
+</ul>
+</div>
+<div>
+<h3>Atualizações</h3>
+<ul class="check">
+<li><code>unattended-upgrades</code> para patches de segurança</li>
+<li>Imagens Docker atualizadas (Dependabot no compose ou revisão mensal)</li>
+<li>Reboot periódico para aplicar o kernel novo</li>
+</ul>
+<h3>Dados e recuperação</h3>
+<ul class="check">
+<li><code>.env</code> com <code>chmod 600</code></li>
+<li>Backup criptografado fora da VPS, com alerta de falha</li>
+<li>Restauração testada nos últimos 6 meses</li>
+<li>Rotação de logs configurada</li>
+<li>Monitor externo de uptime</li>
+<li>Snapshot do provedor antes de mudanças grandes</li>
+</ul>
+</div>
+</div>
+
+<h1><span class="num">Prática</span>Missões</h1>
+<table>
+<tr><th style="width:7%">#</th><th style="width:24%">Missão</th><th>O que fazer</th><th style="width:30%">Pronto quando</th></tr>
+<tr><td>M1</td><td>Explicar a infra do RH, sem IA</td><td>Para <code>infra/firewall/cloudflare-only.sh</code>, <code>infra/systemd/*</code> e <code>infra/caddy/Caddyfile</code>, escreva ao lado de cada bloco o que ele faz e por quê. Onde travar, pesquise na documentação (man page, docs do Caddy), não na IA. Só no fim, peça à IA para corrigir as suas explicações.</td><td>Documento com as explicações e uma lista do que você não sabia.</td></tr>
+<tr><td>M2</td><td>Runbook</td><td>Escrever <code>docs/runbook.md</code> no RH e no marketZapp com as seis seções de 9.3. Incluir o diagrama do caminho da requisição (figura 4.1) adaptado a cada sistema.</td><td>Outra pessoa (ou você, daqui a 3 meses) consegue reiniciar e diagnosticar seguindo só o documento.</td></tr>
+<tr><td>M3</td><td>Game day</td><td>Na VM de laboratório, suba um compose parecido com o de produção. Peça a alguém, ou à IA, para quebrar <b>uma coisa por vez</b> sem contar o quê: parar o app, nome errado no Caddy, encher o disco (<code>fallocate -l 20G /tmp/x</code>), variável faltando no <code>.env</code>, porta conflitante. Diagnostique usando só a tabela de 9.2.</td><td>5 falhas diagnosticadas, com tempo anotado em cada uma e o comando que revelou a causa.</td></tr>
+<tr><td>M4</td><td>Compose de produção revisado</td><td>Comparar os composes de produção (RH, marketZapp, Julielton) com o trecho de 6.4: rotação de logs, healthcheck, <code>depends_on</code> com <code>service_healthy</code>, limite de memória, imagem com tag fixa. Rodar <code>ss -tlnp</code> na VPS.</td><td>Diferenças corrigidas ou justificadas. Nenhuma porta inesperada em <code>0.0.0.0</code>.</td></tr>
+<tr><td>M5</td><td>Alertas</td><td>Monitor externo de uptime para os sites em produção. Ping de sucesso e de falha (healthchecks.io) no <code>backup.sh</code> do RH.</td><td>Você recebe um alerta quando derruba o app de propósito, e quando o backup não roda.</td></tr>
+<tr><td>M6</td><td>Restauração cronometrada</td><td>Seguir o roteiro de 8.5 numa máquina limpa, a partir do backup real do RH (<code>--restaurar</code>).</td><td>Sistema restaurado e funcionando. RTO real anotado na trilha. Runbook atualizado com o que faltava.</td></tr>
+</table>
+
+<h1><span class="num">Apêndice A</span>Gabarito e revisão intercalada</h1>
+<div class="gab">
+<h3>Pré-teste</h3>
+<ol>
+<li>O servidor de desenvolvimento escuta em <code>127.0.0.1</code>, que só aceita conexões da própria máquina. Use <code>--host</code> / <code>0.0.0.0</code>. (4.1)</li>
+<li><code>sudo ss -tlnp</code>. (4.2)</li>
+<li>O Docker faz NAT e o pacote passa pela cadeia FORWARD, não pela INPUT do ufw. (5.3)</li>
+<li>Nomeado: gerenciado pelo Docker, em <code>/var/lib/docker/volumes</code>. Bind: uma pasta do host que você escolhe. (6.2)</li>
+<li>Entre o proxy e o app: container parado, nome ou porta errados, rede. (9.2)</li>
+<li>RPO: quanto dado se aceita perder. RTO: em quanto tempo o sistema volta. (8.1)</li>
+<li><code>journalctl -u nome --since "1 hour ago"</code>. (3.2)</li>
+<li>CNAME: apelido de um nome para outro. TTL: tempo de cache da resposta. (4.3)</li>
+<li>Para o próprio container. (4.1)</li>
+<li>Logs de container sem rotação, imagens e cache de build antigos, volumes órfãos. (6.4, 6.5)</li>
+<li>SIGTERM pede o encerramento (dá para limpar). SIGKILL mata na hora, sem limpeza. (1.3)</li>
+<li>Só a restauração prova que o backup está completo, legível e que você sabe usá-lo. (8.5)</li>
+</ol>
+<h3>Capítulo 1</h3>
+<ol><li><code>600</code> para o <code>.env</code>. <code>700</code> (ou <code>750</code> com grupo) para o script.</li><li>Quem fala com o daemon monta o <code>/</code> do host num container como root.</li><li>Foi morto por SIGKILL, provavelmente OOM. Confirme com <code>dmesg -T | grep -i kill</code>.</li><li>O Linux usa a memória livre como cache. Olhe o "available".</li></ol>
+<h3>Capítulo 2</h3>
+<ol><li><code>-e</code> para no erro, <code>-u</code> barra variável vazia, <code>pipefail</code> faz o pipe falhar se o <code>pg_dump</code> falhar, mesmo que o <code>gzip</code> termine bem.</li><li>Túnel: <code>ssh -L 5433:127.0.0.1:5432 vps</code>.</li><li>Ex.: <code>jq -c 'select(.status==500)' access.log | wc -l</code>, adaptando o nome do campo ao formato do log do Caddy.</li></ol>
+<h3>Capítulo 3</h3>
+<ol><li>Executa disparos perdidos enquanto a máquina estava desligada. O cron simplesmente pula.</li><li><code>systemctl daemon-reload</code>.</li><li><code>journalctl -p err -b</code>.</li></ol>
+<h3>Capítulo 4</h3>
+<ol><li>O tráfego chega ao app pela interface de rede do container. Já a porta do host define quem de fora alcança, e o Postgres não deve ser alcançado de fora.</li><li>Pelo nome do serviço, via DNS interno do Docker.</li><li>Para que os caches expirem rápido depois da troca de IP.</li><li>O IP da Cloudflare.</li></ol>
+<h3>Capítulo 5</h3>
+<ol><li>Sigilo, autenticação do servidor, integridade.</li><li>Flexible deixa o trecho Cloudflare → VPS sem cifra. Strict exige certificado válido.</li><li>Desligado: todos com o IP do proxy. Confiar em tudo: o cliente forja o próprio IP.</li><li>Ver 5.3: NAT/FORWARD. Defesas: publicar só no loopback (ou não publicar) e regras na DOCKER-USER.</li></ol>
+<h3>Capítulo 6</h3>
+<ol><li>A camada do <code>npm ci</code> só é refeita quando o lockfile muda.</li><li>Ver a tabela de 6.2.</li><li>Que o banco passou no healthcheck, ou seja, está pronto para conexões.</li><li><code>logging.options.max-size</code> e <code>max-file</code>.</li><li><code>docker compose -f a.yml -f b.yml config</code>.</li></ol>
+<h3>Capítulo 7</h3>
+<ol><li>Para não morrer junto com a VPS.</li><li>Alerta quando um sinal esperado <b>não</b> chega. Detecta tarefas que pararam de rodar.</li><li>Liveness: processo vivo. Readiness: consegue atender (dependências ok).</li></ol>
+<h3>Capítulo 8</h3>
+<ol><li>RPO ≈ 24 h (backup diário). RTO desconhecido até a missão M6.</li><li>O vínculo entre arquivo e candidato está só no banco.</li><li>Sem ela o backup é ilegível. Se ela só existir na VPS perdida, perde-se tudo.</li><li>Banco grande, ou RPO exigido de minutos.</li></ol>
+<h3>Capítulo 9</h3>
+<ol><li>Reduz o tempo de impacto para o usuário. A investigação continua depois, com calma.</li><li>502: o proxy não alcança o app. 504: alcança, mas o app não responde a tempo.</li><li>Variável/configuração faltando, dependência indisponível, OOM.</li></ol>
+</div>
+<h2>Revisão intercalada</h2>
+<div class="quiz"><span class="t">Qual a causa provável e o primeiro comando?</span><ol>
+<li>Depois de um <code>docker compose down -v</code> para "limpar", o sistema voltou sem nenhum dado.</li>
+<li>Os logs do rate limit mostram todos os acessos vindos de <code>172.18.0.2</code>.</li>
+<li>O site funciona, mas a API dá 502 desde o último deploy.</li>
+<li>O backup "roda" todo dia, mas o arquivo do dump tem 20 bytes.</li>
+<li>O Postgres não sobe: "could not write to file: No space left on device".</li>
+<li>Você liberou <code>ufw allow 3000</code>, mas o celular continua sem acessar o app de desenvolvimento.</li>
+<li>O certificado expirou, embora o Caddy renove sozinho.</li>
+</ol></div>
+<div class="gab"><ol>
+<li><code>-v</code> apagou os volumes (6.2). Restaurar do backup (8.5). Nunca use <code>-v</code> em produção.</li>
+<li><code>trust proxy</code> desligado: o IP é o do Caddy (5.2). Ajuste o número de saltos confiáveis.</li>
+<li>O container novo não subiu, ou mudou de nome/porta/rede (9.2): <code>docker compose ps</code>, logs do app e do Caddy.</li>
+<li>Pipe sem <code>pipefail</code>: o <code>pg_dump</code> falhou e o <code>gzip</code> "deu certo" (2.2). E faltou o alerta (7.3).</li>
+<li>Disco cheio (1.4, 9.2): <code>df -h</code>, <code>docker system df</code>, logs sem rotação (6.4).</li>
+<li>O app escuta em <code>127.0.0.1</code> (4.1). O firewall não muda isso: use <code>--host</code>.</li>
+<li>A renovação falhou: o desafio ACME foi bloqueado (firewall, Cloudflare) ou o Caddy não sai para a internet (5.1). Olhe os logs do Caddy.</li>
+</ol></div>
+
+<h1><span class="num">Apêndice B</span>Flashcards</h1>
+<table>
+<tr><th style="width:4%">#</th><th style="width:50%">Frente</th><th>Verso</th></tr>
+<tr><td>1</td><td>Onde ficam volumes e logs do Docker</td><td><code>/var/lib/docker</code></td></tr>
+<tr><td>2</td><td><code>chmod 750</code></td><td>Dono rwx, grupo r-x, outros nada</td></tr>
+<tr><td>3</td><td>Grupo <code>docker</code> equivale a</td><td>root</td></tr>
+<tr><td>4</td><td>Código de saída 137</td><td>Morto por SIGKILL (128+9), normalmente OOM</td></tr>
+<tr><td>5</td><td>Memória que importa em <code>free -h</code></td><td>available</td></tr>
+<tr><td>6</td><td><code>set -euo pipefail</code></td><td>Para no erro, barra variável indefinida, pipe falha se qualquer parte falhar</td></tr>
+<tr><td>7</td><td>Túnel SSH para um serviço só no loopback</td><td><code>ssh -L local:127.0.0.1:remota host</code></td></tr>
+<tr><td>8</td><td><code>Persistent=true</code> no timer</td><td>Roda o disparo perdido quando a máquina volta</td></tr>
+<tr><td>9</td><td>Depois de editar uma unit</td><td><code>systemctl daemon-reload</code></td></tr>
+<tr><td>10</td><td>Bind 127.0.0.1 x 0.0.0.0</td><td>Só a própria máquina x todas as interfaces</td></tr>
+<tr><td>11</td><td><code>localhost</code> dentro do container</td><td>O próprio container</td></tr>
+<tr><td>12</td><td>Ver portas escutando</td><td><code>sudo ss -tlnp</code></td></tr>
+<tr><td>13</td><td>CNAME / TTL</td><td>Apelido de nome / tempo de cache da resposta DNS</td></tr>
+<tr><td>14</td><td>Modo TLS correto na Cloudflare</td><td>Full (strict)</td></tr>
+<tr><td>15</td><td>Desafio ACME HTTP-01</td><td>A CA busca um arquivo na porta 80 do domínio</td></tr>
+<tr><td>16</td><td>Por que o ufw não protege porta do Docker</td><td>NAT → cadeia FORWARD, não INPUT</td></tr>
+<tr><td>17</td><td>Cadeia para regras próprias com Docker</td><td><code>DOCKER-USER</code></td></tr>
+<tr><td>18</td><td>Ordem do Dockerfile para cache</td><td>Copiar o lockfile e instalar antes de copiar o código</td></tr>
+<tr><td>19</td><td>Comando que apaga volumes do projeto</td><td><code>docker compose down -v</code></td></tr>
+<tr><td>20</td><td>Ver o compose mesclado</td><td><code>docker compose config</code></td></tr>
+<tr><td>21</td><td>Rotação de log do container</td><td><code>logging.options: max-size, max-file</code></td></tr>
+<tr><td>22</td><td>Esperar o banco ficar pronto</td><td><code>depends_on: condition: service_healthy</code></td></tr>
+<tr><td>23</td><td>Dead man's switch</td><td>Alerta quando o ping esperado não chega</td></tr>
+<tr><td>24</td><td>Liveness x readiness</td><td>Vivo x pronto para atender</td></tr>
+<tr><td>25</td><td>RPO / RTO</td><td>Perda de dados aceitável / tempo para voltar</td></tr>
+<tr><td>26</td><td>Regra 3-2-1</td><td>3 cópias, 2 mídias, 1 fora do local</td></tr>
+<tr><td>27</td><td>502 x 504</td><td>Proxy não alcança o app x app não responde a tempo</td></tr>
+<tr><td>28</td><td>Primeira ação quando o deploy recente é o suspeito</td><td>Rollback, investigar depois</td></tr>
+</table>
+
+<h1><span class="num">Apêndice C</span>Glossário e cola de comandos</h1>
+<table>
+<tr><th style="width:22%">Termo</th><th>Definição</th></tr>
+<tr><td>ACME</td><td>Protocolo de emissão automática de certificados (Let's Encrypt).</td></tr>
+<tr><td>Bind</td><td>Endereço e porta em que um processo escuta.</td></tr>
+<tr><td>DNAT / NAT</td><td>Reescrita do destino/origem de pacotes. O Docker usa para publicar portas.</td></tr>
+<tr><td>Healthcheck</td><td>Comando periódico que define se o container está saudável.</td></tr>
+<tr><td>Loopback</td><td>Interface interna da máquina (<code>127.0.0.1</code>).</td></tr>
+<tr><td>OOM killer</td><td>Mecanismo do kernel que mata processos quando a memória acaba.</td></tr>
+<tr><td>PITR</td><td>Recuperação para um instante exato (backup físico + WAL).</td></tr>
+<tr><td>Proxy reverso</td><td>Servidor que recebe as requisições e as repassa aos apps (Caddy).</td></tr>
+<tr><td>Runbook</td><td>Roteiro escrito de operação e resposta a incidentes.</td></tr>
+<tr><td>Unit</td><td>Arquivo de configuração do systemd (service, timer, socket...).</td></tr>
+<tr><td>WAL</td><td>Write-Ahead Log do Postgres: o registro de todas as mudanças.</td></tr>
+</table>
+<pre>── estado da máquina ──              ── rede ──
+uptime; free -h; df -h               sudo ss -tlnp
+htop; docker stats                   dig +short dominio
+sudo dmesg -T | tail                 curl -sv https://dominio/health
+── serviços ──                       nc -zv host porta
+systemctl status X                   ── docker ──
+systemctl list-timers                docker compose ps / logs -f --tail=100 X
+journalctl -u X --since today        docker compose config
+journalctl -p err -b                 docker system df; docker inspect X</pre>
+
+<h1><span class="num">Apêndice D</span>Referências</h1>
+<ul>
+<li>Shotts, W. <i>The Linux Command Line</i>, 2ª ed. No Starch Press (gratuito em linuxcommand.org).</li>
+<li>MIT. <i>The Missing Semester of Your CS Education</i> (missing.csail.mit.edu): shell, scripts, depuração.</li>
+<li>Kerrisk, M. Man pages: <code>ss(8)</code>, <code>systemd.timer(5)</code>, <code>systemd.service(5)</code>, <code>journalctl(1)</code>.</li>
+<li>Documentação do Docker: Dockerfile best practices, Volumes, Networking, "Packet filtering and firewalls" (DOCKER-USER), Compose file reference (merge, <code>!override</code>, healthcheck, logging).</li>
+<li>Documentação do Caddy (Automatic HTTPS, reverse_proxy) e da Cloudflare (SSL/TLS encryption modes, IP ranges).</li>
+<li>PostgreSQL Documentation: Backup and Restore (SQL Dump, Continuous Archiving and PITR).</li>
+<li>Documentação do restic e do healthchecks.io.</li>
+<li>Google SRE Book, capítulos "Effective Troubleshooting" e "Postmortem Culture" (sre.google/books, gratuito).</li>
+<li>Didática: as mesmas referências do Módulo 1.</li>
+</ul>
+<div class="box dica" style="margin-top:8mm"><span class="t">Próximo passo</span><p>Refaça o pré-teste, anote o RTO real da missão M6 na trilha e siga para o Módulo 4 (Banco de dados).</p></div>
+
+</body>
+</html>

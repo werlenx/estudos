@@ -1,0 +1,188 @@
+
+<h1><span class="num">Capítulo 7</span>Logs e monitoramento</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>Se o backup do RH falhar todas as noites a partir de hoje, quando você vai ficar sabendo?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Escrever</b> logs úteis para diagnóstico.</li>
+<li><b>Montar</b> monitoramento externo de disponibilidade e de tarefas agendadas.</li>
+<li><b>Diferenciar</b> logs, métricas e alertas.</li></ul></div>
+
+<h2>7.1 Logs que ajudam</h2>
+<ul>
+<li><b>Estruturados (JSON)</b>: <code>{"level":"error","msg":"falha ao enviar","jobId":"msg-123","ms":5021}</code>. Dá para filtrar com <code>jq</code> e agregar. O pino do Fastify já faz isso. No Express, use <code>pino-http</code>. No Go, o <code>log/slog</code> da biblioteca padrão.</li>
+<li><b>Um ID por requisição</b> (<code>reqId</code>) em todas as linhas daquela requisição, para seguir o caminho dela.</li>
+<li><b>Níveis</b>: <code>error</code> = alguém precisa agir; <code>warn</code> = estranho, mas tratado; <code>info</code> = eventos de negócio; <code>debug</code> desligado em produção.</li>
+<li><b>Contexto, não segredo</b> (Módulo 1, 10.5): IDs, durações e status, nunca tokens, senhas ou CPF.</li>
+</ul>
+
+<h2>7.2 Três camadas de observação</h2>
+<table>
+<tr><th style="width:18%">Camada</th><th>Pergunta</th><th style="width:40%">Ferramenta mínima</th></tr>
+<tr><td>Logs</td><td>O que aconteceu, em detalhe?</td><td><code>docker compose logs</code>, <code>journalctl</code>, rotação configurada</td></tr>
+<tr><td>Métricas</td><td>Como está ao longo do tempo (CPU, disco, latência)?</td><td>Painel do provedor da VPS. Depois: Netdata, ou Prometheus + Grafana</td></tr>
+<tr><td>Alertas</td><td>Quando preciso agir?</td><td>Monitor externo de uptime + "dead man's switch"</td></tr>
+</table>
+
+<h2>7.3 Monitoramento externo: o mínimo que vale ouro</h2>
+<ol>
+<li><b>Uptime</b>: um serviço externo (UptimeRobot, Better Stack, ou o Uptime Kuma em <i>outra</i> máquina) chama <code>https://.../health</code> a cada minuto e avisa por e-mail ou Telegram se falhar. Tem que ser externo: um monitor dentro da VPS morre junto com ela.</li>
+<li><b>Dead man's switch para tarefas agendadas</b>: o backup, ao terminar <b>com sucesso</b>, faz um <code>curl</code> para uma URL do <i>healthchecks.io</i> (ou similar). Se o ping não chegar no horário esperado, você recebe o alerta. Isso responde à pergunta-gatilho: sem ele, a resposta é "quando precisar restaurar e descobrir que não tem backup".</li>
+<li><b>Disco</b>: alerta com 80% de uso. Disco cheio derruba o Postgres, e o Postgres derruba tudo.</li>
+</ol>
+<pre class="good"><span class="lbl">Final de um script de backup com ping de sucesso e de falha</span>trap 'curl -fsS -m 10 --retry 3 "$HC_URL/fail" &gt;/dev/null' ERR   # avisa a falha
+# ... backup ...
+curl -fsS -m 10 --retry 3 "$HC_URL" &gt;/dev/null                   # avisa o sucesso</pre>
+
+<h2>7.4 O endpoint <code>/health</code></h2>
+<p>Separe dois conceitos: <b>liveness</b> ("o processo está vivo?", que só responde 200) e <b>readiness</b> ("consigo atender?", que testa o banco e o Redis com timeout curto). O healthcheck do Docker e o monitor externo usam o de readiness. Não exponha detalhes internos nele: <code>{"ok":true}</code> basta.</p>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 7</span><ol>
+<li>Por que o monitor de uptime precisa estar fora da VPS?</li>
+<li>O que é um dead man's switch e qual problema ele resolve?</li>
+<li>Diferencie liveness de readiness.</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 8</span>Backup e restauração</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>A VPS do RH foi perdida agora. Quantas horas de dados você perde, e quanto tempo leva para o site voltar? Escreva os números antes de ler.</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Definir</b> RPO e RTO para cada sistema.</li>
+<li><b>Explicar</b> as decisões do backup do RH (restic, stdin, banco + arquivos juntos).</li>
+<li><b>Executar</b> e cronometrar uma restauração completa.</li></ul></div>
+
+<h2>8.1 Vocabulário</h2>
+<ul>
+<li><b>RPO</b> (<i>Recovery Point Objective</i>): quanto dado você aceita perder. Backup diário = RPO de até 24 h.</li>
+<li><b>RTO</b> (<i>Recovery Time Objective</i>): em quanto tempo o sistema precisa voltar.</li>
+<li><b>Regra 3-2-1</b>: 3 cópias, em 2 mídias diferentes, 1 fora do local. Versão moderna: 3-2-1-1-0, com 1 cópia imutável ou offline e <b>0 erros na restauração testada</b>.</li>
+</ul>
+
+<h2>8.2 Exemplo resolvido: as decisões do <code>backup.sh</code> do RH</h2>
+<table>
+<tr><th style="width:30%">Decisão</th><th>Por quê</th></tr>
+<tr><td>Banco e currículos <b>juntos</b></td><td>Os arquivos têm nome sorteado. Quem é dono de cada PDF está só no banco. Restaurar um sem o outro devolve "uma pilha de PDFs anônimos".</td></tr>
+<tr><td><b>restic</b></td><td>Criptografa (currículo é dado pessoal e vai para o armazenamento de terceiros), deduplica (o PDF que não mudou é guardado uma vez) e expira sozinho (<code>forget --prune</code>).</td></tr>
+<tr><td>Dump do banco por <b>stdin</b></td><td>O dump nunca existe em disco em texto claro, nem ocupa espaço.</td></tr>
+<tr><td>Timer com <code>Persistent=true</code></td><td>Não pula o dia se a VPS estava desligada (capítulo 3).</td></tr>
+<tr><td>Timer separado de <b>verificação</b></td><td><code>restic check</code> confere a integridade do repositório periodicamente.</td></tr>
+</table>
+<p>É um desenho bom. O que falta, e que nenhum script resolve sozinho: <b>(1)</b> confirmar que está rodando na VPS, <b>(2)</b> alerta quando falhar (capítulo 7) e <b>(3)</b> uma restauração <b>testada e cronometrada</b>, que é a missão M6.</p>
+
+<h2>8.3 Dump lógico x físico</h2>
+<table>
+<tr><th style="width:24%"></th><th><code>pg_dump</code> (lógico)</th><th><code>pg_basebackup</code> + WAL (físico)</th></tr>
+<tr><td>O que gera</td><td>Comandos SQL / formato custom</td><td>Cópia dos arquivos do cluster + log contínuo</td></tr>
+<tr><td>RPO</td><td>Intervalo entre dumps</td><td>Segundos (PITR: volta a qualquer instante)</td></tr>
+<tr><td>Complexidade</td><td>Baixa</td><td>Alta (pgBackRest, WAL-G)</td></tr>
+<tr><td>Bom para</td><td>Bancos de até dezenas de GB e RPO de horas: <b>o seu caso</b></td><td>Bancos grandes, RPO de minutos</td></tr>
+</table>
+<pre class="good"><span class="lbl">Dump e restauração no formato custom</span># dump (de dentro do container, saída no host)
+docker compose exec -T db pg_dump -U app -Fc app &gt; app.dump
+# restauração num banco vazio
+docker compose exec -T db createdb -U app app_restaurado
+docker compose exec -T db pg_restore -U app -d app_restaurado --no-owner &lt; app.dump</pre>
+
+<h2>8.4 O que entra no backup (e o que se esquece)</h2>
+<ul class="check">
+<li>Banco de dados</li>
+<li>Uploads (currículos, PDFs gerados do Julielton)</li>
+<li>Arquivos <code>.env</code> de produção, num cofre separado e criptografado</li>
+<li>A <b>senha do repositório restic</b>, fora da VPS. Sem ela o backup é ilegível, inclusive para você</li>
+<li>Configuração da infra (<code>/opt/infra</code>), que já está no Git do RH: ótimo</li>
+<li>Volumes de serviços de terceiros com estado (sessão do WhatsApp na Evolution)</li>
+</ul>
+
+<h2>8.5 O roteiro de restauração</h2>
+<ol>
+<li>Máquina limpa (VM de teste), cronômetro ligado.</li>
+<li>Instalar Docker e restic, e clonar o repositório da infra.</li>
+<li><code>backup.sh --listar</code> e <code>--restaurar latest /restauracao</code>.</li>
+<li>Subir o Postgres, restaurar o dump, apontar os uploads.</li>
+<li>Subir a aplicação e conferir: login funciona, um currículo abre, a contagem de registros bate.</li>
+<li>Parar o cronômetro: esse é o seu <b>RTO real</b>. Anotar tudo que não estava documentado.</li>
+</ol>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 8</span><ol>
+<li>Defina RPO e RTO e dê os valores atuais do RH.</li>
+<li>Por que banco e uploads precisam ir juntos no RH?</li>
+<li>Por que guardar a senha do restic fora da VPS?</li>
+<li>Quando faria sentido trocar <code>pg_dump</code> por backup físico com WAL?</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 9</span>Diagnóstico: onde olhar</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>Um cliente manda "o sistema não abre". Escreva os seus 5 primeiros passos, na ordem.</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Seguir</b> um método de diagnóstico em vez de tentar coisas ao acaso.</li>
+<li><b>Mapear</b> cada sintoma comum para a camada provável.</li>
+<li><b>Escrever</b> um runbook para os seus sistemas.</li></ul></div>
+
+<h2>9.1 O método</h2>
+<ol>
+<li><b>Reproduza e delimite</b>: falha para todos ou para um? Em todas as páginas ou numa rota? Desde quando? O que mudou (deploy, renovação de certificado, disco)?</li>
+<li><b>Siga o caminho da requisição</b> (figura 4.1), de fora para dentro, e ache a primeira caixa que falha.</li>
+<li><b>Hipótese → teste → conclusão</b>, uma de cada vez. Anote o que testou: na terceira hora ninguém lembra.</li>
+<li><b>Mitigue antes de entender tudo</b>: se o deploy de 10 minutos atrás é o suspeito, faça rollback primeiro e investigue depois.</li>
+<li><b>Depois</b>: escreva o que aconteceu (sem culpados), e transforme a causa em teste, alerta ou item de checklist.</li>
+</ol>
+
+<h2>9.2 Sintoma → camada provável</h2>
+<table>
+<tr><th style="width:28%">Sintoma</th><th>Camada provável</th><th style="width:36%">Primeiro comando</th></tr>
+<tr><td>DNS_PROBE / NXDOMAIN</td><td>DNS</td><td><code>dig +short dominio</code></td></tr>
+<tr><td>Erro de certificado</td><td>TLS (expirou, domínio errado, modo da Cloudflare)</td><td><code>curl -vI https://...</code></td></tr>
+<tr><td>Erro 52x da Cloudflare</td><td>A Cloudflare não alcança a VPS (firewall, Caddy fora)</td><td>Na VPS: <code>ss -tlnp | grep 443</code></td></tr>
+<tr><td>Timeout sem resposta</td><td>Firewall descartando, ou VPS fora</td><td><code>nc -zv ip 443</code> de fora</td></tr>
+<tr><td><b>502 Bad Gateway</b></td><td>O Caddy funciona, mas não alcança o app: container parado, nome ou porta errados, app fora da rede <code>edge</code></td><td><code>docker compose ps</code> e logs do Caddy</td></tr>
+<tr><td>504 Gateway Timeout</td><td>O app recebe, mas demora demais (consulta lenta, travado)</td><td>Logs do app, <code>docker stats</code></td></tr>
+<tr><td>500</td><td>Erro na aplicação</td><td><code>docker compose logs api | jq 'select(.level&gt;=50)'</code></td></tr>
+<tr><td>Container reiniciando em loop</td><td>Crash na subida: variável faltando, banco indisponível, OOM (137)</td><td><code>docker compose logs --tail=50 api</code></td></tr>
+<tr><td>"address already in use"</td><td>Porta do host já ocupada</td><td><code>sudo ss -tlnp | grep :PORTA</code></td></tr>
+<tr><td>Tudo lento, erros estranhos</td><td>Disco cheio ou memória esgotada</td><td><code>df -h</code>, <code>free -h</code>, <code>dmesg -T | tail</code></td></tr>
+</table>
+
+<h2>9.3 Runbook</h2>
+<p>Um runbook é o roteiro escrito para "quando X acontecer, faça Y". Ele é escrito com calma para ser seguido sob pressão. Estrutura sugerida para cada sistema: <b>(1)</b> como entrar (host, usuário, onde está o compose), <b>(2)</b> verificação rápida (os 5 comandos), <b>(3)</b> problemas conhecidos com a solução, <b>(4)</b> como fazer rollback, <b>(5)</b> como restaurar o backup e <b>(6)</b> quem avisar. É a missão M2.</p>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 9</span><ol>
+<li>Por que mitigar (rollback) antes de entender a causa?</li>
+<li>502 e 504: qual a diferença de diagnóstico?</li>
+<li>O container reinicia sem parar. Quais as três causas mais prováveis?</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 10</span>Segurança da VPS</h1>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Auditar</b> a sua VPS com um checklist e corrigir o que faltar.</li></ul></div>
+<div class="two">
+<div>
+<h3>Acesso</h3>
+<ul class="check">
+<li>SSH só por chave: <code>PasswordAuthentication no</code></li>
+<li><code>PermitRootLogin no</code> (ou <code>prohibit-password</code>)</li>
+<li>Usuário próprio com <code>sudo</code>. A aplicação com usuário sem privilégio</li>
+<li>fail2ban ou equivalente no SSH</li>
+<li>Chaves antigas removidas de <code>authorized_keys</code></li>
+</ul>
+<h3>Superfície exposta</h3>
+<ul class="check">
+<li><code>ss -tlnp</code>: só 22, 80 e 443 em <code>0.0.0.0</code></li>
+<li>Bancos e Redis sem porta publicada, ou só em loopback</li>
+<li>Firewall na <code>DOCKER-USER</code> quando houver proxy (Cloudflare)</li>
+<li>Painéis administrativos (Evolution, pgAdmin) atrás de túnel SSH, não públicos</li>
+</ul>
+</div>
+<div>
+<h3>Atualizações</h3>
+<ul class="check">
+<li><code>unattended-upgrades</code> para patches de segurança</li>
+<li>Imagens Docker atualizadas (Dependabot no compose ou revisão mensal)</li>
+<li>Reboot periódico para aplicar o kernel novo</li>
+</ul>
+<h3>Dados e recuperação</h3>
+<ul class="check">
+<li><code>.env</code> com <code>chmod 600</code></li>
+<li>Backup criptografado fora da VPS, com alerta de falha</li>
+<li>Restauração testada nos últimos 6 meses</li>
+<li>Rotação de logs configurada</li>
+<li>Monitor externo de uptime</li>
+<li>Snapshot do provedor antes de mudanças grandes</li>
+</ul>
+</div>
+</div>

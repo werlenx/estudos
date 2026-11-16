@@ -1,0 +1,139 @@
+
+<h1><span class="num">Prática</span>Missões</h1>
+<table>
+<tr><th style="width:7%">#</th><th style="width:24%">Missão</th><th>O que fazer</th><th style="width:30%">Pronto quando</th></tr>
+<tr><td>M1</td><td>Explicar a infra do RH, sem IA</td><td>Para <code>infra/firewall/cloudflare-only.sh</code>, <code>infra/systemd/*</code> e <code>infra/caddy/Caddyfile</code>, escreva ao lado de cada bloco o que ele faz e por quê. Onde travar, pesquise na documentação (man page, docs do Caddy), não na IA. Só no fim, peça à IA para corrigir as suas explicações.</td><td>Documento com as explicações e uma lista do que você não sabia.</td></tr>
+<tr><td>M2</td><td>Runbook</td><td>Escrever <code>docs/runbook.md</code> no RH e no marketZapp com as seis seções de 9.3. Incluir o diagrama do caminho da requisição (figura 4.1) adaptado a cada sistema.</td><td>Outra pessoa (ou você, daqui a 3 meses) consegue reiniciar e diagnosticar seguindo só o documento.</td></tr>
+<tr><td>M3</td><td>Game day</td><td>Na VM de laboratório, suba um compose parecido com o de produção. Peça a alguém, ou à IA, para quebrar <b>uma coisa por vez</b> sem contar o quê: parar o app, nome errado no Caddy, encher o disco (<code>fallocate -l 20G /tmp/x</code>), variável faltando no <code>.env</code>, porta conflitante. Diagnostique usando só a tabela de 9.2.</td><td>5 falhas diagnosticadas, com tempo anotado em cada uma e o comando que revelou a causa.</td></tr>
+<tr><td>M4</td><td>Compose de produção revisado</td><td>Comparar os composes de produção (RH, marketZapp, Julielton) com o trecho de 6.4: rotação de logs, healthcheck, <code>depends_on</code> com <code>service_healthy</code>, limite de memória, imagem com tag fixa. Rodar <code>ss -tlnp</code> na VPS.</td><td>Diferenças corrigidas ou justificadas. Nenhuma porta inesperada em <code>0.0.0.0</code>.</td></tr>
+<tr><td>M5</td><td>Alertas</td><td>Monitor externo de uptime para os sites em produção. Ping de sucesso e de falha (healthchecks.io) no <code>backup.sh</code> do RH.</td><td>Você recebe um alerta quando derruba o app de propósito, e quando o backup não roda.</td></tr>
+<tr><td>M6</td><td>Restauração cronometrada</td><td>Seguir o roteiro de 8.5 numa máquina limpa, a partir do backup real do RH (<code>--restaurar</code>).</td><td>Sistema restaurado e funcionando. RTO real anotado na trilha. Runbook atualizado com o que faltava.</td></tr>
+</table>
+
+<h1><span class="num">Apêndice A</span>Gabarito e revisão intercalada</h1>
+<div class="gab">
+<h3>Pré-teste</h3>
+<ol>
+<li>O servidor de desenvolvimento escuta em <code>127.0.0.1</code>, que só aceita conexões da própria máquina. Use <code>--host</code> / <code>0.0.0.0</code>. (4.1)</li>
+<li><code>sudo ss -tlnp</code>. (4.2)</li>
+<li>O Docker faz NAT e o pacote passa pela cadeia FORWARD, não pela INPUT do ufw. (5.3)</li>
+<li>Nomeado: gerenciado pelo Docker, em <code>/var/lib/docker/volumes</code>. Bind: uma pasta do host que você escolhe. (6.2)</li>
+<li>Entre o proxy e o app: container parado, nome ou porta errados, rede. (9.2)</li>
+<li>RPO: quanto dado se aceita perder. RTO: em quanto tempo o sistema volta. (8.1)</li>
+<li><code>journalctl -u nome --since "1 hour ago"</code>. (3.2)</li>
+<li>CNAME: apelido de um nome para outro. TTL: tempo de cache da resposta. (4.3)</li>
+<li>Para o próprio container. (4.1)</li>
+<li>Logs de container sem rotação, imagens e cache de build antigos, volumes órfãos. (6.4, 6.5)</li>
+<li>SIGTERM pede o encerramento (dá para limpar). SIGKILL mata na hora, sem limpeza. (1.3)</li>
+<li>Só a restauração prova que o backup está completo, legível e que você sabe usá-lo. (8.5)</li>
+</ol>
+<h3>Capítulo 1</h3>
+<ol><li><code>600</code> para o <code>.env</code>. <code>700</code> (ou <code>750</code> com grupo) para o script.</li><li>Quem fala com o daemon monta o <code>/</code> do host num container como root.</li><li>Foi morto por SIGKILL, provavelmente OOM. Confirme com <code>dmesg -T | grep -i kill</code>.</li><li>O Linux usa a memória livre como cache. Olhe o "available".</li></ol>
+<h3>Capítulo 2</h3>
+<ol><li><code>-e</code> para no erro, <code>-u</code> barra variável vazia, <code>pipefail</code> faz o pipe falhar se o <code>pg_dump</code> falhar, mesmo que o <code>gzip</code> termine bem.</li><li>Túnel: <code>ssh -L 5433:127.0.0.1:5432 vps</code>.</li><li>Ex.: <code>jq -c 'select(.status==500)' access.log | wc -l</code>, adaptando o nome do campo ao formato do log do Caddy.</li></ol>
+<h3>Capítulo 3</h3>
+<ol><li>Executa disparos perdidos enquanto a máquina estava desligada. O cron simplesmente pula.</li><li><code>systemctl daemon-reload</code>.</li><li><code>journalctl -p err -b</code>.</li></ol>
+<h3>Capítulo 4</h3>
+<ol><li>O tráfego chega ao app pela interface de rede do container. Já a porta do host define quem de fora alcança, e o Postgres não deve ser alcançado de fora.</li><li>Pelo nome do serviço, via DNS interno do Docker.</li><li>Para que os caches expirem rápido depois da troca de IP.</li><li>O IP da Cloudflare.</li></ol>
+<h3>Capítulo 5</h3>
+<ol><li>Sigilo, autenticação do servidor, integridade.</li><li>Flexible deixa o trecho Cloudflare → VPS sem cifra. Strict exige certificado válido.</li><li>Desligado: todos com o IP do proxy. Confiar em tudo: o cliente forja o próprio IP.</li><li>Ver 5.3: NAT/FORWARD. Defesas: publicar só no loopback (ou não publicar) e regras na DOCKER-USER.</li></ol>
+<h3>Capítulo 6</h3>
+<ol><li>A camada do <code>npm ci</code> só é refeita quando o lockfile muda.</li><li>Ver a tabela de 6.2.</li><li>Que o banco passou no healthcheck, ou seja, está pronto para conexões.</li><li><code>logging.options.max-size</code> e <code>max-file</code>.</li><li><code>docker compose -f a.yml -f b.yml config</code>.</li></ol>
+<h3>Capítulo 7</h3>
+<ol><li>Para não morrer junto com a VPS.</li><li>Alerta quando um sinal esperado <b>não</b> chega. Detecta tarefas que pararam de rodar.</li><li>Liveness: processo vivo. Readiness: consegue atender (dependências ok).</li></ol>
+<h3>Capítulo 8</h3>
+<ol><li>RPO ≈ 24 h (backup diário). RTO desconhecido até a missão M6.</li><li>O vínculo entre arquivo e candidato está só no banco.</li><li>Sem ela o backup é ilegível. Se ela só existir na VPS perdida, perde-se tudo.</li><li>Banco grande, ou RPO exigido de minutos.</li></ol>
+<h3>Capítulo 9</h3>
+<ol><li>Reduz o tempo de impacto para o usuário. A investigação continua depois, com calma.</li><li>502: o proxy não alcança o app. 504: alcança, mas o app não responde a tempo.</li><li>Variável/configuração faltando, dependência indisponível, OOM.</li></ol>
+</div>
+<h2>Revisão intercalada</h2>
+<div class="quiz"><span class="t">Qual a causa provável e o primeiro comando?</span><ol>
+<li>Depois de um <code>docker compose down -v</code> para "limpar", o sistema voltou sem nenhum dado.</li>
+<li>Os logs do rate limit mostram todos os acessos vindos de <code>172.18.0.2</code>.</li>
+<li>O site funciona, mas a API dá 502 desde o último deploy.</li>
+<li>O backup "roda" todo dia, mas o arquivo do dump tem 20 bytes.</li>
+<li>O Postgres não sobe: "could not write to file: No space left on device".</li>
+<li>Você liberou <code>ufw allow 3000</code>, mas o celular continua sem acessar o app de desenvolvimento.</li>
+<li>O certificado expirou, embora o Caddy renove sozinho.</li>
+</ol></div>
+<div class="gab"><ol>
+<li><code>-v</code> apagou os volumes (6.2). Restaurar do backup (8.5). Nunca use <code>-v</code> em produção.</li>
+<li><code>trust proxy</code> desligado: o IP é o do Caddy (5.2). Ajuste o número de saltos confiáveis.</li>
+<li>O container novo não subiu, ou mudou de nome/porta/rede (9.2): <code>docker compose ps</code>, logs do app e do Caddy.</li>
+<li>Pipe sem <code>pipefail</code>: o <code>pg_dump</code> falhou e o <code>gzip</code> "deu certo" (2.2). E faltou o alerta (7.3).</li>
+<li>Disco cheio (1.4, 9.2): <code>df -h</code>, <code>docker system df</code>, logs sem rotação (6.4).</li>
+<li>O app escuta em <code>127.0.0.1</code> (4.1). O firewall não muda isso: use <code>--host</code>.</li>
+<li>A renovação falhou: o desafio ACME foi bloqueado (firewall, Cloudflare) ou o Caddy não sai para a internet (5.1). Olhe os logs do Caddy.</li>
+</ol></div>
+
+<h1><span class="num">Apêndice B</span>Flashcards</h1>
+<table>
+<tr><th style="width:4%">#</th><th style="width:50%">Frente</th><th>Verso</th></tr>
+<tr><td>1</td><td>Onde ficam volumes e logs do Docker</td><td><code>/var/lib/docker</code></td></tr>
+<tr><td>2</td><td><code>chmod 750</code></td><td>Dono rwx, grupo r-x, outros nada</td></tr>
+<tr><td>3</td><td>Grupo <code>docker</code> equivale a</td><td>root</td></tr>
+<tr><td>4</td><td>Código de saída 137</td><td>Morto por SIGKILL (128+9), normalmente OOM</td></tr>
+<tr><td>5</td><td>Memória que importa em <code>free -h</code></td><td>available</td></tr>
+<tr><td>6</td><td><code>set -euo pipefail</code></td><td>Para no erro, barra variável indefinida, pipe falha se qualquer parte falhar</td></tr>
+<tr><td>7</td><td>Túnel SSH para um serviço só no loopback</td><td><code>ssh -L local:127.0.0.1:remota host</code></td></tr>
+<tr><td>8</td><td><code>Persistent=true</code> no timer</td><td>Roda o disparo perdido quando a máquina volta</td></tr>
+<tr><td>9</td><td>Depois de editar uma unit</td><td><code>systemctl daemon-reload</code></td></tr>
+<tr><td>10</td><td>Bind 127.0.0.1 x 0.0.0.0</td><td>Só a própria máquina x todas as interfaces</td></tr>
+<tr><td>11</td><td><code>localhost</code> dentro do container</td><td>O próprio container</td></tr>
+<tr><td>12</td><td>Ver portas escutando</td><td><code>sudo ss -tlnp</code></td></tr>
+<tr><td>13</td><td>CNAME / TTL</td><td>Apelido de nome / tempo de cache da resposta DNS</td></tr>
+<tr><td>14</td><td>Modo TLS correto na Cloudflare</td><td>Full (strict)</td></tr>
+<tr><td>15</td><td>Desafio ACME HTTP-01</td><td>A CA busca um arquivo na porta 80 do domínio</td></tr>
+<tr><td>16</td><td>Por que o ufw não protege porta do Docker</td><td>NAT → cadeia FORWARD, não INPUT</td></tr>
+<tr><td>17</td><td>Cadeia para regras próprias com Docker</td><td><code>DOCKER-USER</code></td></tr>
+<tr><td>18</td><td>Ordem do Dockerfile para cache</td><td>Copiar o lockfile e instalar antes de copiar o código</td></tr>
+<tr><td>19</td><td>Comando que apaga volumes do projeto</td><td><code>docker compose down -v</code></td></tr>
+<tr><td>20</td><td>Ver o compose mesclado</td><td><code>docker compose config</code></td></tr>
+<tr><td>21</td><td>Rotação de log do container</td><td><code>logging.options: max-size, max-file</code></td></tr>
+<tr><td>22</td><td>Esperar o banco ficar pronto</td><td><code>depends_on: condition: service_healthy</code></td></tr>
+<tr><td>23</td><td>Dead man's switch</td><td>Alerta quando o ping esperado não chega</td></tr>
+<tr><td>24</td><td>Liveness x readiness</td><td>Vivo x pronto para atender</td></tr>
+<tr><td>25</td><td>RPO / RTO</td><td>Perda de dados aceitável / tempo para voltar</td></tr>
+<tr><td>26</td><td>Regra 3-2-1</td><td>3 cópias, 2 mídias, 1 fora do local</td></tr>
+<tr><td>27</td><td>502 x 504</td><td>Proxy não alcança o app x app não responde a tempo</td></tr>
+<tr><td>28</td><td>Primeira ação quando o deploy recente é o suspeito</td><td>Rollback, investigar depois</td></tr>
+</table>
+
+<h1><span class="num">Apêndice C</span>Glossário e cola de comandos</h1>
+<table>
+<tr><th style="width:22%">Termo</th><th>Definição</th></tr>
+<tr><td>ACME</td><td>Protocolo de emissão automática de certificados (Let's Encrypt).</td></tr>
+<tr><td>Bind</td><td>Endereço e porta em que um processo escuta.</td></tr>
+<tr><td>DNAT / NAT</td><td>Reescrita do destino/origem de pacotes. O Docker usa para publicar portas.</td></tr>
+<tr><td>Healthcheck</td><td>Comando periódico que define se o container está saudável.</td></tr>
+<tr><td>Loopback</td><td>Interface interna da máquina (<code>127.0.0.1</code>).</td></tr>
+<tr><td>OOM killer</td><td>Mecanismo do kernel que mata processos quando a memória acaba.</td></tr>
+<tr><td>PITR</td><td>Recuperação para um instante exato (backup físico + WAL).</td></tr>
+<tr><td>Proxy reverso</td><td>Servidor que recebe as requisições e as repassa aos apps (Caddy).</td></tr>
+<tr><td>Runbook</td><td>Roteiro escrito de operação e resposta a incidentes.</td></tr>
+<tr><td>Unit</td><td>Arquivo de configuração do systemd (service, timer, socket...).</td></tr>
+<tr><td>WAL</td><td>Write-Ahead Log do Postgres: o registro de todas as mudanças.</td></tr>
+</table>
+<pre>── estado da máquina ──              ── rede ──
+uptime; free -h; df -h               sudo ss -tlnp
+htop; docker stats                   dig +short dominio
+sudo dmesg -T | tail                 curl -sv https://dominio/health
+── serviços ──                       nc -zv host porta
+systemctl status X                   ── docker ──
+systemctl list-timers                docker compose ps / logs -f --tail=100 X
+journalctl -u X --since today        docker compose config
+journalctl -p err -b                 docker system df; docker inspect X</pre>
+
+<h1><span class="num">Apêndice D</span>Referências</h1>
+<ul>
+<li>Shotts, W. <i>The Linux Command Line</i>, 2ª ed. No Starch Press (gratuito em linuxcommand.org).</li>
+<li>MIT. <i>The Missing Semester of Your CS Education</i> (missing.csail.mit.edu): shell, scripts, depuração.</li>
+<li>Kerrisk, M. Man pages: <code>ss(8)</code>, <code>systemd.timer(5)</code>, <code>systemd.service(5)</code>, <code>journalctl(1)</code>.</li>
+<li>Documentação do Docker: Dockerfile best practices, Volumes, Networking, "Packet filtering and firewalls" (DOCKER-USER), Compose file reference (merge, <code>!override</code>, healthcheck, logging).</li>
+<li>Documentação do Caddy (Automatic HTTPS, reverse_proxy) e da Cloudflare (SSL/TLS encryption modes, IP ranges).</li>
+<li>PostgreSQL Documentation: Backup and Restore (SQL Dump, Continuous Archiving and PITR).</li>
+<li>Documentação do restic e do healthchecks.io.</li>
+<li>Google SRE Book, capítulos "Effective Troubleshooting" e "Postmortem Culture" (sre.google/books, gratuito).</li>
+<li>Didática: as mesmas referências do Módulo 1.</li>
+</ul>
+<div class="box dica" style="margin-top:8mm"><span class="t">Próximo passo</span><p>Refaça o pré-teste, anote o RTO real da missão M6 na trilha e siga para o Módulo 4 (Banco de dados).</p></div>

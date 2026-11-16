@@ -1,0 +1,238 @@
+
+<section class="capa" style="background:linear-gradient(160deg,#2b1d4f 0%,#6f42c1 70%,#8a63d2 100%)">
+  <div class="k">Trilha de Fundamentos · Módulo 3</div>
+  <h1>Linux, Redes<br>e Docker</h1>
+  <div class="sub">O que acontece entre o navegador do usuário e o seu container, e como descobrir sozinho onde quebrou. Com a infraestrutura real da sua VPS como material de estudo.</div>
+  <div class="itens">
+    <span>Linux de servidor</span><span>Shell que salva</span><span>systemd e timers</span><span>IP, portas e DNS</span>
+    <span>TLS e proxy reverso</span><span>Firewall e Docker</span><span>Docker a fundo</span><span>Logs e monitoramento</span>
+    <span>Backup e restauração</span><span>Diagnóstico</span><span>Segurança da VPS</span>
+  </div>
+  <div class="meta">Versão de novembro de 2026 · Duração prevista: 4 semanas, ~6 h por semana · Pré-requisito: acesso SSH à VPS e Docker local</div>
+</section>
+
+<h1><span class="num">Antes de começar</span>Como usar este material</h1>
+<p>O método é o mesmo dos módulos anteriores: pré-teste, pergunta-gatilho, exemplo resolvido, questões de recuperação com gabarito, revisão intercalada, flashcards com revisão espaçada e missões. Este módulo tem um ingrediente a mais: o <b>game day</b> (missão M3), em que você quebra coisas de propósito numa máquina de teste e conserta. Diagnóstico se aprende diagnosticando.</p>
+<div class="fable"><span class="t">Passo 0 · Revisão técnica com o Fable</span>
+<p>Troque para o Fable 5.2 com <code>/model</code> e peça: <i>"Revise <code>~/repo/estudos/fundamentos/modulo-3-linux-redes-docker.html</code> como especialista em Linux, redes e Docker: aponte afirmações incorretas, desatualizadas ou imprecisas e comandos que não funcionam como descrito. Corrija no HTML e gere o PDF de novo com <code>_fonte/gerar.py</code>."</i> Depois volte ao Opus e marque na trilha.</p></div>
+
+<h2>Por que este módulo é diferente</h2>
+<p>Levantando os repositórios (13/11/2026), a sua infraestrutura já está acima da média: o RH tem firewall na cadeia <code>DOCKER-USER</code> liberando só a Cloudflare, Caddy compartilhado com um arquivo por site, backup diário com <b>restic</b> criptografado disparado por <b>timer do systemd</b>, e o compose de produção do marketZapp publica o Postgres só no loopback, com um comentário explicando por que o ufw não protege portas do Docker.</p>
+<p>Isso foi feito com a IA, e os comentários mostram que as decisões foram bem pensadas. A lacuna que você mesmo apontou é outra: <b>"não sei para onde olhar"</b> quando algo quebra. Por isso o objetivo deste módulo não é montar infraestrutura, e sim <b>entender a que você já tem, linha por linha, e ganhar um método de diagnóstico</b>. Cada capítulo usa um arquivo real seu como exemplo.</p>
+
+<h2>Ambiente de prática</h2>
+<p>Não treine na VPS de produção. Use uma <b>máquina virtual local</b> (Multipass: <code>multipass launch --name lab 24.04</code>) ou uma VPS descartável de poucos reais por mês. Tudo que este material mandar "quebrar" é para quebrar lá.</p>
+
+<h2>Cronograma de 4 semanas</h2>
+<table>
+<tr><th style="width:16%">Semana</th><th>Capítulos</th><th style="width:36%">Entrega</th></tr>
+<tr><td>1</td><td>Pré-teste · 1. Linux de servidor · 2. Shell · 3. systemd</td><td>M1: explicar a infra do RH</td></tr>
+<tr><td>2</td><td>4. IP, portas e DNS · 5. TLS, proxy e firewall</td><td>M2: diagrama da requisição</td></tr>
+<tr><td>3</td><td>6. Docker a fundo · 7. Logs e monitoramento</td><td>M4 e M5</td></tr>
+<tr><td>4</td><td>8. Backup · 9. Diagnóstico · 10. Segurança da VPS</td><td>M3 (game day), M6 (restauração), refazer o pré-teste</td></tr>
+</table>
+
+<h2>Sumário</h2>
+<div class="toc">
+<div><b>—</b> Pré-teste</div>
+<div><b>1</b> Linux de servidor</div>
+<div><b>2</b> O shell que salva</div>
+<div><b>3</b> systemd: serviços e timers</div>
+<div><b>4</b> IP, portas e DNS</div>
+<div><b>5</b> TLS, proxy reverso e firewall</div>
+<div><b>6</b> Docker a fundo</div>
+<div><b>7</b> Logs e monitoramento</div>
+<div><b>8</b> Backup e restauração</div>
+<div><b>9</b> Diagnóstico: onde olhar</div>
+<div><b>10</b> Segurança da VPS</div>
+<div><b>—</b> Missões</div>
+<div><b>A</b> Gabarito e revisão intercalada</div>
+<div><b>B</b> Flashcards</div>
+<div><b>C</b> Glossário e cola de comandos</div>
+<div><b>D</b> Referências</div>
+</div>
+
+<h1><span class="num">Diagnóstico</span>Pré-teste</h1>
+<div class="quiz"><span class="t">Pré-teste · 12 questões</span>
+<ol>
+<li>Seu app roda em <code>localhost:3000</code> no notebook. Por que o celular, no mesmo Wi-Fi, não abre <code>http://192.168.0.10:3000</code>?</li>
+<li>Que comando mostra quais processos estão escutando em quais portas?</li>
+<li>Você mandou <code>ufw deny 5432</code>, mas o Postgres no Docker continua acessível pela internet. Por quê?</li>
+<li>Qual a diferença entre um volume nomeado e um bind mount no Docker?</li>
+<li>O navegador mostra <b>502 Bad Gateway</b>. Em qual camada provavelmente está o problema?</li>
+<li>O que significam RPO e RTO num plano de backup?</li>
+<li>Como ver os logs de um serviço do systemd desde a última hora?</li>
+<li>Para que serve um registro DNS do tipo CNAME? E o TTL?</li>
+<li>Dentro de um container, <code>localhost</code> aponta para onde?</li>
+<li>O disco da VPS encheu. Cite dois culpados comuns num servidor com Docker.</li>
+<li>Qual a diferença entre <code>SIGTERM</code> e <code>SIGKILL</code>?</li>
+<li>Por que um backup que nunca foi restaurado não conta como backup?</li>
+</ol></div>
+<p class="small">Nota: ____ / 12 · Data: ___/___/____ &nbsp;&nbsp;&nbsp; Semana 4: ____ / 12 · Data: ___/___/____</p>
+
+<h1><span class="num">Capítulo 1</span>Linux de servidor</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>Você entra por SSH na VPS. Liste, de cabeça, cinco comandos que daria para entender o estado da máquina.</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Navegar</b> pela hierarquia de diretórios de um servidor e saber onde cada coisa fica.</li>
+<li><b>Ler e ajustar</b> permissões e donos de arquivos.</li>
+<li><b>Inspecionar</b> processos, memória e disco, e encerrar processos do jeito certo.</li></ul></div>
+
+<h2>1.1 Onde as coisas ficam</h2>
+<table>
+<tr><th style="width:18%">Caminho</th><th>O que guarda</th><th style="width:32%">Na sua VPS</th></tr>
+<tr><td><code>/etc</code></td><td>Configuração do sistema e dos serviços</td><td><code>/etc/systemd/system/*.service</code>, <code>/etc/ssh/sshd_config</code></td></tr>
+<tr><td><code>/var/log</code></td><td>Logs em arquivo (muitos serviços usam o journal do systemd)</td><td><code>/var/log/auth.log</code>: tentativas de SSH</td></tr>
+<tr><td><code>/var/lib</code></td><td>Estado persistente dos programas</td><td><code>/var/lib/docker</code>: imagens, volumes, logs dos containers</td></tr>
+<tr><td><code>/opt</code></td><td>Software instalado "à parte"</td><td><code>/opt/infra</code>, <code>/opt/francal</code></td></tr>
+<tr><td><code>/home</code>, <code>/root</code></td><td>Diretórios de usuários</td><td><code>~/.ssh/authorized_keys</code></td></tr>
+<tr><td><code>/tmp</code></td><td>Temporários (podem sumir no reboot)</td><td>—</td></tr>
+<tr><td><code>/proc</code>, <code>/sys</code></td><td>Arquivos virtuais com o estado do kernel</td><td><code>/proc/meminfo</code></td></tr>
+</table>
+
+<h2>1.2 Usuários e permissões</h2>
+<p>Cada arquivo tem um <b>dono</b>, um <b>grupo</b> e permissões de leitura (<code>r</code>=4), escrita (<code>w</code>=2) e execução (<code>x</code>=1) para dono, grupo e outros.</p>
+<pre>$ ls -l /opt/infra/backup/backup.sh
+-rwxr-x--- 1 root deploy 9120 nov 10 03:00 backup.sh
+ │└┬┘└┬┘└┬┘
+ │ │  │  └── outros: nada (0)
+ │ │  └───── grupo deploy: ler e executar (5)
+ │ └──────── dono root: ler, escrever, executar (7)   → chmod 750
+ └────────── "-" arquivo comum, "d" diretório, "l" link</pre>
+<ul>
+<li><code>chmod 600 .env</code>: só o dono lê e escreve. É o certo para arquivos com segredo.</li>
+<li><code>chown deploy:deploy arquivo</code>: muda dono e grupo.</li>
+<li>Em <b>diretório</b>, o <code>x</code> significa "pode entrar". Sem ele, nem listando você acessa os arquivos de dentro.</li>
+<li><b>Menor privilégio</b>: a aplicação roda com um usuário sem poderes, e só você usa <code>sudo</code>. O <code>deploy.md</code> do marketZapp já cria um "usuário sem root para a aplicação".</li>
+</ul>
+<div class="box erro"><span class="t">Erro comum: estar no grupo <code>docker</code></span><p>Colocar um usuário no grupo <code>docker</code> é dar <b>root</b> a ele: quem fala com o daemon do Docker consegue montar <code>/</code> do host num container e fazer qualquer coisa. Trate o grupo <code>docker</code> como trata o <code>sudo</code>.</p></div>
+
+<h2>1.3 Processos e sinais</h2>
+<pre>ps aux --sort=-%mem | head      # quem mais usa memória
+htop                            # visão interativa (F6 ordena, F9 envia sinal)
+pgrep -af node                  # processos cujo comando contém "node"
+kill -TERM 1234                 # pede para encerrar (o programa pode limpar e sair)
+kill -KILL 1234                 # mata na hora; sem limpeza (último recurso)</pre>
+<p><code>SIGTERM</code> (15) é um pedido educado: o app pode fechar conexões, terminar o job atual da fila e sair. <code>SIGKILL</code> (9) não pode ser capturado nem ignorado. O <code>docker stop</code> manda <code>SIGTERM</code>, espera 10 segundos e depois manda <code>SIGKILL</code>. Por isso o app precisa tratar o <code>SIGTERM</code> (<code>app.close()</code> no Fastify, <code>worker.close()</code> no BullMQ) para não perder jobs no meio.</p>
+<p><b>Código de saída</b>: 0 é sucesso, qualquer outro valor é erro. O 137 (128+9) indica que o processo foi morto por <code>SIGKILL</code>, normalmente pelo <b>OOM killer</b> por falta de memória.</p>
+
+<h2>1.4 Memória e disco</h2>
+<pre>free -h                         # "available" é o que importa, não "free"
+df -h                           # espaço por partição
+df -i                           # inodes: dá para "encher" com milhões de arquivos pequenos
+du -sh /var/lib/docker/* | sort -h   # quem ocupa espaço
+sudo dmesg -T | grep -i -E "killed process|out of memory"   # houve OOM?</pre>
+<p>O Linux usa a memória livre como cache de disco, então "free" baixo é normal. Preocupe-se quando o <b>available</b> for baixo e o <b>swap</b> estiver sendo usado o tempo todo.</p>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 1</span><ol>
+<li>Que permissão (número) você daria a um <code>.env</code> e a um script de backup que só o root executa?</li>
+<li>Por que estar no grupo <code>docker</code> equivale a ser root?</li>
+<li>O container saiu com código 137. O que aconteceu e onde você confirma?</li>
+<li>Por que <code>free</code> baixo não é motivo de alarme?</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 2</span>O shell que salva</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>Como você descobriria quais IPs mais tentaram logar por SSH na VPS na última semana?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Combinar</b> comandos com pipes para responder perguntas sobre logs.</li>
+<li><b>Escrever</b> scripts bash que falham de forma segura.</li>
+<li><b>Configurar</b> o SSH para trabalhar rápido e com segurança.</li></ul></div>
+
+<h2>2.1 A filosofia: pequenos comandos, ligados por pipes</h2>
+<pre class="good"><span class="lbl">Resposta à pergunta-gatilho</span>sudo journalctl -u ssh --since "7 days ago" \
+  | grep "Failed password" \
+  | grep -oE "from [0-9.]+" \
+  | sort | uniq -c | sort -rn | head
+# journalctl: lê o log │ grep: filtra │ grep -o: extrai o IP │ uniq -c: conta │ sort -rn: ordena</pre>
+<table>
+<tr><th style="width:22%">Comando</th><th>Uso típico</th></tr>
+<tr><td><code>grep -rn "texto" .</code></td><td>Procurar em arquivos, com número de linha. <code>-i</code> ignora maiúsculas, <code>-v</code> inverte</td></tr>
+<tr><td><code>less +F arquivo</code></td><td>Ler arquivo grande. <code>/</code> busca, <code>F</code> segue como <code>tail -f</code></td></tr>
+<tr><td><code>tail -f -n 100</code></td><td>Acompanhar log em tempo real</td></tr>
+<tr><td><code>find / -size +500M</code></td><td>Achar arquivos grandes (com <code>2&gt;/dev/null</code> para esconder erros)</td></tr>
+<tr><td><code>awk '{print $1}'</code></td><td>Pegar uma coluna</td></tr>
+<tr><td><code>jq '.level'</code></td><td>Filtrar log JSON (o pino do Fastify escreve JSON)</td></tr>
+<tr><td><code>curl -sv URL</code></td><td>Testar HTTP mostrando cabeçalhos e o handshake TLS</td></tr>
+<tr><td><code>watch -n 2 cmd</code></td><td>Repetir um comando a cada 2 s</td></tr>
+</table>
+
+<h2>2.2 Scripts que falham de forma segura</h2>
+<p>O <code>backup.sh</code> do RH começa com <code>set -euo pipefail</code>. É o cabeçalho que todo script de operação deveria ter:</p>
+<ul>
+<li><code>-e</code>: para no primeiro comando que falhar, em vez de seguir e fazer estrago.</li>
+<li><code>-u</code>: erro ao usar uma variável não definida. Sem isso, <code>rm -rf "$PASTA/"</code> com <code>PASTA</code> vazia vira <code>rm -rf /</code>.</li>
+<li><code>-o pipefail</code>: um pipe falha se <b>qualquer</b> parte falhar. Sem isso, <code>pg_dump | gzip</code> "dá certo" mesmo se o <code>pg_dump</code> falhar, porque o <code>gzip</code> terminou bem. Imagine isso num backup.</li>
+</ul>
+<p>Sempre coloque variáveis <b>entre aspas</b> (<code>"$ARQ"</code>) e valide os scripts com <b>shellcheck</b> (<code>apt install shellcheck</code>), que acha esses problemas automaticamente.</p>
+
+<h2>2.3 SSH produtivo</h2>
+<pre class="good"><span class="lbl">~/.ssh/config no seu notebook</span>Host vps
+    HostName 203.0.113.50        # IP da VPS
+    User deploy
+    IdentityFile ~/.ssh/id_ed25519
+    ServerAliveInterval 30
+
+# agora: ssh vps · scp arquivo vps:/tmp/ · rsync -avz pasta/ vps:/opt/app/
+# túnel para acessar o Postgres da VPS (publicado só no loopback) do seu notebook:
+ssh -L 5433:127.0.0.1:5432 vps     # e conecte em localhost:5433</pre>
+<p>O <b>túnel SSH</b> é o jeito certo de acessar serviços que você (corretamente) não expôs na internet, como o Postgres do marketZapp em <code>127.0.0.1:5432</code>. Use <b>tmux</b> na VPS para que comandos longos (uma restauração, por exemplo) não morram se a conexão cair.</p>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 2</span><ol>
+<li>O que cada parte de <code>set -euo pipefail</code> evita? Dê o exemplo do <code>pg_dump | gzip</code>.</li>
+<li>Como acessar do notebook um Postgres publicado só em <code>127.0.0.1</code> na VPS?</li>
+<li>Monte um pipeline que conte quantas respostas 500 o Caddy deu hoje (log em JSON).</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 3</span>systemd: serviços e timers</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>A VPS ficou desligada das 3h às 5h para manutenção. O backup das 3h30 rodou? Como você descobre?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Ler</b> e escrever units de serviço e de timer.</li>
+<li><b>Operar</b> serviços com <code>systemctl</code> e investigar com <code>journalctl</code>.</li>
+<li><b>Justificar</b> o uso de timers em vez de cron.</li></ul></div>
+
+<h2>3.1 O exemplo resolvido: o timer do backup do RH</h2>
+<pre>[Timer]
+OnCalendar=*-*-* 03:30:00     # todo dia às 03:30
+RandomizedDelaySec=20m        # sorteia um atraso de até 20 min (evita todo mundo no minuto cheio)
+Persistent=true               # se a máquina estava desligada, roda assim que ligar
+[Install]
+WantedBy=timers.target</pre>
+<p>A resposta à pergunta-gatilho é o <code>Persistent=true</code>: o systemd guarda quando o timer rodou pela última vez e, ao ligar, executa o que ficou para trás. O cron simplesmente pula. Essa é uma das vantagens dos timers, junto com: logs automáticos no journal, dependências (rodar só depois que a rede subir), limites de recursos e <code>systemctl list-timers</code> para ver a próxima execução.</p>
+<p>O timer dispara um <b>serviço</b> de mesmo nome (<code>francal-backup.service</code>), normalmente do tipo <code>Type=oneshot</code> (roda e termina).</p>
+
+<h2>3.2 Os comandos do dia a dia</h2>
+<pre>systemctl status francal-backup.service      # estado, últimas linhas de log, PID
+systemctl list-timers --all                  # próximos e últimos disparos
+sudo systemctl start francal-backup.service  # roda agora, à mão
+sudo systemctl enable --now algo.timer       # habilita no boot e já inicia
+sudo systemctl daemon-reload                 # OBRIGATÓRIO depois de editar uma unit
+journalctl -u francal-backup.service --since today
+journalctl -u francal-backup.service -n 50 --no-pager
+journalctl -p err -b                         # só erros desde o último boot</pre>
+
+<h2>3.3 Um serviço que se recupera sozinho</h2>
+<pre class="good"><span class="lbl">/etc/systemd/system/exemplo.service</span>[Unit]
+Description=Exemplo de API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=deploy
+WorkingDirectory=/opt/app
+EnvironmentFile=/opt/app/.env
+ExecStart=/usr/bin/node dist/server.js
+Restart=on-failure          # reinicia se cair com erro
+RestartSec=5
+# endurecimento barato:
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/opt/app/uploads
+
+[Install]
+WantedBy=multi-user.target</pre>
+<p class="small">Nos seus projetos, os apps rodam em Docker com <code>restart: always</code>, e o systemd cuida do Docker e dos timers. O exemplo acima serve para entender o que o <code>restart</code> do Docker faz por você, e para scripts que não precisam de container.</p>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 3</span><ol>
+<li>O que faz <code>Persistent=true</code> e que problema do cron ele resolve?</li>
+<li>Você editou um <code>.service</code> e nada mudou. Que comando faltou?</li>
+<li>Como ver só as mensagens de erro do sistema desde o último boot?</li>
+</ol></div>

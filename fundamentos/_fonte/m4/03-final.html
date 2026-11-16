@@ -1,0 +1,253 @@
+
+<h1><span class="num">Capítulo 8</span>Migrações seguras</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>Você precisa renomear a coluna <code>nome</code> para <code>nome_completo</code> numa tabela com 2 milhões de linhas, com o sistema no ar. Quantos deploys isso leva?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Escolher</b> uma ferramenta de migração e saber o que ela garante.</li>
+<li><b>Aplicar</b> expand/contract para mudanças sem downtime.</li>
+<li><b>Identificar</b> as operações que travam tabelas e as alternativas.</li></ul></div>
+
+<h2>8.1 O que uma ferramenta de migração precisa fazer</h2>
+<ol>
+<li>Guardar no próprio banco <b>quais migrações já rodaram</b> (tabela de controle).</li>
+<li>Aplicar as pendentes <b>em ordem</b>, cada uma numa transação quando possível.</li>
+<li>Ser <b>versionada no Git</b> junto com o código que depende dela.</li>
+</ol>
+<table>
+<tr><th style="width:18%">Projeto</th><th style="width:26%">Hoje</th><th>Avaliação</th></tr>
+<tr><td>RH</td><td>Prisma Migrate</td><td>Cumpre os três itens. Use <code>prisma migrate deploy</code> em produção (nunca <code>migrate dev</code> nem <code>db push</code>)</td></tr>
+<tr><td>Julielton</td><td>Alembic</td><td>Cumpre os três. Revise o autogenerate: ele não detecta renomeação (gera DROP + ADD)</td></tr>
+<tr><td>marketZapp</td><td>Arquivos <code>NNN_*.sql</code> aplicados à mão</td><td>Falta o item 1: qual já rodou em produção? Adote <b>node-pg-migrate</b>, <b>dbmate</b> ou uma tabela <code>schema_migrations</code> com um script de 30 linhas</td></tr>
+<tr><td>MesaPay</td><td>GORM <code>AutoMigrate</code> na subida</td><td>Cria tabelas e colunas, mas <b>não</b> remove nem renomeia colunas, não guarda histórico e roda a cada boot. Para produção, use <b>goose</b>, <b>golang-migrate</b> ou <b>Atlas</b></td></tr>
+</table>
+
+<h2>8.2 Expand/contract (mudança em várias etapas)</h2>
+<p>Durante um deploy, a versão nova e a antiga do app rodam ao mesmo tempo por alguns segundos, e no rollback a antiga volta a rodar. Toda migração precisa ser <b>compatível com a versão anterior do código</b>. A resposta à pergunta-gatilho é <b>3 a 4 deploys</b>:</p>
+<ol>
+<li><b>Expand</b>: adicionar <code>nome_completo</code> (nulo). O app novo grava nas <b>duas</b> colunas e lê da antiga.</li>
+<li><b>Backfill</b>: copiar os dados em lotes (<code>UPDATE ... WHERE id BETWEEN x AND y</code>), sem uma transação gigante.</li>
+<li><b>Migrar a leitura</b>: o app passa a ler de <code>nome_completo</code> e ainda grava nas duas.</li>
+<li><b>Contract</b>: o app para de usar <code>nome</code>. No deploy seguinte, <code>DROP COLUMN nome</code>.</li>
+</ol>
+<p>Parece muito trabalho, e é. Para sistemas pequenos com janela de manutenção aceitável, um único deploy com 30 segundos fora do ar pode ser uma <b>decisão consciente</b>. O importante é saber que existe a alternativa e o risco de cada caminho.</p>
+
+<h2>8.3 Operações que travam e as alternativas</h2>
+<table>
+<tr><th style="width:36%">Operação</th><th>Problema</th><th style="width:34%">Alternativa</th></tr>
+<tr><td><code>CREATE INDEX</code></td><td>Bloqueia escritas na tabela durante a criação</td><td><code>CREATE INDEX CONCURRENTLY</code> (fora de transação: no Prisma/Alembic, uma migração separada)</td></tr>
+<tr><td><code>ADD COLUMN ... DEFAULT x</code></td><td>Rápido desde o PG 11 para default constante. Com default volátil (<code>now()</code>, <code>random()</code>), reescreve a tabela</td><td>Adicionar sem default e fazer backfill em lotes</td></tr>
+<tr><td><code>SET NOT NULL</code></td><td>Varre a tabela inteira com lock exclusivo</td><td><code>ADD CONSTRAINT ... CHECK (col IS NOT NULL) NOT VALID</code>, depois <code>VALIDATE CONSTRAINT</code> (lock mais leve). No PG 12+ o <code>SET NOT NULL</code> aproveita esse CHECK</td></tr>
+<tr><td><code>ALTER COLUMN TYPE</code></td><td>Em geral reescreve a tabela</td><td>Coluna nova + expand/contract</td></tr>
+<tr><td><code>ADD FOREIGN KEY</code></td><td>Valida todas as linhas com lock</td><td><code>NOT VALID</code> + <code>VALIDATE CONSTRAINT</code> depois</td></tr>
+</table>
+<div class="box erro"><span class="t">A fila de locks</span><p>Mesmo uma operação rápida precisa de um lock exclusivo por um instante. Se houver uma consulta longa rodando, o <code>ALTER</code> espera, e <b>todas as consultas novas ficam na fila atrás dele</b>: o sistema trava sem que a migração tenha feito nada ainda. Proteção: <code>SET lock_timeout = '5s';</code> no início da migração. Se não conseguir o lock, ela falha e você tenta de novo, em vez de travar a produção.</p></div>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 8</span><ol>
+<li>Quais os três requisitos de uma ferramenta de migração? Qual falta no marketZapp?</li>
+<li>Por que a migração precisa ser compatível com a versão anterior do código?</li>
+<li>Descreva as etapas para renomear uma coluna sem downtime.</li>
+<li>Para que serve <code>lock_timeout</code> numa migração?</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 9</span>Pool, timeouts e vacuum</h1>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Dimensionar</b> o pool de conexões.</li>
+<li><b>Configurar</b> timeouts que protegem o banco.</li>
+<li><b>Explicar</b> o que o vacuum faz e por que ele importa.</li></ul></div>
+
+<h2>9.1 Pool de conexões</h2>
+<p>Cada conexão no Postgres é um processo, com alguns MB de memória. O <code>max_connections</code> padrão é 100. Some os pools de <b>todas</b> as instâncias e processos que falam com o banco (API, workers, scripts) e mantenha o total bem abaixo desse limite. Mais conexões <b>não</b> é mais rápido: além do número de núcleos, elas competem entre si.</p>
+<table>
+<tr><th>Ferramenta</th><th>Onde configurar</th></tr>
+<tr><td><code>pg</code> (marketZapp)</td><td><code>new Pool({ max: 10, idleTimeoutMillis: 30000, connectionTimeoutMillis: 5000 })</code></td></tr>
+<tr><td>Prisma (RH)</td><td><code>?connection_limit=10&amp;pool_timeout=10</code> na <code>DATABASE_URL</code> (ou as opções do driver adapter, nas versões novas)</td></tr>
+<tr><td>SQLAlchemy (Julielton)</td><td><code>create_engine(url, pool_size=5, max_overflow=5, pool_pre_ping=True)</code></td></tr>
+<tr><td>GORM (MesaPay)</td><td><code>sqlDB.SetMaxOpenConns(10); sqlDB.SetMaxIdleConns(5); sqlDB.SetConnMaxLifetime(time.Hour)</code></td></tr>
+</table>
+<p>Quando houver muitas instâncias, um <b>PgBouncer</b> na frente do Postgres multiplexa conexões. Para os seus volumes, um pool bem configurado basta.</p>
+
+<h2>9.2 Timeouts que protegem</h2>
+<pre class="good"><span class="lbl">Por usuário da aplicação (vale para todas as conexões dele)</span>ALTER ROLE app SET statement_timeout = '15s';                   -- consulta descontrolada não roda para sempre
+ALTER ROLE app SET idle_in_transaction_session_timeout = '60s'; -- transação esquecida aberta é encerrada
+ALTER ROLE app SET lock_timeout = '10s';</pre>
+
+<h2>9.3 MVCC e vacuum em um parágrafo</h2>
+<p>O Postgres não sobrescreve linhas: um <code>UPDATE</code> cria uma <b>nova versão</b> e marca a antiga como morta. É isso que permite que leitores não bloqueiem escritores (MVCC). As versões mortas são limpas pelo <b>vacuum</b>, que o <b>autovacuum</b> roda sozinho. Ele falha quando uma transação fica aberta por horas (a limpeza não pode remover versões que ela ainda pode ver), e a tabela incha. Monitore com <code>pg_stat_user_tables</code> (<code>n_dead_tup</code>, <code>last_autovacuum</code>) e não deixe transações abertas: o timeout de 9.2 já ajuda.</p>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 9</span><ol>
+<li>Por que aumentar o pool nem sempre deixa o sistema mais rápido?</li>
+<li>Que três timeouts você configuraria para o usuário da aplicação?</li>
+<li>Por que uma transação aberta por horas faz as tabelas incharem?</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 10</span>Além do Postgres: Oracle e o Winthor</h1>
+<p>O ETL do Data_Analisys e a integração com o Winthor leem de um <b>Oracle</b> que não é seu: é o ERP da empresa. Os conceitos deste módulo valem lá, com diferenças práticas:</p>
+<table>
+<tr><th style="width:30%">Tema</th><th>No Oracle</th></tr>
+<tr><td>Parâmetros</td><td>Bind variables <code>:nome</code> (<code>cursor.execute(sql, cod=123)</code> no <code>oracledb</code>). Além da segurança, o Oracle <b>reaproveita o plano</b> de consultas com bind. Concatenar valores enche o cache de planos do servidor do ERP</td></tr>
+<tr><td>Limitar linhas</td><td><code>FETCH FIRST 50 ROWS ONLY</code> (12c+) ou <code>ROWNUM</code> em versões antigas</td></tr>
+<tr><td>Leitura consistente</td><td>Cada consulta vê um retrato consistente (como o Read Committed do Postgres). Consultas muito longas podem falhar com <code>ORA-01555 snapshot too old</code></td></tr>
+<tr><td>Plano</td><td><code>EXPLAIN PLAN FOR ...</code> + <code>SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY)</code></td></tr>
+<tr><td>Commit</td><td>Ferramentas como o SQL*Plus <b>não</b> fazem commit automático por padrão</td></tr>
+</table>
+<div class="box dica"><span class="t">Regras de convivência com o banco de outro sistema</span><ul>
+<li><b>Usuário só de leitura</b>, com acesso apenas às tabelas e views necessárias. Nunca o usuário do ERP.</li>
+<li><b>Extração incremental</b> (por data de alteração ou sequência), e não "SELECT tudo" a cada execução.</li>
+<li>Rodar em horário de pouco uso e com <code>FETCH</code> em lotes (<code>cursor.arraysize</code>).</li>
+<li>Combinar com o DBA ou o suporte do ERP antes de criar índices. Mudar o schema de um ERP pode violar o suporte.</li>
+</ul></div>
+
+<h1><span class="num">Prática</span>Missões</h1>
+<table>
+<tr><th style="width:7%">#</th><th style="width:24%">Missão</th><th>O que fazer</th><th style="width:30%">Pronto quando</th></tr>
+<tr><td>M1</td><td>As 3 consultas que importam</td><td>Num projeto com dados reais (ou uma cópia restaurada, Módulo 3), habilite <code>pg_stat_statements</code>, pegue as 3 consultas de maior tempo total e analise com <code>EXPLAIN (ANALYZE, BUFFERS)</code>.</td><td>Para cada uma: plano antes, mudança (índice ou reescrita) ou justificativa para não mudar, e plano depois.</td></tr>
+<tr><td>M2</td><td>Julielton: lock otimista</td><td>Coluna <code>versao</code> via migração do Alembic, <code>version_id_col</code> no modelo, campo oculto no formulário e tela de conflito (409) mostrando quem alterou.</td><td>Teste: duas edições a partir da mesma versão, a segunda recebe 409 e nada é sobrescrito.</td></tr>
+<tr><td>M3</td><td>MesaPay: corrida provada</td><td>Teste em Go com Postgres real (testcontainers-go, Módulo 2) que dispara 10 goroutines tentando criar a mesma mesa/reserva. O índice parcial deve garantir uma só, e a API deve responder com erro amigável (não 500) para as outras.</td><td>Teste verde com <code>go test -race</code>, e o erro <code>23505</code> traduzido para 409.</td></tr>
+<tr><td>M4</td><td>marketZapp: controle de migrações</td><td>Adotar uma ferramenta (dbmate ou node-pg-migrate) ou criar <code>schema_migrations</code> + script. Marcar 001–007 como aplicadas em produção, depois de conferir uma a uma.</td><td><code>npm run migrate</code> num banco vazio cria o schema completo. Em produção, informa "nada a aplicar".</td></tr>
+<tr><td>M5</td><td>MesaPay: sair do AutoMigrate</td><td>Gerar a migração inicial a partir do schema atual (goose ou Atlas), mover os índices de <code>indices.go</code> para migrações e remover o <code>AutoMigrate</code> da subida.</td><td>Banco novo criado só pelas migrações é idêntico ao de produção (compare com <code>pg_dump --schema-only</code>).</td></tr>
+<tr><td>M6</td><td>Timeouts e pool</td><td>Aplicar os timeouts de 9.2 ao usuário da aplicação em produção e conferir o tamanho dos pools contra o <code>max_connections</code>.</td><td>Soma dos pools documentada e abaixo do limite, e timeouts ativos (<code>SHOW statement_timeout</code> conectado como o usuário da app).</td></tr>
+</table>
+
+<h1><span class="num">Apêndice A</span>Gabarito e revisão intercalada</h1>
+<div class="gab">
+<h3>Pré-teste</h3>
+<ol>
+<li>Ponto flutuante não representa decimais exatamente: aparecem centavos errados. Use <code>numeric</code> ou centavos inteiros. (1.1)</li>
+<li>Não de forma eficiente: falta o prefixo à esquerda. (3.2)</li>
+<li>1 consulta para a lista + N para os relacionados. Aparece em loops com acesso preguiçoso às relações. (2.2)</li>
+<li>Read Committed. Não impede o lost update no padrão ler-calcular-gravar. (6.2)</li>
+<li>É sobrescrita sem aviso. Soluções: lock otimista (409) ou lock pessimista. (7.1)</li>
+<li>Estatísticas desatualizadas ou distribuição irregular, o que leva a um plano ruim: rode <code>ANALYZE</code>. (4.1)</li>
+<li>Bloqueia as escritas na tabela durante a criação. Use <code>CONCURRENTLY</code>. (8.3)</li>
+<li>Mudar o schema em etapas compatíveis: adicionar, migrar dados e leitura, e só depois remover. (8.2)</li>
+<li>Vários workers pegam tarefas diferentes, sem esperar nem duplicar. (7.3)</li>
+<li>Segura locks e conexão durante a latência da rede, e cria inconsistência se o commit falhar. (5.2)</li>
+<li>A restrição <code>UNIQUE</code> no banco. A validação na aplicação tem janela de corrida. (1.2)</li>
+<li>Conexões recusadas (<i>too many clients</i>) e erros intermitentes sob carga. (9.1)</li>
+</ol>
+<h3>Capítulos 1 e 2</h3>
+<ol>
+<li>Guarda o instante absoluto. Sem fuso, o mesmo valor significa horas diferentes conforme o servidor.</li>
+<li>As duas requisições consultam "não existe" antes de qualquer uma inserir, e as duas inserem.</li>
+<li>Sem ele, mesas excluídas (soft delete) continuariam ocupando o número.</li>
+<li>Preço unitário copiado para o item do pedido no momento da venda.</li>
+<li><code>GROUP BY</code> colapsa as linhas em grupos. A janela calcula sobre o grupo e mantém as linhas.</li>
+<li>Se o evento já existia, nada é inserido e nada volta: sabe-se que é duplicata.</li>
+<li>Log de consultas ligado e contagem de consultas por requisição.</li>
+</ol>
+<h3>Capítulos 3 e 4</h3>
+<ol>
+<li>A lista ordenada por sobrenome não acha "todas as Marias" sem o sobrenome.</li>
+<li><code>(status, inicio)</code>: igualdade, depois intervalo.</li>
+<li>O índice guarda <code>email</code>, não <code>lower(email)</code>: crie um índice de expressão.</li>
+<li>GIN com <code>gin_trgm_ops</code>.</li>
+<li>De dentro para fora: o nó mais indentado executa primeiro.</li>
+<li>Muita leitura descartada: falta um índice adequado.</li>
+<li>Com poucas linhas, ler a tabela inteira é mais barato.</li>
+<li>O impacto real é média × chamadas.</li>
+</ol>
+<h3>Capítulos 5 a 7</h3>
+<ol>
+<li>Ex.: pagamento + fechar comanda juntos (A), valor não negativo (C), dois caixas simultâneos (I), sobrevive à queda (D).</li>
+<li>Executa fora da transação: não reverte junto.</li>
+<li>Lock segurado durante a rede, e mensagem enviada para algo que pode não ser confirmado.</li>
+<li>Lost update.</li>
+<li>Duas pessoas reservam as duas últimas mesas de uma área com limite de lotação, cada uma lendo "1 vaga".</li>
+<li>Repetir a transação inteira (com backoff).</li>
+<li>Estoque: atômica. Reserva única: UNIQUE. Formulário: otimista. Fila: SKIP LOCKED.</li>
+<li>Seguraria o lock durante minutos e bloquearia os outros usuários.</li>
+<li>As linhas travadas por um worker são puladas pelos outros.</li>
+<li>Travar sempre na mesma ordem, transações curtas, retry.</li>
+</ol>
+<h3>Capítulos 8 e 9</h3>
+<ol>
+<li>Tabela de controle, ordem, versionamento no Git. No marketZapp falta a tabela de controle.</li>
+<li>Durante o deploy e no rollback a versão antiga roda com o schema novo.</li>
+<li>Adicionar coluna e gravar nas duas → backfill → ler da nova → parar de usar a antiga → drop.</li>
+<li>Falhar rápido em vez de enfileirar todo o tráfego atrás do <code>ALTER</code>.</li>
+<li>Além dos núcleos, as conexões competem por CPU e locks.</li>
+<li><code>statement_timeout</code>, <code>idle_in_transaction_session_timeout</code>, <code>lock_timeout</code>.</li>
+<li>O vacuum não pode remover versões que a transação antiga ainda pode enxergar.</li>
+</ol>
+</div>
+<h2>Revisão intercalada</h2>
+<div class="quiz"><span class="t">Qual o problema e a correção?</span><ol>
+<li><code>const n = await count(); await insert({ numero: n + 1 })</code> para gerar o número do pedido.</li>
+<li>Migração do Alembic: <code>op.create_index('ix_x', 'grande', ['col'])</code> rodando em horário de pico.</li>
+<li>Listagem de candidatos lenta. O log mostra 201 consultas por requisição.</li>
+<li>Relatório soma <code>valor</code> (<code>double precision</code>) e dá R$ 1.234,5699999.</li>
+<li>Webhook processa o mesmo evento duas vezes quando a Evolution reenvia.</li>
+<li>O Postgres fica lento toda tarde, e <code>pg_stat_activity</code> mostra uma conexão <code>idle in transaction</code> desde a manhã.</li>
+</ol></div>
+<div class="gab"><ol>
+<li>Corrida: duas requisições pegam o mesmo <code>n</code> (cap. 6 e 7). Use sequence/identity, ou UNIQUE + retry.</li>
+<li>Bloqueia escritas (cap. 8.3). Use <code>postgresql_concurrently=True</code> numa migração fora de transação, em horário de pouco uso.</li>
+<li>N+1 (cap. 2.2). Use <code>include</code>/<code>selectinload</code>/<code>Preload</code> ou um join.</li>
+<li>Tipo de ponto flutuante para dinheiro (cap. 1.1). Migre para <code>numeric(12,2)</code>.</li>
+<li>Falta idempotência (cap. 2.1). <code>INSERT ... ON CONFLICT DO NOTHING</code> com o ID do evento.</li>
+<li>Transação esquecida aberta (cap. 5.2 e 9). Corrija o código e configure <code>idle_in_transaction_session_timeout</code>.</li>
+</ol></div>
+
+<h1><span class="num">Apêndice B</span>Flashcards</h1>
+<table>
+<tr><th style="width:4%">#</th><th style="width:50%">Frente</th><th>Verso</th></tr>
+<tr><td>1</td><td>Tipo para dinheiro</td><td><code>numeric(p,2)</code> ou centavos inteiros</td></tr>
+<tr><td>2</td><td>Tipo para instante</td><td><code>timestamptz</code></td></tr>
+<tr><td>3</td><td>Por que UNIQUE no banco se a app valida</td><td>Concorrência: o check-then-insert tem janela</td></tr>
+<tr><td>4</td><td>Índice único parcial</td><td><code>CREATE UNIQUE INDEX ... WHERE condição</code></td></tr>
+<tr><td>5</td><td>N+1</td><td>1 consulta da lista + 1 por item. Resolver com carga em lote</td></tr>
+<tr><td>6</td><td>Função de janela</td><td>Cálculo sobre um grupo mantendo as linhas (<code>OVER</code>)</td></tr>
+<tr><td>7</td><td>Regra do prefixo</td><td>O índice composto só serve a partir da 1ª coluna</td></tr>
+<tr><td>8</td><td>Ordem no índice composto</td><td>Igualdade primeiro, intervalo/ordenação depois</td></tr>
+<tr><td>9</td><td>Índice para <code>ILIKE '%x%'</code></td><td>GIN + <code>gin_trgm_ops</code></td></tr>
+<tr><td>10</td><td>FK ganha índice automático no Postgres?</td><td>Não. Indexe a coluna do lado "muitos"</td></tr>
+<tr><td>11</td><td>Ler plano</td><td>De dentro para fora. Comparar estimado x real</td></tr>
+<tr><td>12</td><td>Achar as consultas caras</td><td><code>pg_stat_statements</code> por tempo total</td></tr>
+<tr><td>13</td><td>EXPLAIN ANALYZE em UPDATE</td><td>Executa de verdade: use BEGIN/ROLLBACK</td></tr>
+<tr><td>14</td><td>ACID</td><td>Atomicidade, Consistência, Isolamento, Durabilidade</td></tr>
+<tr><td>15</td><td>Bug no <code>$transaction</code> do Prisma</td><td>Usar <code>prisma.</code> em vez de <code>tx.</code></td></tr>
+<tr><td>16</td><td>Isolamento padrão do Postgres</td><td>Read Committed</td></tr>
+<tr><td>17</td><td>Lost update</td><td>Ler-calcular-gravar concorrente: uma gravação some</td></tr>
+<tr><td>18</td><td>Write skew</td><td>Leem o mesmo conjunto, gravam linhas diferentes, quebram a regra</td></tr>
+<tr><td>19</td><td>Erro 40001</td><td>Falha de serialização: repetir a transação</td></tr>
+<tr><td>20</td><td>Atualização atômica</td><td><code>SET x = x - 1 WHERE x &gt;= 1</code></td></tr>
+<tr><td>21</td><td>Lock otimista</td><td>Coluna versão no WHERE. 0 linhas = conflito (409)</td></tr>
+<tr><td>22</td><td>Lock pessimista</td><td><code>SELECT ... FOR UPDATE</code></td></tr>
+<tr><td>23</td><td>Fila com Postgres</td><td><code>FOR UPDATE SKIP LOCKED</code></td></tr>
+<tr><td>24</td><td>Prevenir deadlock</td><td>Travar na mesma ordem, transações curtas</td></tr>
+<tr><td>25</td><td>Expand/contract</td><td>Adicionar → migrar → remover, em deploys separados</td></tr>
+<tr><td>26</td><td>Criar índice sem travar</td><td><code>CREATE INDEX CONCURRENTLY</code></td></tr>
+<tr><td>27</td><td>NOT NULL sem lock longo</td><td>CHECK NOT VALID → VALIDATE → SET NOT NULL</td></tr>
+<tr><td>28</td><td><code>lock_timeout</code> na migração</td><td>Falha rápido em vez de enfileirar todo o tráfego</td></tr>
+<tr><td>29</td><td>Limites do AutoMigrate do GORM</td><td>Não remove/renomeia, sem histórico</td></tr>
+<tr><td>30</td><td>Três timeouts do usuário da app</td><td>statement, idle_in_transaction_session, lock</td></tr>
+<tr><td>31</td><td>MVCC</td><td>Update cria versão nova. Vacuum limpa as mortas</td></tr>
+<tr><td>32</td><td>Bind variable no Oracle</td><td><code>:nome</code>. Segurança + reaproveitamento de plano</td></tr>
+</table>
+
+<h1><span class="num">Apêndice C</span>Glossário</h1>
+<table>
+<tr><th style="width:22%">Termo</th><th>Definição</th></tr>
+<tr><td>Backfill</td><td>Preencher dados de uma coluna nova a partir dos existentes.</td></tr>
+<tr><td>B-tree</td><td>Árvore balanceada ordenada: o tipo padrão de índice.</td></tr>
+<tr><td>Covering index</td><td>Índice que contém todas as colunas de que a consulta precisa.</td></tr>
+<tr><td>Deadlock</td><td>Duas transações esperando uma pela outra.</td></tr>
+<tr><td>GIN</td><td>Índice invertido, para valores compostos (trigramas, jsonb, arrays).</td></tr>
+<tr><td>MVCC</td><td>Controle de concorrência por múltiplas versões das linhas.</td></tr>
+<tr><td>Outbox</td><td>Gravar a intenção de efeito externo na mesma transação e executar depois (Módulo 5).</td></tr>
+<tr><td>Pool</td><td>Conjunto de conexões reutilizadas pela aplicação.</td></tr>
+<tr><td>Seq Scan</td><td>Leitura sequencial da tabela inteira.</td></tr>
+<tr><td>Snapshot</td><td>Retrato consistente do banco num instante.</td></tr>
+<tr><td>SSI</td><td>Serializable Snapshot Isolation: a implementação do Serializable no Postgres.</td></tr>
+<tr><td>WAL</td><td>Log de escrita antecipada. Garante durabilidade e replicação.</td></tr>
+</table>
+
+<h1><span class="num">Apêndice D</span>Referências</h1>
+<ul>
+<li>Winand, M. <i>Use The Index, Luke!</i> (use-the-index-luke.com, gratuito) e <i>SQL Performance Explained</i>.</li>
+<li>Kleppmann, M. <i>Designing Data-Intensive Applications</i>. O'Reilly, 2017. Caps. 2 (modelos de dados), 3 (armazenamento e índices) e 7 (transações).</li>
+<li>PostgreSQL Documentation: Data Types, Indexes, Using EXPLAIN, Transaction Isolation, Explicit Locking, Routine Vacuuming, ALTER TABLE (notas sobre locks), pg_stat_statements.</li>
+<li>Documentação: Prisma (Transactions, Migrate in production), SQLAlchemy (Configuring a Version Counter), Alembic, GORM (Transactions, Migration), goose, Atlas, dbmate, python-oracledb.</li>
+<li>"Zero-downtime Postgres migrations": guias da GoCardless, da Braintree e do <i>strong_migrations</i> (lista de operações perigosas).</li>
+<li>Didática: as mesmas referências do Módulo 1.</li>
+</ul>
+<div class="box dica" style="margin-top:8mm"><span class="t">Próximo passo</span><p>Refaça o pré-teste. O Módulo 5 parte daqui: filas, idempotência, outbox e consistência eventual são o capítulo 7 deste módulo aplicado entre sistemas.</p></div>

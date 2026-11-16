@@ -1,0 +1,156 @@
+
+<section class="capa" style="background:linear-gradient(160deg,#123d2a 0%,#1a7f37 70%,#2a9d4b 100%)">
+  <div class="k">Trilha de Fundamentos · Módulo 2</div>
+  <h1>Testes e<br>Integração Contínua</h1>
+  <div class="sub">Como escrever testes que pegam bug de verdade, sem travar refatoração, e como fazer o GitHub rodar tudo a cada push. Exemplos em Vitest, pytest e Go.</div>
+  <div class="itens">
+    <span>O que testar</span><span>Anatomia de um bom teste</span><span>Pirâmide e escolas</span><span>Mocks e dublês</span>
+    <span>Banco real e Testcontainers</span><span>Testando HTTP e permissões</span><span>Tempo, filas e concorrência</span>
+    <span>Cobertura e mutação</span><span>TDD e testes de regressão</span><span>GitHub Actions</span><span>Pipeline e CD</span>
+  </div>
+  <div class="meta">Versão de novembro de 2026 · Duração prevista: 4 semanas, ~6 h por semana · Pré-requisito: Módulo 1 (as missões dele viram testes aqui)</div>
+</section>
+
+<h1><span class="num">Antes de começar</span>Como usar este material</h1>
+<p>O método é o mesmo do Módulo 1: <b>pré-teste</b> antes de estudar, <b>pergunta-gatilho</b> no início de cada capítulo, <b>exemplo resolvido</b> (errado → certo) e depois exercício com menos ajuda, <b>questões de recuperação</b> no fim de cada capítulo com gabarito no apêndice, <b>revisão intercalada</b>, flashcards com <b>revisão espaçada</b> (D+1, D+3, D+7, D+14, D+30) e <b>missões</b> nos seus repositórios. A justificativa de cada técnica, com as referências, está no capítulo "Como usar" do Módulo 1.</p>
+
+<div class="fable"><span class="t">Passo 0 · Revisão técnica com o Fable</span>
+<p>Antes de estudar, troque para o Fable 5.2 com <code>/model</code> e peça: <i>"Revise <code>~/repo/estudos/fundamentos/modulo-2-testes-ci.html</code> como especialista em testes e CI: aponte afirmações incorretas, desatualizadas ou imprecisas (inclusive versões de actions e APIs de bibliotecas) e código que não funciona. Corrija no HTML e gere o PDF de novo com <code>_fonte/gerar.py</code>."</i> Depois volte ao Opus e marque a revisão na <code>TRILHA-FUNDAMENTOS.md</code>.</p></div>
+
+<h2>Onde você está hoje (levantado nos repositórios em 13/11/2026)</h2>
+<table>
+<tr><th>Projeto</th><th>Stack de teste</th><th>Situação</th></tr>
+<tr><td>RH (backend)</td><td>Vitest</td><td>34 arquivos de teste. <b>Nenhum toca o banco</b>: 14 usam mock do Prisma. Ótimo para regra de negócio pura, mas consultas erradas passam despercebidas (capítulo 4).</td></tr>
+<tr><td>marketZapp (backend)</td><td>Vitest</td><td>7 arquivos. Parte fala com o <b>Postgres de verdade</b> (similaridade do <code>pg_trgm</code>), e isso é uma decisão correta. Mas o banco vem do <code>.env</code> de desenvolvimento, e não existe script de lint nem de typecheck separado (capítulos 5 e 10).</td></tr>
+<tr><td>Julielton</td><td>pytest</td><td>13 arquivos. Banco isolado por teste: SQLite por padrão, Postgres se <code>TEST_DATABASE_URL</code> existir. A estrutura é boa, mas o SQLite não é o banco de produção (capítulo 5).</td></tr>
+<tr><td>MesaPay (backend)</td><td>Go <code>testing</code></td><td>11 arquivos <code>_test.go</code> em <code>services/</code>. Falta testar handlers e isolamento entre estabelecimentos (capítulo 6).</td></tr>
+<tr><td>Todos</td><td>—</td><td><b>Nenhum tem CI.</b> Os testes só rodam quando alguém lembra (capítulo 10).</td></tr>
+</table>
+<p>Você não está começando do zero, e isso muda o foco do módulo: em vez de "aprender a escrever teste", o foco é <b>escrever os testes certos</b> e <b>fazer eles rodarem sozinhos</b>.</p>
+
+<h2>Cronograma de 4 semanas</h2>
+<table>
+<tr><th style="width:16%">Semana</th><th>Capítulos</th><th style="width:36%">Entrega</th></tr>
+<tr><td>1</td><td>Pré-teste · 1. O que testar · 2. Anatomia · 3. Pirâmide e escolas</td><td>Matriz de risco de um projeto (missão M1)</td></tr>
+<tr><td>2</td><td>4. Dublês · 5. Banco real · 6. HTTP e permissões</td><td>M2 e M3</td></tr>
+<tr><td>3</td><td>7. O difícil de testar · 8. Cobertura e mutação · 9. TDD e regressão</td><td>M4</td></tr>
+<tr><td>4</td><td>10. GitHub Actions · 11. Pipeline e CD · revisão intercalada</td><td>M5 e M6, refazer o pré-teste</td></tr>
+</table>
+
+<h2>Sumário</h2>
+<div class="toc">
+<div><b>—</b> Pré-teste</div>
+<div><b>1</b> Por que e o que testar</div>
+<div><b>2</b> Anatomia de um bom teste</div>
+<div><b>3</b> Pirâmide, troféu e as duas escolas</div>
+<div><b>4</b> Dublês de teste: quando mockar</div>
+<div><b>5</b> Integração com banco real</div>
+<div><b>6</b> Testando HTTP, autenticação e permissões</div>
+<div><b>7</b> Tempo, aleatoriedade, filas e concorrência</div>
+<div><b>8</b> Cobertura, mutação e testes instáveis</div>
+<div><b>9</b> TDD, regressão e código legado</div>
+<div><b>10</b> GitHub Actions do zero</div>
+<div><b>11</b> O pipeline completo e o CD</div>
+<div><b>—</b> Missões</div>
+<div><b>A</b> Gabarito e revisão intercalada</div>
+<div><b>B</b> Flashcards</div>
+<div><b>C</b> Glossário</div>
+<div><b>D</b> Referências</div>
+</div>
+
+<h1><span class="num">Diagnóstico</span>Pré-teste</h1>
+<p>Responda por escrito, sem consultar. Errar aqui é parte do método. O gabarito está no apêndice A.</p>
+<div class="quiz"><span class="t">Pré-teste · 12 questões</span>
+<ol>
+<li>Cobertura de 90% garante que os testes são bons? Por quê?</li>
+<li>Qual a diferença entre um <i>stub</i> e um <i>mock</i>?</li>
+<li>Você deve mockar o seu próprio banco de dados nos testes? Justifique.</li>
+<li>Um teste quebra toda vez que você renomeia um método privado, embora o comportamento não tenha mudado. Que problema esse teste tem?</li>
+<li>O que é um teste <i>flaky</i>? Cite duas causas comuns.</li>
+<li>Como testar um código que depende de <code>Date.now()</code> sem esperar o tempo passar?</li>
+<li>No GitHub Actions, qual a diferença entre <i>workflow</i>, <i>job</i> e <i>step</i>?</li>
+<li>Seu teste precisa de Postgres no CI. Cite duas formas de oferecer um.</li>
+<li>Um bug apareceu em produção. Qual o primeiro passo antes de corrigir o código?</li>
+<li>Por que rodar os testes de integração contra SQLite quando a produção usa Postgres pode enganar?</li>
+<li>O que significa "o CI é obrigatório para merge"? Como se configura isso?</li>
+<li>Qual teste dá mais segurança para o MesaPay: "a função <code>calcularTotal</code> soma os itens" ou "o bar A recebe 404 ao pedir a comanda do bar B"? Por quê?</li>
+</ol></div>
+<p class="small">Nota: ____ / 12 · Data: ___/___/____ &nbsp;&nbsp;&nbsp; Semana 4: ____ / 12 · Data: ___/___/____</p>
+
+<h1><span class="num">Capítulo 1</span>Por que e o que testar</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>Se você só pudesse escrever 5 testes no projeto do Julielton, quais seriam? Escreva os 5 títulos antes de continuar.</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Explicar</b> o valor de um teste em termos de custo do bug e de liberdade para mudar o código.</li>
+<li><b>Priorizar</b> o que testar com uma matriz de risco.</li>
+<li><b>Transformar</b> uma regra de negócio (RN) em casos de teste.</li></ul></div>
+
+<h2>1.1 Para que servem os testes</h2>
+<p>A resposta comum é "achar bug". A resposta mais útil é: <b>permitir mudar o código com segurança</b>. Um projeto sem testes congela, porque toda mudança vira um risco que só aparece em produção. Com bons testes, você refatora, atualiza dependências e aceita código gerado por IA sabendo em segundos se algo quebrou. Testes também são <b>documentação executável</b>: o <code>whatsapp.test.ts</code> do marketZapp explica o contrato do webhook melhor que qualquer README, e nunca fica desatualizado, porque se ficar, quebra.</p>
+<p>O custo de um bug cresce com a distância entre o momento em que ele nasce e o momento em que é descoberto: no editor, custa segundos; no CI, minutos; em produção, custa o tempo do cliente, a confiança e às vezes dados.</p>
+
+<h2>1.2 Os quatro pilares de um teste valioso (Khorikov)</h2>
+<table>
+<tr><th style="width:28%">Pilar</th><th>Pergunta</th></tr>
+<tr><td><b>Proteção contra regressão</b></td><td>Se alguém introduzir um bug aqui, o teste pega? Testes que executam mais código importante protegem mais.</td></tr>
+<tr><td><b>Resistência a refatoração</b></td><td>Se eu reorganizar o código sem mudar o comportamento, o teste continua passando? Teste que quebra sem bug é <b>falso positivo</b>, e falsos positivos ensinam a equipe a ignorar os testes.</td></tr>
+<tr><td><b>Feedback rápido</b></td><td>Roda em quanto tempo? Testes lentos deixam de ser rodados.</td></tr>
+<tr><td><b>Manutenibilidade</b></td><td>É fácil de ler e de montar?</td></tr>
+</table>
+<p>Os três primeiros competem entre si, e nenhum teste maximiza todos. Mas a <b>resistência a refatoração não é negociável</b>: um teste frágil tem valor negativo. É por isso que a regra é testar <b>comportamento observável</b> (o que a função devolve, o que a API responde, o que ficou gravado no banco) e não <b>detalhes de implementação</b> (qual método privado foi chamado, em que ordem).</p>
+
+<h2>1.3 O que testar primeiro: matriz de risco</h2>
+<p>Não tente cobrir tudo. Classifique cada funcionalidade por <b>impacto se quebrar</b> e <b>probabilidade de quebrar</b> (complexidade, frequência de mudança, histórico de bugs).</p>
+<figure>
+<svg viewBox="0 0 680 250" width="100%" xmlns="http://www.w3.org/2000/svg">
+<rect x="120" y="10" width="270" height="105" fill="#fff6db" stroke="#9a6700"/><rect x="390" y="10" width="270" height="105" fill="#fdecea" stroke="#b42318"/>
+<rect x="120" y="115" width="270" height="105" fill="#f4f6f8" stroke="#8a939e"/><rect x="390" y="115" width="270" height="105" fill="#fff6db" stroke="#9a6700"/>
+<text x="255" y="35" text-anchor="middle" font-size="12" font-weight="700">2º · teste de integração</text><text x="255" y="55" text-anchor="middle" font-size="10.5">Raro de quebrar, caro se quebrar</text><text x="255" y="75" text-anchor="middle" font-size="10.5">ex.: backup, login de admin</text>
+<text x="525" y="35" text-anchor="middle" font-size="12" font-weight="700" fill="#b42318">1º · TESTE PRIMEIRO</text><text x="525" y="55" text-anchor="middle" font-size="10.5">Muda muito e dá prejuízo</text><text x="525" y="75" text-anchor="middle" font-size="10.5">pagamento, permissão, isolamento,</text><text x="525" y="92" text-anchor="middle" font-size="10.5">cálculo de orçamento, webhook</text>
+<text x="255" y="145" text-anchor="middle" font-size="12" font-weight="700">Último · ou nunca</text><text x="255" y="165" text-anchor="middle" font-size="10.5">getters, telas estáticas,</text><text x="255" y="182" text-anchor="middle" font-size="10.5">código de framework</text>
+<text x="525" y="145" text-anchor="middle" font-size="12" font-weight="700">3º · teste unitário barato</text><text x="525" y="165" text-anchor="middle" font-size="10.5">Quebra fácil, prejuízo pequeno</text><text x="525" y="182" text-anchor="middle" font-size="10.5">formatação, máscara de telefone</text>
+<text x="390" y="240" text-anchor="middle" font-size="11" fill="#5b6470">probabilidade de quebrar →</text>
+<text x="60" y="115" text-anchor="middle" font-size="11" fill="#5b6470" transform="rotate(-90 60 115)">impacto se quebrar →</text>
+</svg>
+<figcaption>Figura 1.1. Matriz de risco: comece pelo canto superior direito.</figcaption>
+</figure>
+
+<h2>1.4 De regra de negócio para caso de teste</h2>
+<p>O <code>REGRAS_DE_NEGOCIO.md</code> do MesaPay, com códigos RN-XX, já é meio caminho andado. Para cada regra, escreva os casos com a técnica de <b>partição e valor-limite</b>: um caso típico de cada classe de entrada e os casos nas fronteiras.</p>
+<div class="box caso"><span class="t">Exemplo resolvido · uma RN fictícia no estilo do MesaPay</span>
+<p><b>RN-XX:</b> "A reserva pode ser cancelada sem multa até 2 horas antes do horário. Depois disso, cobra-se 20%. Reservas já iniciadas não podem ser canceladas."</p>
+<ul>
+<li>Classes: <i>mais de 2 h antes</i> (sem multa), <i>menos de 2 h</i> (multa), <i>já iniciada</i> (erro).</li>
+<li>Limites: <b>exatamente</b> 2 h antes ("até" inclui ou não? Pergunte ao cliente e registre na RN), 2 h menos 1 segundo, exatamente no horário.</li>
+<li>Casos inválidos: reserva de outro estabelecimento, reserva já cancelada.</li>
+</ul>
+<p>São 7 testes para uma regra de uma linha, e o caso de "exatamente 2 h" provavelmente revela uma ambiguidade que ninguém tinha decidido. <b>Escrever o teste é uma forma de especificar.</b></p></div>
+<pre class="good"><span class="lbl">Go · teste orientado por tabela (o padrão idiomático do MesaPay)</span>func TestMultaCancelamento(t *testing.T) {
+    inicio := time.Date(2026, 11, 20, 20, 0, 0, 0, time.UTC)
+    casos := []struct {
+        nome      string
+        agora     time.Time
+        multa     int // percentual
+        erroEsper error
+    }{
+        {"3h antes, sem multa", inicio.Add(-3 * time.Hour), 0, nil},
+        {"exatamente 2h antes, sem multa", inicio.Add(-2 * time.Hour), 0, nil},
+        {"2h menos 1s, com multa", inicio.Add(-2*time.Hour + time.Second), 20, nil},
+        {"já iniciada", inicio.Add(time.Minute), 0, ErrReservaIniciada},
+    }
+    for _, c := range casos {
+        t.Run(c.nome, func(t *testing.T) {
+            multa, err := MultaCancelamento(inicio, c.agora)
+            if !errors.Is(err, c.erroEsper) { t.Fatalf("erro = %v, esperado %v", err, c.erroEsper) }
+            if multa != c.multa { t.Errorf("multa = %d, esperado %d", multa, c.multa) }
+        })
+    }
+}</pre>
+<p class="small">Repare que o "agora" é <b>parâmetro</b>, não um <code>time.Now()</code> dentro da função. Isso torna a regra testável (capítulo 7).</p>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 1</span><ol>
+<li>Cite os quatro pilares de Khorikov. Qual deles não é negociável e por quê?</li>
+<li>O que é um falso positivo em teste e qual o efeito dele na equipe?</li>
+<li>Monte a matriz de risco para três funcionalidades do RH.</li>
+<li>Para a regra "frete grátis acima de R$ 200", liste os casos de valor-limite.</li>
+</ol></div>
+<div class="feyn"><span class="t">Explique com suas palavras</span>"Testar comportamento e não implementação significa..."<div class="linhas"></div></div>

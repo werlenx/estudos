@@ -1,0 +1,189 @@
+
+<h1><span class="num">Prática</span>Missões nos seus projetos</h1>
+<p>Uma branch por missão (<code>testes/m2-integracao-rh</code>...), commits pequenos, 15 minutos sozinho antes de pedir ajuda e leitura de todo diff.</p>
+<table>
+<tr><th style="width:7%">#</th><th style="width:24%">Missão</th><th>O que fazer</th><th style="width:30%">Pronto quando</th></tr>
+<tr><td>M1</td><td>Matriz de risco</td><td>Para o projeto do Julielton (tem cliente), liste as funcionalidades e classifique na matriz do capítulo 1. Compare com os 13 testes existentes: o que está no quadrante vermelho sem teste?</td><td>Lista priorizada com no máximo 10 itens, salva em <code>docs/</code> do projeto.</td></tr>
+<tr><td>M2</td><td>RH: integração com Postgres real</td><td>Testcontainers + <code>prisma migrate deploy</code> no <code>globalSetup</code>. Escolha as 3 consultas mais críticas (ex.: listagem de candidatos por vaga com filtro de permissão) e teste contra o banco real.</td><td>3 testes de integração passando com <code>npm test</code>, sem depender de nada além do Docker.</td></tr>
+<tr><td>M3</td><td>Matriz de permissões</td><td>No RH (ou no Julielton), monte a tabela rota × papel × status do capítulo 6 e gere os testes. Inclua os testes das missões M1 e M3 do Módulo 1.</td><td>Toda rota de admin aparece na matriz com pelo menos anônimo, papel comum e papel certo.</td></tr>
+<tr><td>M4</td><td>marketZapp: banco de teste isolado e fila</td><td>Fazer os testes que usam Postgres usarem um banco só de teste (<code>_test</code>, recusando outro nome) em vez do <code>.env</code> de dev. Extrair o processador de um job do BullMQ e testar a idempotência (7.3).</td><td><code>npm test</code> passa num clone limpo com só o Docker rodando. Teste de idempotência verde.</td></tr>
+<tr><td>M5</td><td>Primeiro CI</td><td>Criar o <code>ci.yml</code> do marketZapp (10.2), adaptando os caminhos. Depois, Julielton (10.3) e MesaPay (10.4).</td><td>Badge verde nos três repositórios. Um PR com um teste quebrado de propósito aparece vermelho.</td></tr>
+<tr><td>M6</td><td>Proteção da main</td><td>Ruleset exigindo PR e o check do CI na <code>main</code> dos três projetos. Ativar o Dependabot.</td><td>Push direto na main é recusado, e o primeiro PR do Dependabot passa pelo CI.</td></tr>
+</table>
+
+<h1><span class="num">Apêndice A</span>Gabarito e revisão intercalada</h1>
+<div class="gab">
+<h3>Pré-teste</h3>
+<ol>
+<li>Não. Cobertura mede o que foi executado, não o que foi verificado. (8.1)</li>
+<li>O stub fornece entrada (respostas prontas). O mock verifica saída (efeitos colaterais). (4.1)</li>
+<li>Em geral, não: é uma dependência gerenciada, então use o real em container e verifique o estado. (4.2)</li>
+<li>Está acoplado à implementação: falta resistência a refatoração, o que gera falsos positivos. (1.2)</li>
+<li>Teste que passa ou falha sem mudança de código. Causas: tempo/fuso, estado compartilhado, rede, ordem sem <code>ORDER BY</code>. (8.3)</li>
+<li>Injetar o relógio ou usar fake timers. (7.1)</li>
+<li>Workflow = arquivo. Job = conjunto de passos numa máquina. Step = um comando ou action. (10.1)</li>
+<li>Service container no workflow ou Testcontainers. (5.1, 10.2)</li>
+<li>Escrever um teste que reproduz o bug e vê-lo falhar. (9.2)</li>
+<li>Comportamento diferente: tipos, <code>ILIKE</code>, extensões, locks, fuso e constraints. (5.1)</li>
+<li>O merge na main exige o status check verde. Configura-se em Rulesets / Branch protection. (10.5)</li>
+<li>O de isolamento: protege contra vazamento de dados entre clientes, o risco mais caro, e exercita autenticação, rota e consulta juntos. (1.3, 6.2)</li>
+</ol>
+<h3>Capítulo 1</h3>
+<ol>
+<li>Proteção contra regressão, resistência a refatoração, feedback rápido, manutenibilidade. A resistência a refatoração, porque falsos positivos destroem a confiança nos testes.</li>
+<li>Teste que falha sem haver bug. A equipe passa a ignorar falhas.</li>
+<li>Exemplo: permissões de admin (alto/alto), envio de candidatura (alto/médio), máscara de telefone (baixo/alto).</li>
+<li>R$ 199,99, R$ 200,00, R$ 200,01, mais um valor típico abaixo e um acima. Definir se "acima" inclui 200.</li>
+</ol>
+<h3>Capítulo 2</h3>
+<ol>
+<li>Uma ação = um comportamento. Várias linhas indicam API ruim ou teste de vários comportamentos.</li>
+<li>Ex.: "recusa login com senha errada sem revelar se o e-mail existe".</li>
+<li>Reimplementa o código: se a lógica estiver errada nos dois lugares, o teste passa.</li>
+<li>Mostra o que importa no caso, porque só os campos relevantes aparecem, e absorve mudanças no modelo.</li>
+</ol>
+<h3>Capítulo 3</h3>
+<ol>
+<li>Em apps web os bugs moram nas junções (SQL, HTTP, middleware), e containers deixaram a integração rápida.</li>
+<li>Uma unidade de comportamento, que pode envolver várias classes.</li>
+<li>Fixar exemplos reais do evento <code>messages.upsert</code> e validar que o parser os aceita, falhando se o formato mudar.</li>
+</ol>
+<h3>Capítulo 4</h3>
+<ol>
+<li>Stub: dado entra no código testado. Mock: verifica o dado que sai para fora.</li>
+<li>É teste espelho: verifica implementação, não resultado.</li>
+<li>Gerenciadas: Postgres e Redis. Não gerenciadas: API da Anthropic e SMTP.</li>
+<li><code>where</code> sem o filtro de empresa, <code>unique</code> violado, ordenação errada, transação incompleta.</li>
+</ol>
+<h3>Capítulo 5</h3>
+<ol>
+<li>Tipos e coerção, <code>ILIKE</code> e extensões (pg_trgm), concorrência e locks, fuso horário, JSONB.</li>
+<li>Quando o código abre a própria transação ou usa várias conexões.</li>
+<li>Exigir um nome de banco terminando em <code>_test</code> e abortar caso contrário.</li>
+</ol>
+<h3>Capítulo 6</h3>
+<ol>
+<li>Para testar via injeção, sem porta e sem efeitos colaterais.</li>
+<li>Ex.: <code>/admin</code> anônimo 302 para login, usuário comum 403, admin 200, <code>/orcamentos/ID-de-outro</code> 404, logout sem CSRF 400.</li>
+<li>Sem login, sessão expirada, corpo inválido, campo <code>role</code> extra, e-mail duplicado.</li>
+</ol>
+<h3>Capítulo 7</h3>
+<ol>
+<li>Deixa a dependência explícita e funciona em qualquer ferramenta e linguagem.</li>
+<li><code>TZ=UTC</code> no ambiente e datas com fuso explícito.</li>
+<li>Processador como função pura; integração com Redis real.</li>
+<li>Duas operações com <code>Promise.allSettled</code> e verificação do invariante (exatamente uma vence).</li>
+</ol>
+<h3>Capítulo 8</h3>
+<ol>
+<li>Linhas executadas não são linhas verificadas.</li>
+<li>Uma alteração no código que nenhum teste detectou: falta asserção.</li>
+<li>Ver a tabela de 8.3.</li>
+</ol>
+<h3>Capítulo 9</h3>
+<ol>
+<li>Prova que o teste é capaz de falhar, e pelo motivo certo.</li>
+<li>Teste que reproduz (vermelho) → correção (verde) → o teste fica para sempre.</li>
+<li>Teste que fixa o comportamento atual de código legado, para permitir refatorar com segurança.</li>
+</ol>
+<h3>Capítulo 10</h3>
+<ol>
+<li>Jobs não compartilham arquivos (máquinas diferentes, a não ser via artifacts). Steps do mesmo job compartilham.</li>
+<li>Por <code>localhost</code> na porta mapeada (o job roda direto no runner).</li>
+<li>O primeiro é um valor descartável que só existe no CI. A chave de deploy dá acesso real.</li>
+<li>Cancelar execuções obsoletas do mesmo branch, economizando tempo e minutos.</li>
+<li>Ruleset/branch protection exigindo o status check.</li>
+</ol>
+</div>
+
+<h2>Revisão intercalada</h2>
+<div class="quiz"><span class="t">Para cada cenário: qual o problema e qual a correção?</span><ol>
+<li><code>it('cria pedido', async () =&gt; { await criarPedido(dados); })</code></li>
+<li>Os testes passam localmente e falham no CI só entre 21h e 0h.</li>
+<li>O teste do serviço de vagas verifica <code>expect(prisma.vaga.findMany).toHaveBeenCalledWith({...})</code>.</li>
+<li>O CI leva 25 minutos, e a equipe passou a fazer merge sem esperar.</li>
+<li>O teste do lembrete usa <code>await sleep(61_000)</code>.</li>
+<li>O workflow tem <code>DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}</code> no job de testes.</li>
+<li>Um bug de arredondamento no orçamento foi corrigido, sem teste novo.</li>
+<li>Os testes do Go passam, mas em produção aparece <code>concurrent map writes</code>.</li>
+</ol></div>
+<div class="gab"><ol>
+<li>Sem asserção (cap. 2.4). Verificar o pedido gravado e o total.</li>
+<li>Fuso horário: em UTC já é o dia seguinte (cap. 7.1). Use <code>TZ=UTC</code> e datas explícitas.</li>
+<li>Teste espelho de dependência gerenciada (cap. 4.2). Use integração com banco real e verifique o resultado.</li>
+<li>Feedback lento (cap. 1.2 e 11). Paralelizar jobs, cache, mover E2E e mutação para um agendamento noturno.</li>
+<li>Tempo real no teste (cap. 7.1 e 8.3). Fake timers ou relógio injetado.</li>
+<li>Testes contra produção! (cap. 5.1). Use um service container, e o segredo de produção nunca no job de teste.</li>
+<li>Faltou o teste de regressão (cap. 9.2). Escrever o caso que reproduz o erro.</li>
+<li>Faltou <code>go test -race</code> e um teste concorrente (cap. 7.4 e 10.4).</li>
+</ol></div>
+
+<h1><span class="num">Apêndice B</span>Flashcards</h1>
+<table>
+<tr><th style="width:4%">#</th><th style="width:50%">Frente</th><th>Verso</th></tr>
+<tr><td>1</td><td>Os 4 pilares de um bom teste (Khorikov)</td><td>Proteção contra regressão, resistência a refatoração, feedback rápido, manutenibilidade</td></tr>
+<tr><td>2</td><td>Falso positivo em teste</td><td>Falha sem haver bug, normalmente por acoplamento à implementação</td></tr>
+<tr><td>3</td><td>AAA</td><td>Arrange, Act (1 linha), Assert</td></tr>
+<tr><td>4</td><td>F.I.R.S.T.</td><td>Fast, Isolated, Repeatable, Self-validating, Timely</td></tr>
+<tr><td>5</td><td>Pirâmide x troféu</td><td>Pirâmide: base de unitários. Troféu: base de integração</td></tr>
+<tr><td>6</td><td>Unidade na escola clássica</td><td>Unidade de comportamento (pode envolver várias classes)</td></tr>
+<tr><td>7</td><td>Stub x mock</td><td>Stub: entrada pronta. Mock: verifica a saída/efeito</td></tr>
+<tr><td>8</td><td>O que mockar</td><td>Só dependências fora do processo e não gerenciadas (APIs externas, e-mail)</td></tr>
+<tr><td>9</td><td>Banco próprio no teste</td><td>Usar o real (container) e verificar o estado</td></tr>
+<tr><td>10</td><td>Por que não SQLite no lugar de Postgres</td><td>É outro banco: tipos, extensões, locks, fuso, ILIKE</td></tr>
+<tr><td>11</td><td>Testcontainers</td><td>Biblioteca que sobe containers descartáveis a partir do teste</td></tr>
+<tr><td>12</td><td>Isolamento por transação: limitação</td><td>Não funciona se o código abre transação própria ou usa várias conexões</td></tr>
+<tr><td>13</td><td>Fastify / Express / Flask / Gin: testar rota sem porta</td><td><code>app.inject</code> / <code>supertest</code> / <code>test_client</code> / <code>httptest</code></td></tr>
+<tr><td>14</td><td>Matriz de permissões</td><td>Rota × papel × status esperado, um teste por linha</td></tr>
+<tr><td>15</td><td>Testar código com tempo</td><td>Injetar o relógio (preferido) ou fake timers</td></tr>
+<tr><td>16</td><td>Teste de idempotência de job</td><td>Processar o mesmo job 2x e verificar 1 efeito</td></tr>
+<tr><td>17</td><td>Detectar corrida em Go</td><td><code>go test -race</code></td></tr>
+<tr><td>18</td><td>Cobertura de linha x de ramo</td><td>Ramo conta os caminhos de cada condição. Linha só se foi executada</td></tr>
+<tr><td>19</td><td>Mutante sobrevivente</td><td>Mudança no código que nenhum teste detectou</td></tr>
+<tr><td>20</td><td>Política para teste flaky</td><td>Quarentena no mesmo dia, correção em até 1 semana</td></tr>
+<tr><td>21</td><td>Ciclo TDD</td><td>Vermelho → verde → refatorar</td></tr>
+<tr><td>22</td><td>Corrigir bug</td><td>Teste que reproduz primeiro (vermelho), depois a correção</td></tr>
+<tr><td>23</td><td>Teste de caracterização</td><td>Fixa o comportamento atual de código legado para permitir refatorar</td></tr>
+<tr><td>24</td><td>Workflow / job / step</td><td>Arquivo / máquina com passos / um comando ou action</td></tr>
+<tr><td>25</td><td>Service container</td><td>Postgres/Redis que sobe ao lado do job, acessível por localhost</td></tr>
+<tr><td>26</td><td>Tornar o CI obrigatório</td><td>Ruleset na main exigindo status check e PR</td></tr>
+<tr><td>27</td><td>Permissão mínima do token do Actions</td><td><code>permissions: { contents: read }</code></td></tr>
+<tr><td>28</td><td>Perigo do <code>pull_request_target</code></td><td>Roda com segredos para PR de fork</td></tr>
+<tr><td>29</td><td>Por que tag do commit e não <code>latest</code> no deploy</td><td>Permite rollback para uma versão exata</td></tr>
+<tr><td>30</td><td>Ordem do pipeline</td><td>Lint → typecheck → unitários → integração → build → deploy</td></tr>
+</table>
+
+<h1><span class="num">Apêndice C</span>Glossário</h1>
+<table>
+<tr><th style="width:24%">Termo</th><th>Definição</th></tr>
+<tr><td>CI</td><td>Integração contínua: integrar e testar o código automaticamente a cada mudança.</td></tr>
+<tr><td>CD</td><td>Entrega/implantação contínua: levar o código aprovado até produção de forma automatizada.</td></tr>
+<tr><td>Dependência gerenciada</td><td>Recurso fora do processo usado só pela sua aplicação (o seu banco).</td></tr>
+<tr><td>Dublê de teste</td><td>Qualquer objeto que substitui uma dependência real no teste.</td></tr>
+<tr><td>Fake</td><td>Implementação simplificada e funcional (repositório em memória).</td></tr>
+<tr><td>Fixture</td><td>Preparação reutilizável de cenário (pytest) ou dados fixos de teste.</td></tr>
+<tr><td>Flaky</td><td>Teste instável, que passa ou falha sem mudança de código.</td></tr>
+<tr><td>Partição de equivalência</td><td>Agrupar entradas que devem se comportar igual e testar um representante.</td></tr>
+<tr><td>Runner</td><td>Máquina que executa um job do GitHub Actions.</td></tr>
+<tr><td>Smoke test</td><td>Teste rápido de que o sistema subiu e responde (ex.: <code>/health</code>).</td></tr>
+<tr><td>Status check</td><td>Resultado de um job reportado no commit/PR.</td></tr>
+<tr><td>Teste de contrato</td><td>Verifica que o formato de troca com outro serviço continua compatível.</td></tr>
+<tr><td>Teste de mutação</td><td>Altera o código automaticamente para verificar se os testes detectam.</td></tr>
+<tr><td>Teste de propriedade</td><td>Gera muitas entradas e verifica uma propriedade geral (ex.: ordenar duas vezes = ordenar uma vez).</td></tr>
+<tr><td>Valor-limite</td><td>Entrada na fronteira entre partições, onde bugs se concentram.</td></tr>
+</table>
+
+<h1><span class="num">Apêndice D</span>Referências</h1>
+<h2>Técnicas</h2>
+<ul>
+<li>Khorikov, V. <i>Unit Testing: Principles, Practices, and Patterns</i>. Manning, 2020. (Base dos capítulos 1 a 4.)</li>
+<li>Meszaros, G. <i>xUnit Test Patterns</i>. Addison-Wesley, 2007. (Taxonomia de dublês.)</li>
+<li>Beck, K. <i>Test-Driven Development: By Example</i>. Addison-Wesley, 2002.</li>
+<li>Feathers, M. <i>Working Effectively with Legacy Code</i>. Prentice Hall, 2004. (Testes de caracterização.)</li>
+<li>Fowler, M. "The Practical Test Pyramid" (martinfowler.com) e "Mocks Aren't Stubs".</li>
+<li>Dodds, K. C. "The Testing Trophy and Testing Classifications" (kentcdodds.com).</li>
+<li>Documentação: Vitest (Mocking, Fake Timers, Coverage, globalSetup), pytest (fixtures, parametrize, monkeypatch), Go (<code>testing</code>, <code>net/http/httptest</code>, race detector), Testcontainers (Node, Python, Go), GitHub Actions (Workflow syntax, Service containers, Rulesets, Security hardening), Dependabot.</li>
+</ul>
+<h2>Didática</h2>
+<p>As mesmas referências do Módulo 1 (Dunlosky et al., 2013; Roediger e Karpicke, 2006; Sweller; Renkl; Brown, Roediger e McDaniel, 2014).</p>
+<div class="box dica" style="margin-top:8mm"><span class="t">Próximo passo</span><p>Refaça o pré-teste e registre na trilha. O Módulo 3 (Linux, redes e Docker) vai usar o CI que você montou aqui para validar o backup e o deploy.</p></div>

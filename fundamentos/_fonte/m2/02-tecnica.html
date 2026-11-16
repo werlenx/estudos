@@ -1,0 +1,303 @@
+
+<h1><span class="num">Capítulo 2</span>Anatomia de um bom teste</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>Abra um teste seu de 3 meses atrás. Em 10 segundos, você consegue dizer qual regra ele protege?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Estruturar</b> testes no padrão Arrange-Act-Assert.</li>
+<li><b>Nomear</b> testes como frases sobre o comportamento.</li>
+<li><b>Reconhecer</b> os cheiros de teste mais comuns.</li></ul></div>
+
+<h2>2.1 Arrange, Act, Assert</h2>
+<p>Todo teste tem três partes: <b>preparar</b> o cenário, <b>executar</b> uma ação e <b>verificar</b> o resultado. Deixe as três visíveis, com uma linha em branco entre elas. A seção Act deve ter <b>uma linha</b>. Se precisa de várias chamadas para executar "uma ação", a API do código provavelmente está mal desenhada.</p>
+<pre class="bad"><span class="lbl">Errado · vários comportamentos e nome vago</span>it('vagas', async () => {
+  const v = await criarVaga({ titulo: 'Dev' });
+  expect(v.id).toBeDefined();
+  await publicarVaga(v.id);
+  expect((await buscar(v.id)).status).toBe('publicada');
+  await arquivarVaga(v.id);
+  expect((await buscar(v.id)).status).toBe('arquivada');
+  await expect(publicarVaga(v.id)).rejects.toThrow();
+});</pre>
+<pre class="good"><span class="lbl">Certo · um comportamento por teste, nome é uma frase</span>describe('arquivamento de vaga', () => {
+  it('não permite republicar uma vaga arquivada', async () => {
+    const vaga = await fabrica.vaga({ status: 'arquivada' });   // Arrange
+
+    const tentativa = publicarVaga(vaga.id);                     // Act
+
+    await expect(tentativa).rejects.toThrow(VagaArquivadaError); // Assert
+  });
+});</pre>
+<p>Quando o teste da direita falhar, a mensagem já diz o que quebrou: "arquivamento de vaga › não permite republicar uma vaga arquivada". O da esquerda diz só "vagas".</p>
+
+<h2>2.2 Propriedades F.I.R.S.T.</h2>
+<ul>
+<li><b>Fast</b> (rápido): unitários em milissegundos, a suíte inteira em poucos minutos.</li>
+<li><b>Isolated</b> (isolado): um teste não depende de outro nem da ordem de execução. O Vitest e o pytest podem rodar em paralelo ou em ordem aleatória.</li>
+<li><b>Repeatable</b> (repetível): o mesmo resultado na sua máquina, no CI e às 23h59 de 31 de dezembro.</li>
+<li><b>Self-validating</b>: passa ou falha sozinho, sem ninguém olhar um log.</li>
+<li><b>Timely</b>: escrito junto com o código, não "depois".</li>
+</ul>
+
+<h2>2.3 Fábricas e dados de teste</h2>
+<p>Montar objetos completos em cada teste deixa tudo verboso e frágil: quando um campo obrigatório novo aparece, 40 testes quebram. Use <b>fábricas</b> com valores padrão sensatos, e deixe o teste sobrescrever <b>só o que importa para aquele caso</b>. Isso também documenta: se o teste passa <code>{ status: 'arquivada' }</code>, fica claro que o status é o que importa.</p>
+<pre class="good"><span class="lbl">TypeScript · fábrica simples, sem biblioteca</span>let seq = 0;
+export const fabrica = {
+  candidato: (over: Partial&lt;Candidato&gt; = {}): Candidato => ({
+    id: ++seq, nome: `Candidato ${seq}`, email: `c${seq}@teste.local`, telefone: '91988887777',
+    criadoEm: new Date('2026-01-01T12:00:00Z'), ...over,
+  }),
+};</pre>
+<pre class="good"><span class="lbl">pytest · fixture como fábrica</span>@pytest.fixture
+def novo_orcamento(sessao):
+    def _criar(**over):
+        dados = {"cliente": "Cliente Teste", "potencia_kwp": 5.5, **over}
+        o = Orcamento(**dados); sessao.add(o); sessao.flush()
+        return o
+    return _criar
+
+def test_orcamento_acima_de_75kwp_exige_projeto(novo_orcamento):
+    o = novo_orcamento(potencia_kwp=80)
+    assert o.exige_projeto_especial()</pre>
+
+<h2>2.4 Cheiros de teste</h2>
+<table>
+<tr><th style="width:28%">Cheiro</th><th>Sintoma</th><th style="width:32%">Cura</th></tr>
+<tr><td>Lógica no teste</td><td><code>if</code>, <code>for</code> ou cálculo dentro do teste, que reimplementa o código testado</td><td>Valores esperados fixos, literais. Para variações, use tabela ou <code>it.each</code></td></tr>
+<tr><td>Teste espelho</td><td>Verifica que o código chama exatamente os métodos que chama</td><td>Verificar o resultado, não as chamadas (capítulo 4)</td></tr>
+<tr><td>Asserção ausente ou fraca</td><td><code>expect(res).toBeDefined()</code>, ou só "não lançou erro"</td><td>Verificar o valor exato que importa</td></tr>
+<tr><td>Snapshot gigante</td><td>Um snapshot de 300 linhas que todo mundo atualiza com <code>-u</code> sem ler</td><td>Snapshot só para saídas pequenas e estáveis</td></tr>
+<tr><td>Dependência de ordem</td><td>Passa sozinho, falha na suíte (ou o contrário)</td><td>Estado limpo por teste (capítulo 5)</td></tr>
+<tr><td><code>sleep</code> no teste</td><td><code>await new Promise(r =&gt; setTimeout(r, 2000))</code></td><td>Relógio falso ou esperar uma condição (capítulo 7)</td></tr>
+</table>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 2</span><ol>
+<li>Por que a seção Act deve ter uma linha?</li>
+<li>Reescreva o nome <code>it('teste login')</code> como uma frase de comportamento.</li>
+<li>Por que lógica dentro do teste é perigosa?</li>
+<li>Para que serve uma fábrica de dados de teste, além de economizar digitação?</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 3</span>Pirâmide, troféu e as duas escolas</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>O que é uma "unidade" num teste unitário: uma função, uma classe ou outra coisa?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Diferenciar</b> testes unitários, de integração, de ponta a ponta e de contrato.</li>
+<li><b>Comparar</b> a escola clássica e a londrina.</li>
+<li><b>Escolher</b> a proporção de cada tipo para cada projeto seu.</li></ul></div>
+
+<h2>3.1 Os tipos</h2>
+<table>
+<tr><th style="width:18%">Tipo</th><th>O que exercita</th><th style="width:16%">Velocidade</th><th style="width:28%">Exemplo seu</th></tr>
+<tr><td>Unitário</td><td>Uma unidade de comportamento, sem I/O de processo externo</td><td>ms</td><td><code>telefone.test.ts</code> do RH, cálculo de multa</td></tr>
+<tr><td>Integração</td><td>Seu código junto com o banco, a fila e o framework HTTP de verdade</td><td>10–500 ms</td><td><code>duplicate.test.ts</code> do marketZapp (pg_trgm real)</td></tr>
+<tr><td>Ponta a ponta (E2E)</td><td>O sistema inteiro pelo navegador (Playwright)</td><td>segundos</td><td>"candidato se inscreve e o recrutador vê"</td></tr>
+<tr><td>Contrato</td><td>Se o formato que você espera de um serviço externo continua igual</td><td>ms</td><td>Formato do evento da Evolution API</td></tr>
+</table>
+
+<h2>3.2 Pirâmide ou troféu?</h2>
+<p>A <b>pirâmide</b> clássica (Mike Cohn) diz: muitos unitários, alguns de integração, poucos E2E, porque unitários são rápidos e baratos. O <b>troféu</b> (Kent C. Dodds) diz: para aplicações web, a maior parte do valor está nos testes de <b>integração</b>, porque é na junção (SQL, serialização, middleware, permissão) que os bugs de verdade moram. Ferramentas como Testcontainers deixaram a integração rápida o bastante para isso.</p>
+<div class="box dica"><span class="t">Recomendação para os seus projetos</span><p>APIs CRUD com regras (RH, marketZapp, MesaPay, Julielton) se beneficiam do <b>troféu</b>: unitários para regras de cálculo puras, <b>integração como base</b> (rota HTTP + banco real) e 3 a 5 E2E só nos fluxos que dão dinheiro ou dor de cabeça. O <code>pechincha</code> (app Expo) é outro caso, com mais testes de componente.</p></div>
+
+<h2>3.3 As duas escolas</h2>
+<table>
+<tr><th style="width:20%"></th><th>Clássica (Detroit)</th><th>Londrina (mockista)</th></tr>
+<tr><td>Unidade</td><td>Uma unidade de <b>comportamento</b>, que pode envolver várias classes</td><td>Uma <b>classe</b></td></tr>
+<tr><td>Isolamento</td><td>Isola os <b>testes</b> uns dos outros</td><td>Isola a <b>classe</b> de todas as dependências</td></tr>
+<tr><td>Mocks</td><td>Só para dependências compartilhadas ou fora do processo</td><td>Para todo colaborador</td></tr>
+<tr><td>Risco</td><td>Uma falha pode apontar para várias classes</td><td>Testes acoplados à implementação, que quebram em refatoração</td></tr>
+</table>
+<p>Este material segue a <b>escola clássica</b>, como Khorikov, porque ela maximiza a resistência a refatoração. Na prática: mock é exceção, não regra.</p>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 3</span><ol>
+<li>Por que o troféu dá mais peso à integração do que a pirâmide?</li>
+<li>Na escola clássica, o que é uma "unidade"?</li>
+<li>Dê um exemplo de teste de contrato para o marketZapp.</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 4</span>Dublês de teste: quando mockar</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>O RH tem 14 arquivos de teste que mockam o Prisma. Que tipo de bug esses testes <b>nunca</b> vão pegar?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Nomear</b> os cinco tipos de dublê.</li>
+<li><b>Decidir</b> quando mockar com a regra das dependências gerenciadas e não gerenciadas.</li>
+<li><b>Usar</b> <code>vi.fn</code>, <code>vi.mock</code>, <code>monkeypatch</code> e interfaces em Go.</li></ul></div>
+
+<h2>4.1 Os cinco dublês (Meszaros)</h2>
+<table>
+<tr><th style="width:14%">Dublê</th><th>O que faz</th><th style="width:38%">Exemplo</th></tr>
+<tr><td>Dummy</td><td>Ocupa um parâmetro e nunca é usado</td><td><code>new Servico(null as any)</code></td></tr>
+<tr><td>Stub</td><td>Devolve respostas prontas (<b>entrada</b> para o código testado)</td><td>"a Evolution respondeu 200 com este JSON"</td></tr>
+<tr><td>Spy</td><td>Registra as chamadas para verificar depois</td><td><code>vi.spyOn(email, 'enviar')</code></td></tr>
+<tr><td>Mock</td><td>Spy com expectativa: verifica uma <b>saída</b> (efeito colateral)</td><td>"enviou exatamente 1 mensagem para tal número"</td></tr>
+<tr><td>Fake</td><td>Implementação simplificada que funciona de verdade</td><td>Repositório em memória, servidor SMTP falso (Mailpit)</td></tr>
+</table>
+<p><b>Regra de ouro:</b> nunca verifique chamadas feitas a um <b>stub</b>. Se você deu ao código o dado X, conferir que ele "pediu X" é teste espelho: testa a implementação, não o resultado.</p>
+
+<h2>4.2 Quando mockar: dependências gerenciadas x não gerenciadas</h2>
+<figure>
+<svg viewBox="0 0 680 190" width="100%" xmlns="http://www.w3.org/2000/svg">
+<rect x="10" y="10" width="200" height="170" rx="6" fill="#e8f0fa" stroke="#1f5fa8"/><text x="110" y="34" text-anchor="middle" font-weight="700" font-size="12">Dentro do processo</text><text x="110" y="58" text-anchor="middle" font-size="11">funções, classes, regras</text><text x="110" y="100" text-anchor="middle" font-size="11" fill="#1a7f37" font-weight="700">Use o real.</text><text x="110" y="118" text-anchor="middle" font-size="11" fill="#1a7f37">Nunca mocke.</text>
+<rect x="240" y="10" width="200" height="170" rx="6" fill="#e7f5ec" stroke="#1a7f37"/><text x="340" y="34" text-anchor="middle" font-weight="700" font-size="12">Fora, GERENCIADA</text><text x="340" y="58" text-anchor="middle" font-size="11">só a sua aplicação usa:</text><text x="340" y="76" text-anchor="middle" font-size="11">o seu Postgres, o seu Redis</text><text x="340" y="110" text-anchor="middle" font-size="11" fill="#1a7f37" font-weight="700">Use o real</text><text x="340" y="128" text-anchor="middle" font-size="11" fill="#1a7f37">(container no teste).</text><text x="340" y="146" text-anchor="middle" font-size="11" fill="#1a7f37">Verifique o ESTADO final.</text>
+<rect x="470" y="10" width="200" height="170" rx="6" fill="#fdecea" stroke="#b42318"/><text x="570" y="34" text-anchor="middle" font-weight="700" font-size="12">Fora, NÃO gerenciada</text><text x="570" y="58" text-anchor="middle" font-size="11">outros veem o efeito:</text><text x="570" y="76" text-anchor="middle" font-size="11">Evolution, e-mail, ERP, Anthropic</text><text x="570" y="110" text-anchor="middle" font-size="11" fill="#b42318" font-weight="700">Mocke na fronteira.</text><text x="570" y="128" text-anchor="middle" font-size="11" fill="#b42318">Verifique a mensagem</text><text x="570" y="146" text-anchor="middle" font-size="11" fill="#b42318">enviada (o contrato).</text>
+</svg>
+<figcaption>Figura 4.1. A regra de Khorikov para decidir o que mockar.</figcaption>
+</figure>
+<p>O seu banco é um <b>detalhe de implementação</b>: ninguém além do seu sistema lê dele. Mockar o Prisma faz o teste verificar <i>"o código chamou <code>prisma.vaga.findMany</code> com estes argumentos"</i>. Se o <code>where</code> estiver errado, por exemplo sem o filtro por empresa, o mock responde o que você mandou e o teste passa. Já a mensagem que vai para o WhatsApp de um cliente é observável de fora: ali o mock faz sentido, porque o contrato é "mandou esta mensagem para este número".</p>
+
+<div class="box caso"><span class="t">Caso real · RH</span><p>Os 34 testes do RH são ótimos para regras puras (<code>telefone</code>, <code>schemas</code>, <code>roteiro.service</code>) e para middleware de autenticação e RBAC. Os 14 que mockam o Prisma, porém, não protegem as <b>consultas</b>: filtros, joins, transações, <code>unique</code>, cascata. A missão M2 adiciona testes de integração com Postgres real para as consultas críticas, sem apagar os unitários.</p></div>
+
+<h2>4.3 As ferramentas</h2>
+<pre class="good"><span class="lbl">Vitest · mock na fronteira com um serviço externo</span>// o código recebe o cliente da Evolution por parâmetro (injeção de dependência)
+it('responde ao lead com a mensagem de boas-vindas', async () => {
+  const evolution = { enviarTexto: vi.fn().mockResolvedValue({ ok: true }) };
+
+  await tratarMensagem({ de: '5591988887777', texto: 'oi' }, { evolution });
+
+  expect(evolution.enviarTexto).toHaveBeenCalledTimes(1);
+  expect(evolution.enviarTexto).toHaveBeenCalledWith('5591988887777', expect.stringContaining('Bem-vindo'));
+});</pre>
+<pre class="good"><span class="lbl">Go · interface pequena + fake (o jeito idiomático, sem biblioteca)</span>type Notificador interface { Enviar(ctx context.Context, para, msg string) error }
+
+type notificadorFake struct{ enviadas []string }
+func (f *notificadorFake) Enviar(_ context.Context, para, msg string) error {
+    f.enviadas = append(f.enviadas, para+": "+msg); return nil
+}
+
+func TestPedidoProntoAvisaMesa(t *testing.T) {
+    fake := &amp;notificadorFake{}
+    svc := NovoServicoPedido(db, fake)
+    svc.MarcarPronto(ctx, pedidoID)
+    if len(fake.enviadas) != 1 { t.Fatalf("esperava 1 aviso, veio %d", len(fake.enviadas)) }
+}</pre>
+<pre class="good"><span class="lbl">pytest · monkeypatch para trocar uma dependência</span>def test_gera_pdf_sem_chamar_servico_externo(monkeypatch, novo_orcamento):
+    chamadas = []
+    monkeypatch.setattr("mabsol_docs.integracoes.consultar_concessionaria",
+                        lambda uc: chamadas.append(uc) or {"tensao": 220})
+    ...</pre>
+<div class="box erro"><span class="t">Erro comum: <code>vi.mock</code> de módulo inteiro</span><p><code>vi.mock('../db')</code> no topo do arquivo troca o módulo para <b>todos</b> os testes do arquivo e esconde a dependência. Prefira <b>injetar</b> a dependência (parâmetro ou construtor). O código fica mais testável e o teste mostra explicitamente o que foi substituído. Use <code>vi.mock</code> como último recurso, para módulos que você não controla.</p></div>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 4</span><ol>
+<li>Diferencie stub de mock pela direção do dado (entrada x saída).</li>
+<li>Por que não verificar as chamadas feitas a um stub?</li>
+<li>Classifique: Postgres do RH, API da Anthropic no marketZapp, Redis do BullMQ, servidor SMTP.</li>
+<li>Que bug um teste com Prisma mockado não pega? Dê um exemplo concreto.</li>
+</ol></div>
+<div class="feyn"><span class="t">Explique com suas palavras</span>"Mockar o meu próprio banco é ruim porque..."<div class="linhas"></div></div>
+
+<h1><span class="num">Capítulo 5</span>Integração com banco real</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>Os testes do marketZapp leem o banco do <code>.env</code>. O que acontece se um dia esse <code>.env</code> apontar para produção?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Subir</b> um Postgres descartável por suíte com Testcontainers ou docker compose.</li>
+<li><b>Isolar</b> os testes com transação revertida ou truncate.</li>
+<li><b>Explicar</b> por que SQLite no teste e Postgres em produção é um risco.</li></ul></div>
+
+<h2>5.1 Três estratégias de banco para teste</h2>
+<table>
+<tr><th style="width:24%">Estratégia</th><th>Prós</th><th>Contras</th></tr>
+<tr><td><b>Testcontainers</b>: o teste sobe um container Postgres sozinho</td><td>Zero configuração manual, mesma versão de produção, isolado, funciona igual no CI</td><td>Precisa de Docker. Sobe em ~2 a 5 s (uma vez por suíte)</td></tr>
+<tr><td><b>Serviço no compose / no CI</b>: um Postgres de teste fixo (<code>TEST_DATABASE_URL</code>)</td><td>Simples. É o que o Julielton já suporta</td><td>Você precisa lembrar de subir. Risco de apontar para o banco errado</td></tr>
+<tr><td><b>Banco em memória</b> (SQLite) no lugar de Postgres</td><td>Rápido, sem Docker</td><td><b>É outro banco</b>: tipos, <code>ILIKE</code>, <code>pg_trgm</code>, JSONB, locks, fuso horário e constraints se comportam diferente</td></tr>
+</table>
+<div class="box caso"><span class="t">Caso real · Julielton e marketZapp</span><p>O <code>conftest.py</code> do Julielton usa SQLite por padrão e Postgres se <code>TEST_DATABASE_URL</code> existir. Bom desenho, mas o padrão deveria ser o banco de produção, e o <b>CI deve rodar com Postgres</b>. O marketZapp faz o certo ao testar o <code>pg_trgm</code> no Postgres real, mas carrega o banco do <code>.env</code> de desenvolvimento, o que mistura dados de teste com os seus e corre o risco de apontar para o lugar errado. A regra: <b>teste usa um banco que só existe para teste</b>, e a suíte se recusa a rodar se o nome do banco não terminar em <code>_test</code>.</p></div>
+
+<h2>5.2 Testcontainers no Vitest</h2>
+<pre class="good"><span class="lbl">vitest.globalSetup.ts · um Postgres por execução da suíte</span>import { PostgreSqlContainer } from '@testcontainers/postgresql';   // npm i -D @testcontainers/postgresql
+import { execSync } from 'node:child_process';
+
+export default async function setup() {
+  const pg = await new PostgreSqlContainer('postgres:16-alpine').withDatabase('app_test').start();
+  process.env.DATABASE_URL = pg.getConnectionUri();
+  execSync('npx prisma migrate deploy', { stdio: 'inherit' });    // RH: aplica as migrações reais
+  // marketZapp: aplicar db/schema.sql e CREATE EXTENSION pg_trgm
+  return async () => { await pg.stop(); };
+}
+// vitest.config.ts → test: { globalSetup: ['./vitest.globalSetup.ts'] }</pre>
+<p class="small">O <code>globalSetup</code> roda uma vez no processo principal, antes dos workers. A forma documentada de passar valores dele para os testes é <code>provide('dbUrl', ...)</code> no setup e <code>inject('dbUrl')</code> no teste. Alterar <code>process.env</code> no setup costuma funcionar, mas depende de como os workers são criados. Confira na documentação da sua versão do Vitest.</p>
+
+<h2>5.3 Isolamento entre testes</h2>
+<ul>
+<li><b>Transação revertida</b>: cada teste abre uma transação e faz rollback no fim. É o mais rápido, mas não serve se o código testado abre a própria transação ou usa várias conexões.</li>
+<li><b>Truncate</b> de todas as tabelas no <code>beforeEach</code>: <code>TRUNCATE ... RESTART IDENTITY CASCADE</code>. Simples e robusto, custa alguns ms.</li>
+<li><b>Banco por arquivo de teste</b> (template database do Postgres): <code>CREATE DATABASE t1 TEMPLATE app_template</code>. Permite paralelismo total.</li>
+</ul>
+<pre class="good"><span class="lbl">pytest · Postgres de teste com proteção contra banco errado</span>@pytest.fixture(scope="session")
+def url_teste():
+    url = os.environ.get("TEST_DATABASE_URL")
+    if not url:
+        pytest.skip("TEST_DATABASE_URL não definido")
+    if not urlsplit(url).path.endswith("_test"):
+        pytest.exit("Recusado: o banco de teste precisa terminar em _test", returncode=2)
+    return url</pre>
+<pre class="good"><span class="lbl">Go · testcontainers-go (MesaPay com GORM)</span>func TestMain(m *testing.M) {
+    ctx := context.Background()
+    pg, err := postgres.Run(ctx, "postgres:16-alpine",
+        postgres.WithDatabase("mesapay_test"),
+        postgres.BasicWaitStrategies())
+    if err != nil { log.Fatal(err) }
+    dsn, _ := pg.ConnectionString(ctx, "sslmode=disable")
+    db, _ = gorm.Open(gormpg.Open(dsn), &amp;gorm.Config{})
+    // aplicar migrações / AutoMigrate dos models
+    code := m.Run()
+    _ = pg.Terminate(ctx)
+    os.Exit(code)
+}</pre>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 5</span><ol>
+<li>Cite três diferenças entre SQLite e Postgres que podem esconder bugs.</li>
+<li>Quando a estratégia de transação revertida não funciona?</li>
+<li>Como impedir que a suíte rode contra o banco de desenvolvimento ou de produção?</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 6</span>Testando HTTP, autenticação e permissões</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>Quantas combinações de papel × rota existem no RH? Quantas estão testadas?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Testar</b> rotas sem subir servidor de verdade nos quatro frameworks.</li>
+<li><b>Montar</b> uma matriz de permissões testada por tabela.</li>
+<li><b>Transformar</b> as missões do Módulo 1 em testes permanentes.</li></ul></div>
+
+<h2>6.1 Injeção de requisição em cada framework</h2>
+<table>
+<tr><th>Framework</th><th>Como</th></tr>
+<tr><td>Fastify (marketZapp)</td><td><code>await app.inject({ method: 'POST', url: '/x', payload, headers })</code>: não abre porta, já usado no <code>whatsapp.test.ts</code></td></tr>
+<tr><td>Express (RH)</td><td><code>supertest</code>: <code>await request(app).get('/x').set('Cookie', c)</code>. Exporte o <code>app</code> sem chamar <code>listen</code></td></tr>
+<tr><td>Flask (Julielton)</td><td><code>app.test_client()</code>: <code>cliente.post('/entrar', data=...)</code>, que mantém os cookies entre chamadas</td></tr>
+<tr><td>Gin (MesaPay)</td><td><code>httptest.NewRecorder()</code> + <code>router.ServeHTTP(w, req)</code></td></tr>
+</table>
+<p>Para que isso funcione, separe a <b>criação do app</b> (<code>buildApp()</code> / <code>create_app()</code> / <code>NovoRouter()</code>) da <b>subida do servidor</b>. É uma mudança pequena que vale para todos os projetos.</p>
+
+<h2>6.2 A matriz de permissões</h2>
+<p>As falhas de autorização (Módulo 1, capítulo 4) são as mais comuns, e também as mais fáceis de testar de forma sistemática: liste <b>cada rota sensível × cada papel × resultado esperado</b> numa tabela e gere um teste por linha.</p>
+<pre class="good"><span class="lbl">Vitest + supertest · RH</span>const matriz = [
+  // rota,                         método,  papel,        status esperado
+  ['/admin/vagas',                 'get',   'anonimo',    401],
+  ['/admin/vagas',                 'get',   'candidato',  403],
+  ['/admin/vagas',                 'get',   'recrutador', 200],
+  ['/admin/usuarios/5/papel',      'patch', 'recrutador', 403],
+  ['/admin/usuarios/5/papel',      'patch', 'admin',      200],
+] as const;
+
+describe.each(matriz)('%s %s como %s', (rota, metodo, papel, status) => {
+  it(`responde ${status}`, async () => {
+    const req = request(app)[metodo](rota);
+    if (papel !== 'anonimo') req.set('Cookie', await cookieDe(papel));
+    expect((await req).status).toBe(status);
+  });
+});</pre>
+<pre class="good"><span class="lbl">Go · isolamento entre estabelecimentos no MesaPay</span>func TestComandaDeOutroBarRetorna404(t *testing.T) {
+    barA, barB := criarBar(t, db), criarBar(t, db)
+    comandaB := criarComanda(t, db, barB.ID)
+
+    w := httptest.NewRecorder()
+    req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/comandas/%d", comandaB.ID), nil)
+    req.Header.Set("Authorization", "Bearer "+tokenDe(t, barA))
+    router.ServeHTTP(w, req)
+
+    if w.Code != http.StatusNotFound { t.Fatalf("status = %d, esperado 404", w.Code) }
+}</pre>
+
+<h2>6.3 Teste o caminho triste</h2>
+<p>A maior parte dos bugs de segurança mora no caminho de erro, e é exatamente o caminho que ninguém testa à mão. Para cada rota crítica, teste: sem autenticação, token expirado, token de outro tenant, corpo inválido (o <code>zod</code> rejeita?), campo extra (mass assignment), ID inexistente e método errado.</p>
+<div class="box dica"><span class="t">Conexão com o Módulo 1</span><p>Cada missão do Módulo 1 tem um "pronto quando" que é um teste: o papel rebaixado recebe 403, o redirect com <code>//evil.com</code> volta para <code>/</code>, o webhook sem segredo recebe 401. Esses testes ficam para sempre e rodam no CI, então a falha não volta.</p></div>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 6</span><ol>
+<li>Por que separar a criação do app da subida do servidor?</li>
+<li>Monte 5 linhas da matriz de permissões do Julielton.</li>
+<li>Liste 5 casos de "caminho triste" para <code>PATCH /api/me</code>.</li>
+</ol></div>

@@ -1,0 +1,152 @@
+
+<section class="capa" style="background:linear-gradient(160deg,#0b2b3a 0%,#0e6e8c 70%,#1a8fb0 100%)">
+  <div class="k">Trilha de Fundamentos · Módulo 5</div>
+  <h1>Arquitetura<br>e Sistemas</h1>
+  <div class="sub">O vocabulário para as decisões que você já toma por intuição: monólito ou serviços, síncrono ou fila, polling ou evento, e como integrar sistemas sem perder dados nem duplicar efeitos.</div>
+  <div class="itens">
+    <span>Trade-offs e ADRs</span><span>Monólito modular</span><span>Comunicação síncrona</span><span>Polling, SSE e WebSocket</span>
+    <span>Filas e workers</span><span>Idempotência</span><span>Outbox e consistência</span><span>Cache</span>
+    <span>Escala e confiabilidade</span><span>LLMs como dependência</span><span>Diagramas C4</span>
+  </div>
+  <div class="meta">Versão de novembro de 2026 · Duração prevista: 4 semanas, ~6 h por semana · Leitura de apoio: <i>Fundamentals of Software Architecture</i> e <i>Designing Data-Intensive Applications</i>, caps. 8, 9, 11 e 12</div>
+</section>
+
+<h1><span class="num">Antes de começar</span>Como usar este material</h1>
+<p>Mesmo método dos módulos anteriores. Arquitetura, porém, tem menos "resposta certa" e mais "trade-off justificado". Por isso as missões deste módulo produzem principalmente <b>documentos de decisão</b> (ADRs) e diagramas sobre os seus sistemas, e as questões de recuperação pedem justificativas, não definições.</p>
+<div class="fable"><span class="t">Passo 0 · Revisão técnica com o Fable</span>
+<p>Troque para o Fable 5.2 com <code>/model</code> e peça: <i>"Revise <code>~/repo/estudos/fundamentos/modulo-5-arquitetura-sistemas.html</code> como arquiteto de software experiente: aponte afirmações incorretas, simplificações que enganam, conselhos desatualizados e código que não funciona. Corrija no HTML e gere o PDF de novo com <code>_fonte/gerar.py</code>."</i> Depois volte ao Opus e marque na trilha. Neste módulo vale também pedir ao Fable para <b>discordar</b> das recomendações e apresentar o melhor argumento contrário.</p></div>
+
+<h2>Decisões que você já tomou</h2>
+<table>
+<tr><th style="width:20%">Sistema</th><th>Decisão</th><th style="width:22%">Capítulo</th></tr>
+<tr><td>Julielton</td><td>"O web só recebe e guarda. O trabalho pesado (OCR, extração, geração de documentos) roda no worker", com fila no Postgres e <code>SKIP LOCKED</code></td><td>4 (filas)</td></tr>
+<tr><td>marketZapp</td><td>BullMQ com 5 tentativas e backoff exponencial a partir de 60 s. Redis próprio, separado do da Evolution, com AOF ligado "porque perder o estado é perder o propósito"</td><td>4 e 5</td></tr>
+<tr><td>marketZapp</td><td>Reconhecimento de anúncio por LLM, com teto diário por modelo</td><td>9 (LLMs)</td></tr>
+<tr><td>MesaPay</td><td>Evento x polling de 3 s para atualizar a tela</td><td>3 (comunicação)</td></tr>
+<tr><td>RH</td><td>Separar ou não o painel administrativo</td><td>2 (monólito)</td></tr>
+</table>
+<p>Você decidiu bem em quase todos esses casos. O objetivo deste módulo é dar nome a essas decisões, mostrar as alternativas e as consequências, e treinar o registro delas para que a próxima pessoa (ou você daqui a um ano, ou a IA) entenda o porquê.</p>
+
+<h2>Cronograma de 4 semanas</h2>
+<table>
+<tr><th style="width:16%">Semana</th><th>Capítulos</th><th style="width:36%">Entrega</th></tr>
+<tr><td>1</td><td>Pré-teste · 1. Trade-offs · 2. Monólito modular · 3. Comunicação</td><td>M1 e M2 (ADRs)</td></tr>
+<tr><td>2</td><td>4. Filas · 5. Idempotência · 6. Consistência e outbox</td><td>M4</td></tr>
+<tr><td>3</td><td>7. Cache · 8. Escala e confiabilidade</td><td>M3 (C4) e M5</td></tr>
+<tr><td>4</td><td>9. LLMs como dependência · 10. Documentar decisões · revisão</td><td>M6, refazer o pré-teste</td></tr>
+</table>
+
+<h2>Sumário</h2>
+<div class="toc">
+<div><b>—</b> Pré-teste</div>
+<div><b>1</b> Arquitetura é trade-off</div>
+<div><b>2</b> Monólito modular x serviços</div>
+<div><b>3</b> Comunicação entre partes</div>
+<div><b>4</b> Filas e trabalho em segundo plano</div>
+<div><b>5</b> Idempotência</div>
+<div><b>6</b> Consistência entre sistemas e outbox</div>
+<div><b>7</b> Cache</div>
+<div><b>8</b> Escala e confiabilidade</div>
+<div><b>9</b> LLMs como dependência externa</div>
+<div><b>10</b> Documentar decisões: ADR e C4</div>
+<div><b>—</b> Missões</div>
+<div><b>A</b> Gabarito e revisão intercalada</div>
+<div><b>B</b> Flashcards</div>
+<div><b>C</b> Glossário</div>
+<div><b>D</b> Referências</div>
+</div>
+
+<h1><span class="num">Diagnóstico</span>Pré-teste</h1>
+<div class="quiz"><span class="t">Pré-teste · 12 questões</span>
+<ol>
+<li>Cite duas vantagens de um monólito sobre microsserviços para uma equipe de uma pessoa.</li>
+<li>O que é um "monólito distribuído" e por que é o pior dos dois mundos?</li>
+<li>Uma fila garante que cada mensagem é processada exatamente uma vez? O que ela garante?</li>
+<li>O que é uma operação idempotente? <code>POST /pagamentos</code> é idempotente?</li>
+<li>Você grava o pedido no banco e depois publica na fila. O que pode dar errado? Que padrão resolve?</li>
+<li>Quando usar polling, Server-Sent Events e WebSocket?</li>
+<li>Por que adicionar <i>jitter</i> ao backoff de retries?</li>
+<li>O que significa a aplicação ser <i>stateless</i>, e por que isso importa para escalar?</li>
+<li>Qual a principal dificuldade de usar cache? (A frase famosa.)</li>
+<li>Por que uma chamada a um LLM deve ser tratada como uma dependência externa não confiável?</li>
+<li>O que é um ADR e o que ele deve conter?</li>
+<li>O que é um circuit breaker?</li>
+</ol></div>
+<p class="small">Nota: ____ / 12 · Data: ___/___/____ &nbsp;&nbsp;&nbsp; Semana 4: ____ / 12 · Data: ___/___/____</p>
+
+<h1><span class="num">Capítulo 1</span>Arquitetura é trade-off</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>Qual a "melhor" arquitetura para o MesaPay? Escreva a resposta e depois releia quando terminar o capítulo.</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Definir</b> arquitetura como o conjunto de decisões caras de reverter.</li>
+<li><b>Nomear</b> as características de qualidade e mostrar como uma compete com a outra.</li>
+<li><b>Justificar</b> uma escolha pelos fatores do contexto, não pela moda.</li></ul></div>
+
+<h2>1.1 Duas leis</h2>
+<p>Richards e Ford abrem <i>Fundamentals of Software Architecture</i> com duas "leis":</p>
+<ol>
+<li><b>Tudo em arquitetura é um trade-off.</b> Se você acha que encontrou algo sem desvantagem, ainda não achou a desvantagem.</li>
+<li><b>O porquê é mais importante que o como.</b> Um diagrama mostra o que foi feito. Só o registro da decisão mostra por que, e o que foi descartado.</li>
+</ol>
+<p>A resposta honesta à pergunta-gatilho é "<b>depende</b>", seguida de <b>do quê</b>: tamanho da equipe (uma pessoa), volume (dezenas de estabelecimentos, não milhões), orçamento de operação (uma VPS), exigência de tempo real (o garçom precisa ver o pedido em segundos, não em milissegundos) e tolerância a falha (cair na sexta à noite é grave).</p>
+
+<h2>1.2 Características de qualidade (os "-ilities")</h2>
+<table>
+<tr><th style="width:24%">Característica</th><th>Pergunta</th><th style="width:30%">Normalmente compete com</th></tr>
+<tr><td>Disponibilidade</td><td>Que fração do tempo o sistema atende?</td><td>Custo, simplicidade</td></tr>
+<tr><td>Escalabilidade</td><td>Aguenta 10× mais carga mudando o quê?</td><td>Simplicidade, consistência</td></tr>
+<tr><td>Desempenho</td><td>Quanto tempo uma operação leva?</td><td>Consistência, custo</td></tr>
+<tr><td>Consistência</td><td>Todos veem o mesmo dado ao mesmo tempo?</td><td>Disponibilidade, latência</td></tr>
+<tr><td>Manutenibilidade</td><td>Quão fácil é mudar com segurança?</td><td>Desempenho extremo</td></tr>
+<tr><td>Segurança</td><td>Quão difícil é abusar do sistema?</td><td>Conveniência</td></tr>
+<tr><td>Operabilidade</td><td>Quão fácil é implantar, monitorar, recuperar?</td><td>Número de peças</td></tr>
+<tr><td>Custo</td><td>Quanto custa por mês e em horas suas?</td><td>Quase tudo</td></tr>
+</table>
+<div class="box dica"><span class="t">A característica que mais pesa no seu contexto</span><p>Você é a equipe inteira. <b>Operabilidade e simplicidade</b> pesam mais que escalabilidade: cada peça nova (um serviço, um broker, um banco) é mais uma coisa para você monitorar, atualizar, fazer backup e diagnosticar às 23h (Módulo 3). Uma arquitetura "menos escalável" que você consegue operar sozinho vence uma "mais escalável" que você não consegue.</p></div>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 1</span><ol>
+<li>Por que "depende" é a resposta correta e o que deve vir depois dela?</li>
+<li>Cite duas características de qualidade que competem entre si, com um exemplo.</li>
+<li>Qual característica pesa mais para um desenvolvedor solo? Por quê?</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 2</span>Monólito modular x serviços</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>No RH, você considerou separar o painel administrativo. Liste o que ganharia e o que perderia.</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Descrever</b> um monólito modular e as regras que mantêm os módulos separados.</li>
+<li><b>Listar</b> os custos reais de separar em serviços.</li>
+<li><b>Reconhecer</b> quando separar faz sentido e evitar o monólito distribuído.</li></ul></div>
+
+<h2>2.1 O espectro</h2>
+<table>
+<tr><th style="width:20%"></th><th>Monólito "bola de lama"</th><th>Monólito modular</th><th>Microsserviços</th></tr>
+<tr><td>Deploy</td><td>Um</td><td>Um</td><td>Um por serviço</td></tr>
+<tr><td>Fronteiras</td><td>Nenhuma: qualquer código chama qualquer código e toca qualquer tabela</td><td>Módulos com interface pública. Cada módulo é dono das suas tabelas</td><td>Pela rede, com bancos separados</td></tr>
+<tr><td>Transação entre partes</td><td>Fácil</td><td>Fácil (mesmo banco)</td><td>Difícil (capítulo 6)</td></tr>
+<tr><td>Operação</td><td>Simples</td><td>Simples</td><td>Complexa: N deploys, rede, observabilidade distribuída</td></tr>
+<tr><td>Bom para</td><td>Ninguém</td><td><b>Equipes pequenas, a maioria dos sistemas</b></td><td>Muitas equipes independentes, partes com escala muito diferente</td></tr>
+</table>
+<p>O backend do RH já é organizado em <code>src/modules/vagas</code>, <code>candidatos</code>, <code>notificacoes</code>... Isso é um monólito modular, desde que as regras abaixo sejam respeitadas.</p>
+
+<h2>2.2 Regras de um monólito modular</h2>
+<ol>
+<li>Cada módulo expõe uma <b>interface pública</b> (um <code>index.ts</code> com o serviço). Outros módulos não importam arquivos internos dele.</li>
+<li>Cada módulo é <b>dono das suas tabelas</b>. O módulo de notificações não faz <code>prisma.candidato.update</code>: ele chama o serviço de candidatos.</li>
+<li>Dependências <b>sem ciclos</b>: se A usa B, B não usa A. Para avisar "na volta", use eventos internos.</li>
+<li>Dá para verificar automaticamente: <code>dependency-cruiser</code> (TS), <code>import-linter</code> (Python), pacotes <code>internal/</code> no Go.</li>
+</ol>
+<p>Se um dia precisar extrair um serviço, um módulo bem isolado sai inteiro. Um monólito bagunçado vira um <b>monólito distribuído</b>: serviços separados que precisam ser implantados juntos, se chamam em cadeia e compartilham o banco. Você fica com a complexidade dos dois mundos e com as vantagens de nenhum.</p>
+
+<h2>2.3 Quando separar é razoável</h2>
+<ul>
+<li><b>Ciclo de vida diferente</b>: o front público (Next na Cloudflare) e a API já são separados no marketZapp, e faz sentido: escalam e são implantados de jeitos diferentes.</li>
+<li><b>Requisitos de recurso muito diferentes</b>: o worker de OCR do Julielton consome CPU e memória de um jeito que não deve afetar o web. É um <b>processo</b> separado, com o mesmo código e o mesmo banco, o que é bem mais barato que um serviço separado.</li>
+<li><b>Isolamento de segurança</b>: um painel administrativo só acessível pela rede interna ou por VPN reduz a superfície de ataque. Isso pode ser feito com <b>rotas e um domínio separados no mesmo app</b>, e um bloqueio no Caddy, sem duplicar a base de código.</li>
+<li><b>Equipes diferentes</b>: o motivo original dos microsserviços. Não se aplica a você hoje.</li>
+</ul>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 2</span><ol>
+<li>Quais as quatro regras de um monólito modular?</li>
+<li>O que caracteriza um monólito distribuído?</li>
+<li>O worker do Julielton é um serviço separado? Por que essa separação é barata?</li>
+<li>Como isolar o painel admin do RH sem criar outro serviço?</li>
+</ol></div>

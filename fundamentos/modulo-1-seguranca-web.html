@@ -1,0 +1,1355 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Módulo 1: Autenticação e Segurança Web</title>
+<style>
+:root{
+  --ink:#1b1f24; --muted:#5b6470; --line:#d8dde3; --soft:#f4f6f8;
+  --accent:#1f5fa8; --accent-soft:#e8f0fa;
+  --bad:#b42318; --bad-soft:#fdecea; --good:#1a7f37; --good-soft:#e7f5ec;
+  --warn:#9a6700; --warn-soft:#fff6db; --lab:#6f42c1; --lab-soft:#f1ecfb;
+}
+@page{ size:A4; margin:20mm 18mm 20mm 18mm;
+  @bottom-right{ content: counter(page); font: 9pt "Noto Sans", sans-serif; color:#5b6470; }
+  @bottom-left{ content: "Módulo 1 · Autenticação e Segurança Web"; font: 8.5pt "Noto Sans", sans-serif; color:#8a939e; }
+}
+@page capa{ margin:0; @bottom-right{content:none} @bottom-left{content:none} }
+html{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+body{ font-family:"Noto Sans","Liberation Sans",sans-serif; font-size:10.3pt; line-height:1.52; color:var(--ink); background:#fff; margin:0; hyphens:auto; }
+h1,h2,h3,h4{ line-height:1.25; break-after:avoid; }
+h1{ font-size:21pt; color:var(--accent); margin:0 0 4mm; padding-bottom:3mm; border-bottom:2px solid var(--accent); break-before:page; }
+h1 .num{ display:block; font-size:10pt; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); font-weight:600; margin-bottom:1mm; }
+h2{ font-size:13.5pt; margin:6mm 0 2mm; color:#14324f; }
+h3{ font-size:11.2pt; margin:4.5mm 0 1.5mm; }
+p{ margin:0 0 2.6mm; text-align:justify; }
+ul,ol{ margin:0 0 3mm; padding-left:6mm; } li{ margin-bottom:1mm; }
+code{ font-family:"DejaVu Sans Mono",monospace; font-size:8.6pt; background:var(--soft); padding:0 1.2mm; border-radius:2px; }
+pre{ font-family:"DejaVu Sans Mono",monospace; font-size:8.1pt; line-height:1.42; background:#f6f8fa; border:1px solid var(--line); border-left:3px solid #8a939e; padding:2.5mm 3mm; margin:0 0 3.5mm; white-space:pre-wrap; word-break:break-word; break-inside:avoid; }
+pre code{ background:none; padding:0; font-size:inherit; }
+pre.bad{ border-left-color:var(--bad); background:#fffafa; }
+pre.good{ border-left-color:var(--good); background:#fbfffc; }
+pre .lbl{ display:block; font-family:"Noto Sans",sans-serif; font-weight:700; font-size:7.8pt; letter-spacing:.06em; text-transform:uppercase; margin-bottom:1mm; }
+pre.bad .lbl{ color:var(--bad); } pre.good .lbl{ color:var(--good); }
+table{ width:100%; border-collapse:collapse; margin:0 0 4mm; font-size:9.2pt; break-inside:auto; }
+th,td{ border:1px solid var(--line); padding:1.6mm 2mm; text-align:left; vertical-align:top; }
+th{ background:var(--soft); font-weight:700; }
+tr{ break-inside:avoid; }
+.box{ border:1px solid var(--line); border-left:4px solid var(--accent); background:var(--accent-soft); padding:2.6mm 3.4mm; margin:0 0 4mm; break-inside:avoid; }
+.box > :last-child{ margin-bottom:0; }
+.box .t{ display:block; font-weight:700; font-size:8.6pt; letter-spacing:.07em; text-transform:uppercase; margin-bottom:1.2mm; }
+.obj{ border-left-color:var(--accent); } .obj .t{ color:var(--accent); }
+.erro{ border-left-color:var(--bad); background:var(--bad-soft); } .erro .t{ color:var(--bad); }
+.dica{ border-left-color:var(--good); background:var(--good-soft); } .dica .t{ color:var(--good); }
+.caso{ border-left-color:var(--warn); background:var(--warn-soft); } .caso .t{ color:var(--warn); }
+.lab{ border-left-color:var(--lab); background:var(--lab-soft); } .lab .t{ color:var(--lab); }
+.gatilho{ border-left-color:#444; background:#f2f2f2; } .gatilho .t{ color:#333; }
+.quiz{ border:1px solid var(--line); border-top:3px solid var(--ink); padding:3mm 4mm; margin:5mm 0 4mm; background:#fff; }
+.quiz .t{ display:block; font-weight:800; font-size:9pt; letter-spacing:.08em; text-transform:uppercase; margin-bottom:2mm; }
+.quiz ol{ margin-bottom:0; }
+.feyn{ border:1.5px dashed #8a939e; padding:2.5mm 3.4mm; margin:0 0 4mm; break-inside:avoid; }
+.feyn .t{ font-weight:700; font-size:8.6pt; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); display:block; margin-bottom:1mm; }
+.linhas{ height:20mm; background:repeating-linear-gradient(#fff 0 6.6mm, #cfd5dc 6.6mm 6.9mm); margin-top:1mm; }
+figure{ margin:0 0 4mm; break-inside:avoid; text-align:center; }
+figcaption{ font-size:8.6pt; color:var(--muted); margin-top:1.2mm; }
+svg text{ font-family:"Noto Sans",sans-serif; }
+.small{ font-size:8.8pt; color:var(--muted); }
+.two{ display:grid; grid-template-columns:1fr 1fr; gap:4mm; }
+.tag{ display:inline-block; font-size:7.6pt; font-weight:700; padding:.3mm 1.6mm; border-radius:2mm; background:var(--soft); color:var(--muted); letter-spacing:.04em; }
+.check li{ list-style:none; margin-left:-5mm; }
+.check li::before{ content:"☐  "; color:var(--muted); }
+.gab h3{ margin-top:3mm; }
+.gab ol li{ margin-bottom:1.4mm; }
+.toc{ columns:2; column-gap:8mm; font-size:9.6pt; }
+.toc div{ break-inside:avoid; margin-bottom:1.4mm; }
+.toc b{ color:var(--accent); display:inline-block; width:8mm; }
+.capa{ page:capa; height:297mm; box-sizing:border-box; padding:34mm 22mm 20mm; background:linear-gradient(160deg,#0f2f52 0%,#1f5fa8 70%,#2c74c4 100%); color:#fff; position:relative; }
+.capa .k{ font-size:10pt; letter-spacing:.2em; text-transform:uppercase; opacity:.8; }
+.capa h1{ break-before:auto; border:none; color:#fff; font-size:34pt; margin:6mm 0 4mm; padding:0; line-height:1.1; }
+.capa .sub{ font-size:13pt; opacity:.92; max-width:150mm; line-height:1.45; }
+.capa .meta{ position:absolute; bottom:22mm; left:22mm; right:22mm; font-size:9.5pt; opacity:.85; border-top:1px solid rgba(255,255,255,.35); padding-top:4mm; }
+.capa .itens{ margin-top:16mm; font-size:10.5pt; line-height:1.9; opacity:.95; }
+.capa .itens span{ display:inline-block; border:1px solid rgba(255,255,255,.45); border-radius:4mm; padding:.4mm 3mm; margin:0 1.6mm 2mm 0; }
+.nobreak{ break-inside:avoid; }
+</style>
+</head>
+<body>
+
+<section class="capa">
+  <div class="k">Trilha de Fundamentos · Módulo 1</div>
+  <h1>Autenticação e<br>Segurança Web</h1>
+  <div class="sub">Material de estudo para entender, encontrar e corrigir as falhas que mais derrubam sistemas web, com exemplos em Express, Fastify, Flask e Next.js.</div>
+  <div class="itens">
+    <span>HTTP e cookies</span><span>Senhas e login</span><span>Sessão x JWT</span><span>Refresh e revogação</span>
+    <span>Autorização e IDOR</span><span>CSRF</span><span>XSS e CSP</span><span>Redirecionamento aberto</span>
+    <span>Webhooks com HMAC</span><span>Gestão de segredos</span><span>SQLi e headers</span><span>Checklist de deploy</span>
+  </div>
+  <div class="meta">Versão de novembro de 2026 · Duração prevista: 4 semanas, ~6 h por semana · Pré-requisito: já ter construído uma API com login</div>
+</section>
+
+<h1><span class="num">Antes de começar</span>Como usar este material</h1>
+
+<p>Este material não foi feito para ser lido de uma vez, como um livro. Ele segue um roteiro de estudo baseado no que a pesquisa em ciência cognitiva mostra que funciona para aprender de forma duradoura. Se você só ler, vai ter a sensação de que entendeu, mas vai esquecer a maior parte em poucas semanas. Se seguir o roteiro, vai conseguir aplicar o conteúdo.</p>
+
+<div class="box lab"><span class="t">Passo 0 · Revisão técnica com o Fable</span><p>Antes de estudar, troque para o Fable 5.2 com <code>/model</code> e peça: <i>"Revise <code>~/repo/estudos/fundamentos/modulo-1-seguranca-web.html</code> como especialista em segurança de aplicações web: aponte afirmações técnicas incorretas, desatualizadas ou imprecisas e código que não funciona. Corrija no HTML e gere o PDF de novo."</i> Depois volte ao Opus e marque a revisão na <code>TRILHA-FUNDAMENTOS.md</code>.</p></div>
+<h2>Os seis princípios usados aqui (e por quê)</h2>
+<table>
+<tr><th style="width:24%">Princípio</th><th>O que é</th><th style="width:30%">Onde aparece no material</th></tr>
+<tr><td><b>Prática de recuperação</b> (efeito de teste)</td><td>Puxar a informação da memória fortalece a lembrança muito mais do que reler. Roediger e Karpicke (2006) mostraram que estudantes que fizeram testes lembraram mais depois de uma semana do que os que releram o texto, mesmo se sentindo menos confiantes.</td><td>Quadro "Verifique" no fim de cada capítulo, com gabarito no apêndice A.</td></tr>
+<tr><td><b>Pré-teste</b></td><td>Tentar responder antes de estudar, mesmo errando, prepara o cérebro para reter a resposta certa (Kornell, Hays e Bjork, 2009). Errar aqui é parte do método.</td><td>Pré-teste diagnóstico e "Pergunta-gatilho" no início de cada capítulo.</td></tr>
+<tr><td><b>Prática espaçada</b></td><td>Revisar em intervalos crescentes retém mais do que estudar tudo junto. Dunlosky et al. (2013) classificaram essa técnica e a anterior como as de maior utilidade entre dez estudadas.</td><td>Agenda de revisão (abaixo) e flashcards no apêndice B.</td></tr>
+<tr><td><b>Exemplos resolvidos, com ajuda que diminui</b></td><td>Para quem está aprendendo um assunto, estudar um problema resolvido passo a passo sobrecarrega menos a memória de trabalho do que resolver do zero (Sweller, teoria da carga cognitiva). Depois, a ajuda vai sendo retirada aos poucos (Renkl).</td><td>Blocos "errado → certo" com o código, depois "Agora você" com metade feita, depois as missões sem ajuda.</td></tr>
+<tr><td><b>Intercalação e elaboração</b></td><td>Misturar tipos de problema obriga você a identificar <i>qual</i> conceito se aplica, que é o que acontece no trabalho real. Perguntar "por que isso funciona?" liga o conteúdo novo ao que você já sabe.</td><td>Revisão intercalada (apêndice A) e quadro "Explique com suas palavras".</td></tr>
+<tr><td><b>Aprendizagem situada e codificação dupla</b></td><td>Conteúdo ligado a um problema real seu é lembrado melhor. Texto acompanhado de diagrama cria dois caminhos de memória (Paivio).</td><td>Quadros "Caso real", que usam os seus bugs, diagramas e missões nos seus repositórios.</td></tr>
+</table>
+
+<h2>Roteiro de cada capítulo</h2>
+<ol>
+<li><b>Pergunta-gatilho (2 min).</b> Responda de cabeça, por escrito, mesmo chutando.</li>
+<li><b>Leitura ativa (30 a 60 min).</b> Sem marca-texto. A cada seção, feche o material e diga em voz alta o que leu.</li>
+<li><b>Exemplo resolvido.</b> Leia o código errado, tente achar o problema <i>antes</i> de ler a correção.</li>
+<li><b>Lab (opcional, mas recomendado).</b> Explore a falha no PortSwigger Web Security Academy, que é gratuito.</li>
+<li><b>Verifique.</b> Responda sem consultar. Só depois confira no apêndice A e marque o que errou.</li>
+<li><b>Explique com suas palavras.</b> Escreva 3 a 5 linhas como se estivesse explicando para um estagiário (técnica de Feynman). Se travar, você achou sua lacuna.</li>
+</ol>
+
+<h2>Cronograma de 4 semanas</h2>
+<table>
+<tr><th style="width:16%">Semana</th><th>Capítulos</th><th style="width:36%">Entrega da semana</th></tr>
+<tr><td>1</td><td>Pré-teste · 0. Base de HTTP · 1. Senhas e login · 2. Sessão e JWT · 3. Cookies</td><td>Missão M1 (JWT do RH) planejada</td></tr>
+<tr><td>2</td><td>4. Autorização · 5. CSRF · 6. XSS e CSP</td><td>Missões M1 e M2 concluídas</td></tr>
+<tr><td>3</td><td>7. Redirecionamento aberto · 8. Webhooks · 9. Segredos</td><td>Missões M3, M4 e M5</td></tr>
+<tr><td>4</td><td>10. Outros essenciais · 11. Modelagem de ameaças e checklist · revisão intercalada</td><td>Missão M6 e refazer o pré-teste</td></tr>
+</table>
+
+<h2>Agenda de revisão espaçada</h2>
+<p>Para cada capítulo concluído no dia D, revise os flashcards dele em <b>D+1, D+3, D+7, D+14 e D+30</b>. Pode usar o Anki: as perguntas do apêndice B já estão no formato frente e verso. Errou um card? Ele volta para o intervalo D+1. Cada revisão leva de 5 a 10 minutos.</p>
+
+<div class="box dica"><span class="t">A regra mais importante</span>
+<p>Ler e achar que entendeu é a "ilusão de fluência". O teste de verdade é conseguir <b>(1) explicar sem consulta, (2) apontar a falha num código que você nunca viu e (3) corrigir num projeto seu</b>. Cada capítulo cobre os três níveis.</p></div>
+
+<h2>Sumário</h2>
+<div class="toc">
+<div><b>—</b> Pré-teste diagnóstico</div>
+<div><b>0</b> A base: HTTP, origem, site e CORS</div>
+<div><b>1</b> Senhas, login e recuperação de conta</div>
+<div><b>2</b> Sessão no servidor x JWT</div>
+<div><b>3</b> Cookies em profundidade</div>
+<div><b>4</b> Autorização, IDOR e multi-tenant</div>
+<div><b>5</b> CSRF</div>
+<div><b>6</b> XSS e Content Security Policy</div>
+<div><b>7</b> Redirecionamento aberto</div>
+<div><b>8</b> Webhooks com HMAC</div>
+<div><b>9</b> Gestão de segredos</div>
+<div><b>10</b> Outros essenciais: SQLi, SSRF, headers, logs</div>
+<div><b>11</b> Modelagem de ameaças e checklist de deploy</div>
+<div><b>—</b> Missões nos seus projetos</div>
+<div><b>A</b> Gabarito e revisão intercalada</div>
+<div><b>B</b> Flashcards</div>
+<div><b>C</b> Glossário</div>
+<div><b>D</b> Referências</div>
+</div>
+
+<h1><span class="num">Diagnóstico</span>Pré-teste</h1>
+<p>Responda <b>antes</b> de ler qualquer capítulo, por escrito e sem consultar nada. Chutar é permitido e útil. Anote a data e a nota. Na semana 4 você refaz o teste e compara. O gabarito está no apêndice A.</p>
+<div class="quiz"><span class="t">Pré-teste · 12 questões</span>
+<ol>
+<li>O conteúdo (payload) de um JWT é criptografado? Quem consegue lê-lo?</li>
+<li>Um usuário foi rebaixado de <code>admin</code> para <code>usuario</code>, mas continua acessando a área de admin por horas. Qual a causa mais provável?</li>
+<li>Qual a diferença entre <i>origem</i> e <i>site</i>? <code>app.empresa.com</code> e <code>api.empresa.com</code> são a mesma origem? E o mesmo site?</li>
+<li>Configurar CORS corretamente impede ataques de CSRF? Por quê?</li>
+<li>O que faz o atributo <code>HttpOnly</code> de um cookie? Ele impede XSS?</li>
+<li>Por que <code>bcrypt</code> ou <code>argon2</code> e não <code>SHA-256</code> para guardar senhas?</li>
+<li>Na tela de login, mostrar "e-mail não cadastrado" e "senha incorreta" em mensagens diferentes é um problema? Por quê?</li>
+<li>A URL <code>/login?next=//evil.com</code> é um caminho interno? O que acontece se você redirecionar para ela?</li>
+<li>Para verificar a assinatura de um webhook, por que não comparar as strings com <code>===</code>?</li>
+<li>Um arquivo <code>.env</code> com senha do banco foi commitado e o commit foi apagado no dia seguinte. Basta isso?</li>
+<li>Uma variável <code>NEXT_PUBLIC_API_KEY</code> no Next.js é secreta? Onde ela vai parar?</li>
+<li>Na rota <code>GET /pedidos/:id</code>, o usuário está autenticado. O que mais o servidor precisa verificar antes de devolver o pedido?</li>
+</ol></div>
+<p class="small">Nota do pré-teste: ____ / 12 · Data: ___/___/____ &nbsp;&nbsp;&nbsp; Nota na semana 4: ____ / 12 · Data: ___/___/____</p>
+
+<h2>Mapa do módulo</h2>
+<figure>
+<svg viewBox="0 0 680 300" width="100%" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="a" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#5b6470"/></marker></defs>
+<rect x="250" y="10" width="180" height="40" rx="6" fill="#1f5fa8"/><text x="340" y="35" fill="#fff" font-size="13" text-anchor="middle" font-weight="700">Requisição HTTP chega</text>
+<rect x="20" y="95" width="190" height="56" rx="6" fill="#e8f0fa" stroke="#1f5fa8"/><text x="115" y="117" font-size="12" text-anchor="middle" font-weight="700">QUEM é você?</text><text x="115" y="135" font-size="10.5" text-anchor="middle">Autenticação · caps 1, 2, 3</text>
+<rect x="245" y="95" width="190" height="56" rx="6" fill="#e8f0fa" stroke="#1f5fa8"/><text x="340" y="117" font-size="12" text-anchor="middle" font-weight="700">PODE fazer isso?</text><text x="340" y="135" font-size="10.5" text-anchor="middle">Autorização · cap 4</text>
+<rect x="470" y="95" width="190" height="56" rx="6" fill="#e8f0fa" stroke="#1f5fa8"/><text x="565" y="117" font-size="12" text-anchor="middle" font-weight="700">FOI você mesmo que pediu?</text><text x="565" y="135" font-size="10.5" text-anchor="middle">CSRF · webhook · caps 5, 8</text>
+<line x1="300" y1="50" x2="140" y2="93" stroke="#5b6470" marker-end="url(#a)"/><line x1="340" y1="50" x2="340" y2="93" stroke="#5b6470" marker-end="url(#a)"/><line x1="380" y1="50" x2="540" y2="93" stroke="#5b6470" marker-end="url(#a)"/>
+<rect x="20" y="200" width="190" height="56" rx="6" fill="#fdecea" stroke="#b42318"/><text x="115" y="222" font-size="12" text-anchor="middle" font-weight="700">O que entra é perigoso?</text><text x="115" y="240" font-size="10.5" text-anchor="middle">SQLi · SSRF · cap 10</text>
+<rect x="245" y="200" width="190" height="56" rx="6" fill="#fdecea" stroke="#b42318"/><text x="340" y="222" font-size="12" text-anchor="middle" font-weight="700">O que sai é seguro?</text><text x="340" y="240" font-size="10.5" text-anchor="middle">XSS · redirect · caps 6, 7</text>
+<rect x="470" y="200" width="190" height="56" rx="6" fill="#fff6db" stroke="#9a6700"/><text x="565" y="222" font-size="12" text-anchor="middle" font-weight="700">O que sustenta tudo</text><text x="565" y="240" font-size="10.5" text-anchor="middle">Segredos · headers · caps 0, 9, 11</text>
+<line x1="115" y1="151" x2="115" y2="198" stroke="#5b6470" marker-end="url(#a)"/><line x1="340" y1="151" x2="340" y2="198" stroke="#5b6470" marker-end="url(#a)"/><line x1="565" y1="151" x2="565" y2="198" stroke="#5b6470" marker-end="url(#a)"/>
+<text x="340" y="290" font-size="10.5" text-anchor="middle" fill="#5b6470">Toda requisição precisa passar pelas quatro perguntas de cima e pelas duas de baixo.</text>
+</svg>
+<figcaption>Figura 0. As perguntas que o servidor faz a cada requisição. Cada falha deste módulo é uma dessas perguntas que ficou sem resposta.</figcaption>
+</figure>
+
+<h1><span class="num">Capítulo 0</span>A base: HTTP, origem, site e CORS</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>Se o HTTP não guarda estado, como o servidor sabe que a segunda requisição veio da mesma pessoa que fez login na primeira?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Explicar</b> por que toda autenticação web é "algo que o navegador manda de novo a cada requisição".</li>
+<li><b>Diferenciar</b> origem de site e prever quando um cookie é enviado.</li>
+<li><b>Explicar</b> o que a Same-Origin Policy bloqueia e o que ela <i>não</i> bloqueia.</li>
+<li><b>Identificar</b> uma configuração de CORS perigosa.</li></ul></div>
+
+<h2>0.1 HTTP não tem memória</h2>
+<p>Cada requisição HTTP é independente. O servidor não lembra que você fez login há dois segundos. Por isso toda forma de autenticação web funciona do mesmo jeito: depois do login, o servidor entrega uma <b>credencial</b> (um ID de sessão ou um token) e o cliente a <b>reenvia em toda requisição</b>. Há só dois lugares comuns para ela ir:</p>
+<ul>
+<li><b>Cookie</b> (<code>Cookie: sid=...</code>). O <i>navegador</i> anexa sozinho, inclusive em requisições disparadas por outros sites. Isso é cômodo e é exatamente o que permite o CSRF (capítulo 5).</li>
+<li><b>Cabeçalho Authorization</b> (<code>Authorization: Bearer eyJ...</code>). Quem anexa é o <i>seu JavaScript</i>. Outros sites não conseguem fazer isso, então não existe CSRF, mas o token precisa ficar guardado em algum lugar que o JavaScript leia, e é aí que o XSS (capítulo 6) consegue roubá-lo.</li>
+</ul>
+<div class="box dica"><span class="t">Ideia central</span><p>Não existe opção "segura" e opção "insegura". Cookie troca risco de XSS por risco de CSRF, e o cabeçalho faz a troca inversa. Você escolhe o modelo e aplica a defesa que aquele modelo exige.</p></div>
+
+<h2>0.2 Origem x site</h2>
+<p><b>Origem</b> é a combinação exata de <b>esquema + host + porta</b>. <b>Site</b> é mais amplo: <b>esquema + domínio registrável</b> (o "eTLD+1", por exemplo <code>empresa.com.br</code>, já que <code>com.br</code> é um sufixo público).</p>
+<table>
+<tr><th>URL A</th><th>URL B</th><th>Mesma origem?</th><th>Mesmo site?</th></tr>
+<tr><td><code>https://app.empresa.com</code></td><td><code>https://app.empresa.com/x</code></td><td>Sim</td><td>Sim</td></tr>
+<tr><td><code>https://app.empresa.com</code></td><td><code>https://api.empresa.com</code></td><td><b>Não</b> (host diferente)</td><td><b>Sim</b></td></tr>
+<tr><td><code>http://app.empresa.com</code></td><td><code>https://app.empresa.com</code></td><td>Não (esquema)</td><td>Não (o site considera o esquema)</td></tr>
+<tr><td><code>https://localhost:3000</code></td><td><code>https://localhost:4000</code></td><td>Não (porta)</td><td>Sim</td></tr>
+<tr><td><code>https://empresa.com</code></td><td><code>https://empresa-login.com</code></td><td>Não</td><td>Não</td></tr>
+</table>
+<p>Por que isso importa: a <b>Same-Origin Policy</b> e o CORS trabalham com <i>origem</i>. O atributo <code>SameSite</code> dos cookies trabalha com <i>site</i>. Então um subdomínio comprometido (por exemplo, <code>blog.empresa.com</code> num WordPress esquecido) é "mesmo site" e passa pelo <code>SameSite</code>.</p>
+
+<h2>0.3 O que a Same-Origin Policy faz e o que não faz</h2>
+<p>A SOP impede que o JavaScript de <code>evil.com</code> <b>leia</b> a resposta de uma requisição feita para <code>banco.com</code>. Ela <b>não</b> impede que a requisição seja <b>enviada</b>. Um formulário HTML em <code>evil.com</code> pode fazer <code>POST</code> para <code>banco.com/transferir</code>. O navegador envia, junto com os cookies se o <code>SameSite</code> permitir, e o servidor executa. O atacante só não consegue ver a resposta, mas a transferência já aconteceu. Esse é o CSRF.</p>
+
+<h2>0.4 CORS: uma permissão para relaxar a SOP</h2>
+<p>CORS não é uma proteção. É o mecanismo pelo qual o servidor diz ao navegador "pode deixar a origem X ler minhas respostas". Pontos que caem em entrevista e em incidente:</p>
+<ul>
+<li><b>Requisições "simples"</b> (GET, ou POST com <code>Content-Type</code> igual a <code>application/x-www-form-urlencoded</code>, <code>multipart/form-data</code> ou <code>text/plain</code>, e sem cabeçalhos personalizados) são enviadas <b>sem preflight</b>. O CORS só decide se o JavaScript pode ler a resposta. A ação no servidor já aconteceu.</li>
+<li>Outras requisições, como as com <code>Content-Type: application/json</code> ou cabeçalho personalizado, disparam um <b>preflight</b> <code>OPTIONS</code> antes. Se o servidor não autorizar, a requisição real nem sai.</li>
+<li><code>Access-Control-Allow-Origin: *</code> <b>não funciona</b> com <code>Access-Control-Allow-Credentials: true</code>. O navegador recusa.</li>
+</ul>
+<div class="box erro"><span class="t">Erro comum: refletir a origem</span>
+<p>Para "fazer funcionar", muita gente devolve no <code>Access-Control-Allow-Origin</code> a mesma origem que veio no pedido, junto com <code>Allow-Credentials: true</code>. Na prática isso equivale a liberar <b>qualquer site</b> para ler dados autenticados do usuário. No <code>cors</code> do Express, <code>origin: true</code> faz exatamente isso.</p></div>
+<pre class="bad"><span class="lbl">Errado · Express</span>app.use(cors({ origin: true, credentials: true })); // reflete qualquer origem</pre>
+<pre class="good"><span class="lbl">Certo · Express</span>const permitidas = new Set([process.env.FRONT_URL]); // ex.: https://rh.empresa.com.br
+app.use(cors({
+  origin: (origin, cb) => cb(null, !origin || permitidas.has(origin)), // !origin: curl, servidor-servidor
+  credentials: true,
+}));</pre>
+
+<h2>0.5 TLS em uma frase</h2>
+<p>Sem HTTPS, qualquer um na mesma rede Wi-Fi ou no caminho lê o cookie ou o token e assume a sessão. Por isso cookies de autenticação levam <code>Secure</code> e o site envia <code>Strict-Transport-Security</code> (capítulo 10). Atrás de um proxy reverso (nginx ou Caddy na VPS), configure o app para confiar no proxy (<code>app.set('trust proxy', 1)</code> no Express, <code>ProxyFix</code> no Flask). Sem isso, o app acha que a conexão é HTTP, e cookies <code>Secure</code> e rate limit por IP se comportam errado.</p>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 0</span><ol>
+<li>Cite os dois lugares onde a credencial costuma viajar e o principal risco de cada um.</li>
+<li><code>https://rh.empresa.com.br</code> e <code>https://api.empresa.com.br</code>: mesma origem? Mesmo site?</li>
+<li>Um <code>&lt;form method="POST"&gt;</code> em outro site é bloqueado pela SOP? Explique.</li>
+<li>Por que <code>cors({ origin: true, credentials: true })</code> é perigoso?</li>
+<li>O que muda para o app quando ele roda atrás do nginx e você esquece de configurar <code>trust proxy</code>?</li>
+</ol></div>
+<div class="feyn"><span class="t">Explique com suas palavras</span>"CORS não protege contra CSRF porque..."<div class="linhas"></div></div>
+
+<h1><span class="num">Capítulo 1</span>Senhas, login e recuperação de conta</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>Se o seu banco de dados vazar amanhã, quanto tempo o atacante leva para descobrir as senhas dos usuários? Do que isso depende?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Justificar</b> o uso de um hash lento (argon2id ou bcrypt) e configurá-lo.</li>
+<li><b>Implementar</b> um login que não revela quais e-mails existem.</li>
+<li><b>Projetar</b> um fluxo de "esqueci minha senha" seguro.</li>
+<li><b>Escolher</b> entre limitar tentativas, bloquear a conta e pedir MFA.</li></ul></div>
+
+<h2>1.1 Por que um hash lento</h2>
+<p>Senha nunca é guardada nem criptografada de forma reversível: guarda-se um <b>hash</b>. Mas SHA-256 é feito para ser <i>rápido</i>. Uma GPU comum calcula bilhões de SHA-256 por segundo, então um vazamento vira uma lista de senhas em horas. Funções de hash de senha são <b>lentas de propósito</b> e têm um custo configurável. O argon2id também consome muita memória, o que encarece o ataque com GPU.</p>
+<ul>
+<li><b>Sal</b>: um valor aleatório por usuário, guardado junto do hash. Faz duas senhas iguais gerarem hashes diferentes e inutiliza tabelas pré-calculadas. As bibliotecas abaixo geram o sal sozinhas.</li>
+<li><b>Recomendação da OWASP</b>: argon2id com no mínimo 19 MiB de memória, 2 iterações e paralelismo 1. Se não der, bcrypt com custo 10 ou mais.</li>
+<li><b>Limite do bcrypt</b>: ele só considera os primeiros 72 bytes da senha. Senhas longas ou frases-senha com acento passam disso fácil.</li>
+</ul>
+<pre class="good"><span class="lbl">Node (RH usa bcrypt) · argon2 é a alternativa preferida</span>import argon2 from 'argon2';                    // npm i argon2 (o padrão já é argon2id)
+const hash = await argon2.hash(senha);          // guarda isso no banco
+const ok   = await argon2.verify(hash, senha);  // no login
+
+import bcrypt from 'bcrypt';                    // o que o RH já usa: está ok
+const hash2 = await bcrypt.hash(senha, 12);     // custo 12
+const ok2   = await bcrypt.compare(senha, hash2);</pre>
+<pre class="good"><span class="lbl">Python / Flask</span>from argon2 import PasswordHasher             # pip install argon2-cffi
+ph = PasswordHasher()                          # argon2id com parâmetros seguros
+h = ph.hash(senha)
+try:
+    ph.verify(h, senha)
+    if ph.check_needs_rehash(h): h = ph.hash(senha)   # atualiza parâmetros antigos no login
+except argon2.exceptions.VerifyMismatchError:
+    ...</pre>
+
+<h2>1.2 Política de senha moderna (NIST SP 800-63B, revisão 4)</h2>
+<ul>
+<li>Tamanho mínimo: 8 caracteres se houver MFA e <b>15 se a senha for o único fator</b>. Aceite pelo menos 64 caracteres, com espaços e Unicode.</li>
+<li><b>Não</b> exija regras de composição (maiúscula, símbolo...) e <b>não</b> force troca periódica. Isso gera senhas previsíveis como <code>Francal@2026!</code>.</li>
+<li><b>Bloqueie</b> senhas que aparecem em listas de vazamento (a API k-anonymity do <i>Have I Been Pwned</i> faz isso sem enviar a senha).</li>
+<li>Troca obrigatória só quando houver indício de comprometimento.</li>
+</ul>
+
+<h2>1.3 Enumeração de usuários</h2>
+<p>Se o login responde "e-mail não cadastrado" num caso e "senha incorreta" no outro, o atacante descobre quais e-mails existem. Com essa lista ele faz <i>credential stuffing</i>, que é testar senhas vazadas de outros sites. A enumeração vaza por três canais: a <b>mensagem</b>, o <b>código de status</b> e o <b>tempo de resposta</b>. Se o usuário não existe e você nem calcula o hash, a resposta volta em 2 ms em vez de 80 ms, e isso basta para distinguir.</p>
+<pre class="bad"><span class="lbl">Errado</span>const u = await db.user.findByEmail(email);
+if (!u) return res.status(404).json({ erro: 'Usuário não encontrado' });
+if (!(await bcrypt.compare(senha, u.hash))) return res.status(401).json({ erro: 'Senha incorreta' });</pre>
+<pre class="good"><span class="lbl">Certo</span>const HASH_FALSO = await bcrypt.hash('senha-que-nao-existe', 12); // calculado 1x na subida
+const u = await db.user.findByEmail(email);
+const ok = await bcrypt.compare(senha, u?.hash ?? HASH_FALSO);       // sempre gasta o mesmo tempo
+if (!u || !ok) return res.status(401).json({ erro: 'E-mail ou senha inválidos' });</pre>
+<p>O mesmo vale para o cadastro e para o "esqueci a senha". A resposta deve ser sempre "Se o e-mail existir, você receberá um link".</p>
+
+<h2>1.4 Força bruta: limitar, atrasar, bloquear</h2>
+<table>
+<tr><th>Medida</th><th>Prós</th><th>Contras</th></tr>
+<tr><td>Rate limit por IP</td><td>Simples (<code>express-rate-limit</code>, <code>@fastify/rate-limit</code>, <code>Flask-Limiter</code>)</td><td>Botnets usam milhares de IPs. Atrás de proxy, precisa de <code>trust proxy</code>.</td></tr>
+<tr><td>Limite por conta</td><td>Protege a conta-alvo</td><td>Bloqueio total permite que um atacante tranque contas alheias (negação de serviço)</td></tr>
+<tr><td>Atraso progressivo / CAPTCHA</td><td>Equilíbrio bom</td><td>Atrito para o usuário</td></tr>
+<tr><td>MFA</td><td>Resolve o problema de senha vazada</td><td>Custo de implementação e de suporte</td></tr>
+</table>
+<p><b>Recomendação prática:</b> rate limit por IP (ex.: 10 tentativas por minuto), atraso progressivo por conta depois de 5 falhas, alerta no log e MFA para administradores.</p>
+
+<h2>1.5 MFA em ordem de força</h2>
+<p><b>Passkeys / WebAuthn</b> resistem a phishing, porque a chave fica presa ao domínio. Depois vem o <b>TOTP</b> (app autenticador, RFC 6238). O <b>SMS</b> é o mais fraco, por causa de SIM swap. Para o painel de admin do RH ou do MesaPay, TOTP já é um salto grande.</p>
+
+<h2>1.6 Fluxo de "esqueci minha senha"</h2>
+<ol>
+<li>Gere um token com um gerador criptográfico: <code>crypto.randomBytes(32).toString('base64url')</code> ou <code>secrets.token_urlsafe(32)</code>. <b>Nunca</b> use <code>Math.random</code>, timestamp nem ID sequencial.</li>
+<li>Guarde no banco só o <b>hash SHA-256</b> do token (aqui um hash rápido serve, porque o token tem 256 bits de entropia), com validade de 15 a 60 minutos e <b>uso único</b>.</li>
+<li>Monte o link com a URL base da <b>configuração</b>, nunca com o cabeçalho <code>Host</code> da requisição. Senão o atacante manda <code>Host: evil.com</code> e o e-mail da vítima chega com o link apontando para ele (<i>password reset poisoning</i>).</li>
+<li>Depois da troca: invalide o token, <b>encerre todas as sessões e refresh tokens</b> do usuário e mande um e-mail avisando.</li>
+</ol>
+
+<h2>1.7 "Entrar com Google" (OAuth 2.0 / OpenID Connect)</h2>
+<p>Não implemente o protocolo na mão. Use uma biblioteca certificada e confira se ela faz: fluxo <b>Authorization Code com PKCE</b> (o fluxo <i>implicit</i> está obsoleto pela RFC 9700), validação do parâmetro <code>state</code> (anti-CSRF) e do <code>nonce</code>, e validação do <code>id_token</code> (assinatura, <code>iss</code>, <code>aud</code>, <code>exp</code>). Identifique o usuário pelo <code>sub</code>, não pelo e-mail.</p>
+
+<div class="box lab"><span class="t">Lab · PortSwigger › Authentication</span><p>"Username enumeration via different responses", "2FA simple bypass" e "Password reset broken logic". Faça os três antes da missão M2.</p></div>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 1</span><ol>
+<li>Por que um hash rápido é ruim para senha e bom para token de redefinição?</li>
+<li>Quais são os três canais por onde a enumeração de usuários vaza?</li>
+<li>O que acontece com uma senha de 80 bytes no bcrypt?</li>
+<li>Por que o link de redefinição não pode ser montado a partir do cabeçalho <code>Host</code>?</li>
+<li>Bloquear a conta depois de 5 erros: qual o efeito colateral?</li>
+</ol></div>
+<div class="feyn"><span class="t">Explique com suas palavras</span>"O sal não impede força bruta numa única senha, mas serve para..."<div class="linhas"></div></div>
+
+<h1><span class="num">Capítulo 2</span>Sessão no servidor x JWT</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>Você descobre que a conta de um funcionário foi invadida. Com sessão no servidor, como você derruba o acesso? E com JWT válido por 7 dias?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Ler</b> um JWT e dizer o que está nele e o que garante a assinatura.</li>
+<li><b>Validar</b> um JWT corretamente com <code>jsonwebtoken</code>.</li>
+<li><b>Explicar e corrigir</b> o bug do papel desatualizado no token.</li>
+<li><b>Implementar</b> access token curto com refresh token rotativo e detecção de reuso.</li>
+<li><b>Decidir</b> entre sessão e JWT num projeto novo.</li></ul></div>
+
+<h2>2.1 Dois modelos</h2>
+<table>
+<tr><th style="width:20%"></th><th>Sessão no servidor (stateful)</th><th>JWT (stateless)</th></tr>
+<tr><td>O que o cliente guarda</td><td>Um ID aleatório e sem significado (<code>sid=8f3a...</code>)</td><td>Um documento assinado com os dados (<code>sub</code>, <code>role</code>, <code>exp</code>)</td></tr>
+<tr><td>Onde está a verdade</td><td>No servidor (Redis ou banco)</td><td>Dentro do próprio token</td></tr>
+<tr><td>Revogar acesso</td><td><b>Imediato</b>: apaga a sessão</td><td><b>Difícil</b>: o token vale até expirar</td></tr>
+<tr><td>Mudança de papel</td><td>Vale na próxima requisição</td><td>Só vale quando o token for reemitido</td></tr>
+<tr><td>Custo por requisição</td><td>Uma consulta no Redis</td><td>Verificar uma assinatura (CPU)</td></tr>
+<tr><td>Bom para</td><td>Apps web com front próprio, painéis internos (RH, Julielton)</td><td>Comunicação entre serviços, APIs públicas, apps mobile com tokens curtos</td></tr>
+</table>
+<div class="box dica"><span class="t">Recomendação honesta</span><p>Para um app web com login de funcionários e front no mesmo domínio, <b>sessão no servidor com cookie</b> é mais simples e mais segura. Muita gente usa JWT nesses casos por moda e depois reinventa a sessão (lista de bloqueio, versão de token) para conseguir revogar. Se já usa JWT, não precisa migrar. Aplique a seção 2.5.</p></div>
+
+<h2>2.2 Anatomia de um JWT</h2>
+<figure>
+<svg viewBox="0 0 680 150" width="100%" xmlns="http://www.w3.org/2000/svg">
+<rect x="10" y="12" width="190" height="34" fill="#fdecea" stroke="#b42318"/><text x="105" y="34" text-anchor="middle" font-size="12" font-family="DejaVu Sans Mono">eyJhbGciOiJIUzI1NiJ9</text>
+<text x="205" y="34" font-size="16" font-weight="700">.</text>
+<rect x="215" y="12" width="270" height="34" fill="#e8f0fa" stroke="#1f5fa8"/><text x="350" y="34" text-anchor="middle" font-size="12" font-family="DejaVu Sans Mono">eyJzdWIiOiI0MiIsInJvbGUiOiJhZG1pbiJ9</text>
+<text x="490" y="34" font-size="16" font-weight="700">.</text>
+<rect x="500" y="12" width="170" height="34" fill="#e7f5ec" stroke="#1a7f37"/><text x="585" y="34" text-anchor="middle" font-size="12" font-family="DejaVu Sans Mono">SflKxwRJSMeKKF2Q</text>
+<text x="105" y="68" text-anchor="middle" font-size="12" font-weight="700">HEADER</text><text x="105" y="86" text-anchor="middle" font-size="11">{"alg":"HS256"}</text><text x="105" y="104" text-anchor="middle" font-size="10.5" fill="#5b6470">base64url, legível</text>
+<text x="350" y="68" text-anchor="middle" font-size="12" font-weight="700">PAYLOAD (claims)</text><text x="350" y="86" text-anchor="middle" font-size="11">{"sub":"42","role":"admin","exp":...}</text><text x="350" y="104" text-anchor="middle" font-size="10.5" fill="#5b6470">base64url, legível por QUALQUER UM</text>
+<text x="585" y="68" text-anchor="middle" font-size="12" font-weight="700">ASSINATURA</text><text x="585" y="86" text-anchor="middle" font-size="11">HMAC(header.payload, segredo)</text><text x="585" y="104" text-anchor="middle" font-size="10.5" fill="#5b6470">garante que não foi alterado</text>
+<text x="340" y="138" text-anchor="middle" font-size="11" fill="#5b6470">Assinado ≠ criptografado. Cole qualquer JWT em jwt.io e você lê o payload.</text>
+</svg>
+<figcaption>Figura 2.1. Um JWT (JWS) tem três partes em base64url separadas por ponto.</figcaption>
+</figure>
+<p><b>Consequências:</b> não coloque CPF, salário ou dados de RH no payload. A assinatura garante <b>integridade</b> (ninguém trocou <code>"role":"user"</code> por <code>"admin"</code>), não sigilo. E ela só garante isso se o servidor <b>verificar</b> o token. O <code>jwt.decode()</code> não verifica nada.</p>
+<table>
+<tr><th>Claim</th><th>Significado</th><th>Validar?</th></tr>
+<tr><td><code>sub</code></td><td>Quem é o usuário (ID)</td><td>Use como identidade</td></tr>
+<tr><td><code>exp</code> / <code>nbf</code> / <code>iat</code></td><td>Expira em / não vale antes de / emitido em</td><td>Sim (a biblioteca faz)</td></tr>
+<tr><td><code>iss</code></td><td>Quem emitiu</td><td>Sim, informe o esperado</td></tr>
+<tr><td><code>aud</code></td><td>Para quem o token foi emitido</td><td>Sim. Impede que um token do marketZapp seja aceito no RH, se compartilharem o segredo</td></tr>
+<tr><td><code>jti</code></td><td>ID único do token</td><td>Útil para lista de bloqueio</td></tr>
+</table>
+
+<h2>2.3 Ataques clássicos ao JWT</h2>
+<ul>
+<li><b><code>alg: none</code></b>: o atacante remove a assinatura e diz que o algoritmo é "nenhum". Bibliotecas antigas aceitavam.</li>
+<li><b>Confusão de algoritmo</b>: o servidor usa RS256 (chave pública/privada) e o atacante manda um token HS256 assinado <i>com a chave pública</i>, que é conhecida. Se o código aceitar qualquer algoritmo, ele valida o token com a chave pública como segredo HMAC.</li>
+<li><b>Segredo fraco</b>: com HS256 e segredo <code>"secret"</code> ou <code>"minhachave"</code>, o hashcat descobre o segredo a partir de um único token, e o atacante passa a forjar tokens de admin. O segredo precisa de 256 bits aleatórios: <code>openssl rand -base64 32</code>.</li>
+<li><b>Usar <code>decode</code> no lugar de <code>verify</code></b>: um erro bobo e muito comum, em especial em middleware escrito às pressas.</li>
+</ul>
+<pre class="bad"><span class="lbl">Errado</span>const payload = jwt.decode(token);                 // NÃO verifica a assinatura
+const payload2 = jwt.verify(token, SEGREDO);       // sem lista fechada: fica à mercê do padrão da versão da biblioteca</pre>
+<pre class="good"><span class="lbl">Certo · jsonwebtoken (RH e marketZapp)</span>const payload = jwt.verify(token, process.env.JWT_SECRET, {
+  algorithms: ['HS256'],          // lista fechada
+  issuer: 'rh-api',
+  audience: 'rh-web',
+  clockTolerance: 5,              // segundos de folga de relógio
+});
+// emissão
+jwt.sign({ sub: String(u.id), tv: u.tokenVersion }, process.env.JWT_SECRET,
+         { algorithm: 'HS256', expiresIn: '15m', issuer: 'rh-api', audience: 'rh-web' });</pre>
+
+<h2>2.4 Caso real: o papel que continuava velho dentro do JWT</h2>
+<div class="box caso"><span class="t">Caso real · RH (Express + jsonwebtoken)</span>
+<p>O papel do usuário (<code>role</code>) era gravado no JWT na hora do login. Quando um admin rebaixava alguém, o banco era atualizado, mas o token antigo continuava dizendo <code>"role":"admin"</code> até expirar. O middleware confiava no token. <b>Tente achar o problema no código abaixo antes de ler a explicação.</b></p></div>
+<pre class="bad"><span class="lbl">Errado</span>function exigeAdmin(req, res, next) {
+  const p = jwt.verify(req.cookies.token, SEGREDO, { algorithms: ['HS256'] });
+  if (p.role !== 'admin') return res.sendStatus(403);   // confia no papel congelado no token
+  req.user = p; next();
+}
+// login: jwt.sign({ sub: u.id, role: u.role }, SEGREDO, { expiresIn: '7d' })</pre>
+<p><b>Por que acontece:</b> o JWT é uma <i>fotografia</i> do usuário no momento do login. Tudo que pode mudar (papel, conta ativa, empresa) fica desatualizado até o token expirar, e 7 dias é muito tempo. Existem três correções, que podem ser combinadas:</p>
+<ol>
+<li><b>Access token curto</b> (5 a 15 minutos) com refresh token (seção 2.5). Cada renovação relê o papel no banco, então a janela de erro cai para no máximo 15 minutos.</li>
+<li><b>Versão do token</b> (<code>token_version</code>): uma coluna inteira no usuário que vai dentro do token como <code>tv</code>. Ao trocar papel, senha, desativar a conta ou fazer "sair de todos os dispositivos", você incrementa a coluna e todos os tokens antigos morrem na hora.</li>
+<li><b>Papel lido do banco</b> nas rotas sensíveis. O token diz <i>quem</i> é o usuário, e o banco diz <i>o que ele pode fazer</i>.</li>
+</ol>
+<pre class="good"><span class="lbl">Certo · versão do token + papel do banco (com cache curto opcional)</span>async function autentica(req, res, next) {
+  try {
+    const p = jwt.verify(req.cookies.at, SEGREDO, { algorithms: ['HS256'], issuer: 'rh-api', audience: 'rh-web' });
+    const u = await db.usuario.findById(p.sub);           // ou cache Redis de 30 s
+    if (!u || !u.ativo || u.tokenVersion !== p.tv) return res.sendStatus(401);
+    req.user = { id: u.id, role: u.role, empresaId: u.empresaId };  // papel ATUAL
+    next();
+  } catch { return res.sendStatus(401); }
+}
+const exige = (...papeis) => (req, res, next) =>
+  papeis.includes(req.user.role) ? next() : res.sendStatus(403);
+
+app.get('/admin/vagas', autentica, exige('admin'), listarVagas);
+
+// ao rebaixar alguém:
+await db.usuario.update(id, { role: 'usuario', tokenVersion: { increment: 1 } });</pre>
+<div class="box erro"><span class="t">Erro comum</span><p>"Mas assim eu consulto o banco a cada requisição, e o JWT não era para evitar isso?" Era. Mas um <code>SELECT</code> por chave primária custa menos de 1 ms, e o seu sistema não tem a escala em que isso pesa. Correção vem antes de micro-otimização. Se um dia pesar, coloque um cache de 30 segundos no Redis.</p></div>
+
+<h2>2.5 Refresh token rotativo com detecção de reuso</h2>
+<figure>
+<svg viewBox="0 0 680 210" width="100%" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="b" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#1b1f24"/></marker></defs>
+<text x="80" y="18" text-anchor="middle" font-weight="700" font-size="12">Navegador</text><text x="600" y="18" text-anchor="middle" font-weight="700" font-size="12">API /auth/refresh</text>
+<line x1="80" y1="25" x2="80" y2="205" stroke="#8a939e" stroke-dasharray="4"/><line x1="600" y1="25" x2="600" y2="205" stroke="#8a939e" stroke-dasharray="4"/>
+<line x1="80" y1="45" x2="598" y2="45" stroke="#1b1f24" marker-end="url(#b)"/><text x="340" y="40" text-anchor="middle" font-size="11">1. AT expirou → envia RT1 (cookie HttpOnly)</text>
+<line x1="600" y1="75" x2="82" y2="75" stroke="#1a7f37" marker-end="url(#b)"/><text x="340" y="70" text-anchor="middle" font-size="11" fill="#1a7f37">2. RT1 marcado como usado → devolve AT novo + RT2</text>
+<line x1="80" y1="115" x2="598" y2="115" stroke="#b42318" marker-end="url(#b)"/><text x="340" y="110" text-anchor="middle" font-size="11" fill="#b42318">3. Atacante que roubou RT1 tenta usá-lo de novo</text>
+<line x1="600" y1="150" x2="82" y2="150" stroke="#b42318" marker-end="url(#b)"/><text x="340" y="145" text-anchor="middle" font-size="11" fill="#b42318">4. RT1 já usado = REUSO → revoga a família inteira (RT2 também)</text>
+<text x="340" y="185" text-anchor="middle" font-size="11" fill="#5b6470">O usuário legítimo e o atacante são deslogados, e o roubo vira um evento detectável no log.</text>
+</svg>
+<figcaption>Figura 2.2. Rotação de refresh token (OAuth 2.0 Security BCP, RFC 9700).</figcaption>
+</figure>
+<ul>
+<li><b>Access token (AT)</b>: JWT de 5 a 15 minutos, guardado na memória do front ou num cookie HttpOnly.</li>
+<li><b>Refresh token (RT)</b>: valor <b>opaco e aleatório</b> (não precisa ser JWT), guardado no banco só como hash, com <code>familia_id</code>, <code>usado_em</code>, <code>expira_em</code> e <code>revogado</code>. Vai num cookie <code>HttpOnly; Secure; SameSite=Strict; Path=/auth/refresh</code>, então só é enviado para essa rota.</li>
+<li>Logout apaga o RT no servidor. "Sair de todos os dispositivos" revoga todas as famílias do usuário.</li>
+</ul>
+<pre class="good"><span class="lbl">Certo · esqueleto do /auth/refresh</span>app.post('/auth/refresh', async (req, res) => {
+  const bruto = req.cookies.rt;
+  if (!bruto) return res.sendStatus(401);
+  const rt = await db.refresh.findByHash(sha256(bruto));
+  if (!rt || rt.revogado || rt.expiraEm < new Date()) return res.sendStatus(401);
+  if (rt.usadoEm) {                                    // REUSO: alguém copiou o token
+    await db.refresh.revogarFamilia(rt.familiaId);
+    log.warn({ userId: rt.userId }, 'refresh token reutilizado');
+    return res.sendStatus(401);
+  }
+  await db.refresh.marcarUsado(rt.id);
+  const u = await db.usuario.findById(rt.userId);      // relê papel/ativo
+  if (!u?.ativo) return res.sendStatus(401);
+  const novo = crypto.randomBytes(32).toString('base64url');
+  await db.refresh.criar({ hash: sha256(novo), familiaId: rt.familiaId, userId: u.id, expiraEm: em30dias() });
+  res.cookie('rt', novo, { httpOnly: true, secure: true, sameSite: 'strict', path: '/auth/refresh', maxAge: 30*864e5 });
+  res.cookie('at', emitirAT(u), { httpOnly: true, secure: true, sameSite: 'lax', path: '/', maxAge: 15*60e3 });
+  res.sendStatus(204);
+});</pre>
+<p class="small">Na prática, faça o "marcar usado e criar o novo" dentro de uma transação, e aceite uma tolerância de poucos segundos para abas paralelas que renovam ao mesmo tempo.</p>
+
+<h2>2.6 Onde guardar o token no front</h2>
+<table>
+<tr><th>Local</th><th>XSS consegue roubar?</th><th>Precisa de proteção contra CSRF?</th><th>Veredito</th></tr>
+<tr><td><code>localStorage</code></td><td><b>Sim</b>, e usar depois, de outro lugar</td><td>Não</td><td>Evite para tokens de longa duração</td></tr>
+<tr><td>Memória (variável JS)</td><td>Só enquanto a página está aberta</td><td>Não</td><td>Bom para AT, com RT em cookie</td></tr>
+<tr><td>Cookie <code>HttpOnly</code></td><td>Não consegue <i>ler</i></td><td><b>Sim</b> (capítulo 5)</td><td>Padrão recomendado para apps web</td></tr>
+</table>
+<div class="box erro"><span class="t">Ilusão comum</span><p><code>HttpOnly</code> <b>não</b> torna o XSS inofensivo. O script injetado ainda consegue fazer requisições <i>como o usuário</i> enquanto a página está aberta, e o navegador anexa o cookie. O que o <code>HttpOnly</code> impede é que o token seja <b>levado embora</b> e usado depois. É uma redução de dano, não uma cura.</p></div>
+
+<h2>2.7 Sessão no servidor bem feita (checklist)</h2>
+<ul class="check">
+<li>ID com pelo menos 128 bits de um gerador criptográfico (as bibliotecas fazem isso).</li>
+<li><b>Regenerar o ID no login</b> e na troca de privilégio. Isso evita a <i>session fixation</i>, em que o atacante planta um ID conhecido antes do login (<code>req.session.regenerate()</code> no express-session).</li>
+<li>Expiração por inatividade (ex.: 30 min) <b>e</b> absoluta (ex.: 12 h).</li>
+<li>Logout apaga a sessão <b>no servidor</b>, não só o cookie.</li>
+<li><b>Flask:</b> a sessão padrão é um cookie <i>assinado, não criptografado</i>. O usuário consegue ler o conteúdo, então não guarde nada sensível nele. Se a <code>SECRET_KEY</code> vazar, qualquer um forja sessões. E o logout não invalida uma cópia do cookie. Para revogação de verdade, use sessão no servidor (Flask-Session com Redis) ou guarde uma versão de sessão no usuário, como na seção 2.4.</li>
+</ul>
+
+<div class="box lab"><span class="t">Lab · PortSwigger › JWT</span><p>"JWT authentication bypass via unverified signature", "JWT authentication bypass via flawed signature verification" e "JWT authentication bypass via weak signing key". Use a extensão JWT Editor do Burp Suite Community.</p></div>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 2</span><ol>
+<li>Um colega diz: "o JWT é seguro porque é criptografado". Corrija.</li>
+<li>Quais opções você <b>sempre</b> passa para o <code>jwt.verify</code> e por quê?</li>
+<li>Descreva as três correções para o papel desatualizado e quando cada uma basta.</li>
+<li>O que é detecção de reuso de refresh token e que ataque ela revela?</li>
+<li>Por que regenerar o ID da sessão no login?</li>
+<li>No Flask, o usuário consegue ver o que está em <code>session['carrinho']</code>? Consegue alterar?</li>
+</ol></div>
+<div class="feyn"><span class="t">Explique com suas palavras</span>"Para um painel interno eu prefiro sessão no servidor a JWT porque..."<div class="linhas"></div></div>
+
+<h1><span class="num">Capítulo 3</span>Cookies em profundidade</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>O site <code>evil.com</code> tem um link para <code>https://seuapp.com/painel</code>. A vítima clica. O cookie de sessão vai junto? E se for um formulário POST?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Escrever</b> o <code>Set-Cookie</code> correto para cada tipo de cookie.</li>
+<li><b>Prever</b> quando o navegador envia um cookie com <code>SameSite</code> igual a Strict, Lax ou None.</li>
+<li><b>Configurar</b> cookies no Express, no Fastify, no Flask e no Next.js.</li></ul></div>
+
+<h2>3.1 Os atributos</h2>
+<table>
+<tr><th style="width:22%">Atributo</th><th>O que faz</th><th style="width:28%">Use quando</th></tr>
+<tr><td><code>HttpOnly</code></td><td>JavaScript não lê (<code>document.cookie</code> não mostra)</td><td>Sempre em cookie de autenticação</td></tr>
+<tr><td><code>Secure</code></td><td>Só é enviado por HTTPS</td><td>Sempre em produção</td></tr>
+<tr><td><code>SameSite=Strict</code></td><td>Nunca é enviado em requisições vindas de outro site, nem ao clicar num link</td><td>Refresh token, ações críticas</td></tr>
+<tr><td><code>SameSite=Lax</code></td><td>Vai em navegação de topo com método seguro (clicar num link, GET). Não vai em POST, iframe, fetch e imagens de outro site</td><td>Cookie de sessão padrão</td></tr>
+<tr><td><code>SameSite=None</code></td><td>Sempre enviado (exige <code>Secure</code>)</td><td>Só se o front e a API estiverem em <b>sites</b> diferentes</td></tr>
+<tr><td><code>Domain</code></td><td>Se presente, vale para os subdomínios também</td><td>Evite. Sem ele, o cookie fica preso ao host exato</td></tr>
+<tr><td><code>Path</code></td><td>Restringe as rotas que recebem o cookie</td><td><code>/auth/refresh</code> para o RT</td></tr>
+<tr><td><code>Max-Age</code> / <code>Expires</code></td><td>Sem eles, é cookie de sessão (morre ao fechar o navegador... em tese)</td><td>Defina explicitamente</td></tr>
+<tr><td>Prefixo <code>__Host-</code></td><td>O navegador só aceita com <code>Secure</code>, <code>Path=/</code> e <b>sem</b> <code>Domain</code></td><td>Cookie de sessão. Impede que um subdomínio sobrescreva</td></tr>
+</table>
+<pre class="good"><span class="lbl">O cookie de sessão ideal</span>Set-Cookie: __Host-sid=k3J9...; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=43200</pre>
+
+<h2>3.2 SameSite na prática</h2>
+<table>
+<tr><th>Requisição vinda de <code>evil.com</code></th><th>Strict</th><th>Lax</th><th>None</th></tr>
+<tr><td>Clique em link (GET, topo)</td><td>não vai</td><td><b>vai</b></td><td>vai</td></tr>
+<tr><td><code>&lt;form method=POST&gt;</code></td><td>não vai</td><td>não vai*</td><td>vai</td></tr>
+<tr><td><code>fetch()</code> / <code>&lt;img&gt;</code> / <code>&lt;iframe&gt;</code></td><td>não vai</td><td>não vai</td><td>vai</td></tr>
+</table>
+<p class="small">* Exceção do Chrome: cookies <b>sem</b> <code>SameSite</code> explícito são tratados como Lax, mas durante os primeiros 2 minutos depois de criados ainda vão em POST de topo ("Lax+POST"). Por isso, sempre declare o atributo.</p>
+<div class="box erro"><span class="t">Erro comum</span><p>"Já tenho SameSite=Lax, então nunca vou ter CSRF." Não é bem assim: (1) uma rota <b>GET que altera estado</b> (<code>/excluir?id=3</code>) continua vulnerável com Lax; (2) <code>SameSite</code> olha o <i>site</i>, então um subdomínio comprometido passa; (3) navegadores antigos ignoram o atributo. Trate o <code>SameSite</code> como uma camada a mais, não como a defesa principal (capítulo 5).</p></div>
+
+<h2>3.3 Configuração por framework</h2>
+<pre class="good"><span class="lbl">Express (RH)</span>app.set('trust proxy', 1);
+res.cookie('__Host-sid', id, { httpOnly: true, secure: true, sameSite: 'lax', path: '/', maxAge: 12*3600e3 });</pre>
+<pre class="good"><span class="lbl">Fastify (marketZapp) · @fastify/cookie</span>reply.setCookie('__Host-sid', id, { httpOnly: true, secure: true, sameSite: 'lax', path: '/', maxAge: 43200 }); // segundos</pre>
+<pre class="good"><span class="lbl">Flask + flask-login (Julielton)</span>app.config.update(
+    SESSION_COOKIE_SECURE=True, SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax",
+    REMEMBER_COOKIE_SECURE=True, REMEMBER_COOKIE_HTTPONLY=True, REMEMBER_COOKIE_SAMESITE="Lax",
+    PERMANENT_SESSION_LIFETIME=timedelta(hours=12),
+)
+login_manager.session_protection = "strong"</pre>
+<pre class="good"><span class="lbl">Next.js 15 (Route Handler / Server Action)</span>import { cookies } from 'next/headers';
+(await cookies()).set('__Host-sid', id, { httpOnly: true, secure: true, sameSite: 'lax', path: '/', maxAge: 43200 });</pre>
+<p class="small">Em <code>localhost</code> sem HTTPS, os navegadores modernos aceitam <code>Secure</code> porque tratam <code>http://localhost</code> como contexto seguro. Ainda assim, teste num ambiente com HTTPS antes do deploy.</p>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 3</span><ol>
+<li>Escreva de cabeça o <code>Set-Cookie</code> ideal para a sessão e justifique cada atributo.</li>
+<li>Seu front está em <code>app.empresa.com</code> e a API em <code>api.empresa.com</code>. Precisa de <code>SameSite=None</code>?</li>
+<li>Que garantia dá o prefixo <code>__Host-</code>?</li>
+<li>Uma rota <code>GET /usuarios/5/excluir</code> está protegida por <code>SameSite=Lax</code>?</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 4</span>Autorização, IDOR e multi-tenant</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>No MesaPay, o bar A está logado e chama <code>GET /api/comandas/1532</code>. A comanda 1532 é do bar B. O que o seu código faz hoje?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Diferenciar</b> autenticação de autorização, com 401 x 403 x 404.</li>
+<li><b>Encontrar</b> IDOR lendo uma rota.</li>
+<li><b>Aplicar</b> o isolamento por tenant <i>na consulta</i>, não depois dela.</li>
+<li><b>Escrever</b> o teste que prova que um tenant não vê os dados de outro.</li></ul></div>
+
+<p><b>Broken Access Control</b> é a categoria número 1 do OWASP Top 10 desde 2021 e continua no topo em 2025. Não é a falha mais sofisticada, é a mais <i>comum</i>, porque o framework não tem como saber as suas regras de negócio.</p>
+
+<h2>4.1 Vocabulário</h2>
+<table>
+<tr><th>Termo</th><th>Pergunta</th><th>Falhou → status</th></tr>
+<tr><td>Autenticação (authN)</td><td>Quem é você?</td><td><b>401</b> Unauthorized (o nome engana: significa "não autenticado")</td></tr>
+<tr><td>Autorização (authZ)</td><td>Você pode fazer isso com esse recurso?</td><td><b>403</b> Forbidden, ou <b>404</b> para não revelar que o recurso existe</td></tr>
+</table>
+<ul>
+<li><b>Autorização vertical</b>: papel (usuário comum tentando ação de admin). É o caso do capítulo 2.</li>
+<li><b>Autorização horizontal</b>: mesmo papel, dono diferente (usuário A lendo o pedido do usuário B). Aqui mora o <b>IDOR</b> (<i>Insecure Direct Object Reference</i>), também chamado de <b>BOLA</b> no OWASP API Top 10, onde é o item número 1.</li>
+</ul>
+
+<h2>4.2 IDOR: o exemplo resolvido</h2>
+<pre class="bad"><span class="lbl">Errado</span>app.get('/api/comandas/:id', autentica, async (req, res) => {
+  const c = await db.comanda.findUnique({ where: { id: Number(req.params.id) } });
+  if (!c) return res.sendStatus(404);
+  res.json(c);                       // qualquer usuário logado lê a comanda de qualquer bar
+});</pre>
+<pre class="bad"><span class="lbl">Ainda frágil</span>const c = await db.comanda.findUnique({ where: { id } });
+if (c.estabelecimentoId !== req.user.estabelecimentoId) return res.sendStatus(403);
+// funciona, mas depende de LEMBRAR o if em toda rota, e vaza "existe" vs "não existe" (403 x 404)</pre>
+<pre class="good"><span class="lbl">Certo · o filtro do tenant faz parte da consulta</span>const c = await db.comanda.findFirst({
+  where: { id, estabelecimentoId: req.user.estabelecimentoId },
+});
+if (!c) return res.sendStatus(404);     // "não existe PARA VOCÊ"
+res.json(c);</pre>
+<p><b>Por que a terceira versão é melhor:</b> não existe nenhum caminho do código em que o dado de outro tenant chegue à memória do processo. Esquecer o <code>if</code> é impossível, porque não tem <code>if</code>. E o 404 não confirma ao atacante que o ID 1532 existe.</p>
+
+<pre class="good"><span class="lbl">Certo · Go + GORM (MesaPay): escopo reutilizável</span>// ctx é o *gin.Context; o middleware de auth fez ctx.Set("estabelecimentoID", ...)
+func DoEstabelecimento(id uint) func(*gorm.DB) *gorm.DB {
+    return func(db *gorm.DB) *gorm.DB { return db.Where("estabelecimento_id = ?", id) }
+}
+// no handler (Gin): o ID vem do token validado, nunca do corpo ou da URL
+var c models.Comanda
+err := db.Scopes(DoEstabelecimento(ctx.GetUint("estabelecimentoID"))).First(&amp;c, ctx.Param("id")).Error
+if errors.Is(err, gorm.ErrRecordNotFound) { ctx.Status(http.StatusNotFound); return }</pre>
+<h2>4.3 Tornar o erro difícil de cometer</h2>
+<ol>
+<li><b>Repositório com escopo</b>: uma função <code>repo(req.user)</code> que devolve consultas já filtradas pelo tenant. Rotas não acessam o <code>db</code> cru.</li>
+<li><b>Row-Level Security no Postgres</b>: a política vive no banco, e a aplicação define <code>SET app.tenant_id = ...</code> por transação. Mesmo um <code>SELECT *</code> esquecido só vê o próprio tenant.
+<pre>ALTER TABLE comanda ENABLE ROW LEVEL SECURITY;
+CREATE POLICY isolamento ON comanda
+  USING (estabelecimento_id = current_setting('app.tenant_id')::int);
+-- atenção: o dono da tabela e superusuários ignoram RLS; a app deve usar outro papel (ou FORCE ROW LEVEL SECURITY)</pre></li>
+<li><b>Negar por padrão</b>: toda rota exige autenticação, a não ser que esteja marcada como pública. No Fastify, um <code>onRequest</code> global que só deixa passar rotas com <code>config: { public: true }</code>.</li>
+<li><b>IDs não sequenciais</b> (UUID) <i>dificultam adivinhar</i>, mas <b>não substituem</b> a verificação. IDs vazam em URLs, logs e e-mails.</li>
+<li><b>Nunca confie em campos do corpo da requisição</b> para identidade ou tenant: <code>req.body.estabelecimentoId</code> e <code>req.body.role</code> vêm do atacante. Valide o corpo com <code>zod</code> usando lista de campos permitidos. Isso também evita <i>mass assignment</i>, como um <code>PATCH /me {"role":"admin"}</code>.</li>
+</ol>
+
+<h2>4.4 O teste que prova o isolamento</h2>
+<pre class="good"><span class="lbl">Vitest + supertest · o teste mais valioso de um sistema multi-tenant</span>it('bar A não lê comanda do bar B', async () => {
+  const comandaB = await fabrica.comanda({ estabelecimentoId: barB.id });
+  const res = await request(app).get(`/api/comandas/${comandaB.id}`).set('Cookie', cookieDe(usuarioBarA));
+  expect(res.status).toBe(404);
+});
+// repita para: listar, editar, excluir, exportar, e para cada recurso (produto, mesa, pagamento)</pre>
+
+<div class="box lab"><span class="t">Lab · PortSwigger › Access control</span><p>"Unprotected admin functionality", "User ID controlled by request parameter" e "Insecure direct object references".</p></div>
+<div class="quiz"><span class="t">Verifique · Capítulo 4</span><ol>
+<li>Diferencie autorização vertical de horizontal com um exemplo de cada.</li>
+<li>Por que filtrar pelo tenant <i>na consulta</i> é melhor que comparar depois?</li>
+<li>Usar UUID resolve IDOR? Justifique.</li>
+<li>O que é mass assignment e como o <code>zod</code> ajuda?</li>
+<li>Quando responder 404 em vez de 403?</li>
+</ol></div>
+<div class="feyn"><span class="t">Explique com suas palavras</span>"O framework não consegue me proteger de IDOR porque..."<div class="linhas"></div></div>
+
+<h1><span class="num">Capítulo 5</span>CSRF (Cross-Site Request Forgery)</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>Seu sistema usa JWT no cabeçalho <code>Authorization</code>. Ele precisa de proteção contra CSRF? E se usar cookie?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Descrever</b> o ataque passo a passo e as três condições para ele funcionar.</li>
+<li><b>Escolher</b> a defesa certa para cada arquitetura (form server-side, SPA, API com Bearer).</li>
+<li><b>Configurar</b> o Flask-WTF e uma verificação de origem no Express/Fastify.</li></ul></div>
+
+<figure>
+<svg viewBox="0 0 680 190" width="100%" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="c" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#1b1f24"/></marker></defs>
+<rect x="10" y="70" width="140" height="50" rx="6" fill="#e8f0fa" stroke="#1f5fa8"/><text x="80" y="92" text-anchor="middle" font-size="12" font-weight="700">Navegador</text><text x="80" y="108" text-anchor="middle" font-size="10.5">da vítima (logada)</text>
+<rect x="270" y="10" width="140" height="44" rx="6" fill="#fdecea" stroke="#b42318"/><text x="340" y="37" text-anchor="middle" font-size="12" font-weight="700">evil.com</text>
+<rect x="530" y="70" width="140" height="50" rx="6" fill="#e7f5ec" stroke="#1a7f37"/><text x="600" y="92" text-anchor="middle" font-size="12" font-weight="700">rh.empresa.com</text><text x="600" y="108" text-anchor="middle" font-size="10.5">POST /usuarios/5/papel</text>
+<line x1="150" y1="78" x2="268" y2="40" stroke="#1b1f24" marker-end="url(#c)"/><text x="160" y="50" font-size="10.5">1. abre o link do e-mail</text>
+<line x1="270" y1="48" x2="152" y2="88" stroke="#b42318" marker-end="url(#c)"/><text x="205" y="82" font-size="10.5" fill="#b42318">2. form oculto auto-submit</text>
+<line x1="150" y1="105" x2="528" y2="105" stroke="#b42318" marker-end="url(#c)"/><text x="340" y="125" text-anchor="middle" font-size="10.5" fill="#b42318">3. POST role=admin + Cookie de sessão anexado AUTOMATICAMENTE</text>
+<text x="340" y="160" text-anchor="middle" font-size="11">4. O servidor vê um cookie válido e executa. O atacante nunca viu o cookie.</text>
+<text x="340" y="180" text-anchor="middle" font-size="10.5" fill="#5b6470">Condições: (a) autenticação por cookie, (b) ação que muda estado, (c) parâmetros previsíveis</text>
+</svg>
+<figcaption>Figura 5.1. O ataque CSRF: a vítima usa o próprio navegador contra o próprio sistema.</figcaption>
+</figure>
+
+<h2>5.1 Quando você precisa se preocupar</h2>
+<ul>
+<li><b>Autenticação por cookie</b> (sessão no Flask, cookie HttpOnly com JWT no RH): <b>sim</b>.</li>
+<li><b>Autenticação só por cabeçalho Authorization</b> que o seu JavaScript coloca: <b>não</b>, porque outro site não consegue anexá-lo. Mas aí o token está ao alcance de XSS.</li>
+<li><b>Login CSRF</b>: o atacante faz a vítima entrar na <i>conta dele</i>, e a vítima salva dados ali. Também proteja o formulário de login.</li>
+</ul>
+
+<h2>5.2 Defesas (combine pelo menos duas)</h2>
+<table>
+<tr><th style="width:26%">Defesa</th><th>Como funciona</th><th style="width:26%">Onde usar</th></tr>
+<tr><td><b>Token sincronizador</b></td><td>O servidor gera um valor aleatório ligado à sessão e o coloca no formulário. O POST sem o valor certo é recusado. Outro site não consegue ler o valor por causa da SOP.</td><td>Apps com formulários renderizados no servidor (Flask/Jinja)</td></tr>
+<tr><td><b>Verificar <code>Origin</code> / <code>Sec-Fetch-Site</code></b></td><td>Navegadores modernos mandam <code>Origin</code> em POST e <code>Sec-Fetch-Site: same-origin | same-site | cross-site</code>. Recuse <code>cross-site</code> em métodos que mudam estado.</td><td>Qualquer API com cookie. É simples e eficaz</td></tr>
+<tr><td><b>Cabeçalho personalizado obrigatório</b></td><td>Exija <code>X-Requested-With</code> ou <code>Content-Type: application/json</code>. Isso força o preflight, que outro site não passa se o CORS estiver certo.</td><td>SPA com <code>fetch</code></td></tr>
+<tr><td><b>SameSite=Lax/Strict</b></td><td>O cookie nem chega em POST de outro site</td><td>Sempre, como camada extra</td></tr>
+<tr><td><b>GET nunca muda estado</b></td><td>Regra de projeto. Sem ela, o Lax não protege</td><td>Sempre</td></tr>
+</table>
+
+<pre class="good"><span class="lbl">Flask (Julielton usa flask-wtf)</span>from flask_wtf.csrf import CSRFProtect
+csrf = CSRFProtect(app)          # protege TODOS os POST/PUT/PATCH/DELETE
+# no template de cada formulário:
+#   &lt;input type="hidden" name="csrf_token" value="{{ csrf_token() }}"&gt;
+# para fetch(): envie o valor no cabeçalho X-CSRFToken
+# @csrf.exempt só em webhooks que tenham OUTRA autenticação (HMAC, capítulo 8)</pre>
+<pre class="good"><span class="lbl">Express / Fastify · verificação de origem com Fetch Metadata</span>const SEGUROS = new Set(['GET', 'HEAD', 'OPTIONS']);
+function antiCsrf(req, res, next) {
+  if (SEGUROS.has(req.method)) return next();
+  const site = req.get('sec-fetch-site');                  // enviado pelos navegadores modernos
+  if (site && site !== 'same-origin' && site !== 'none') return res.sendStatus(403);
+  const origin = req.get('origin');
+  if (!site && origin && origin !== process.env.FRONT_ORIGIN) return res.sendStatus(403);
+  next();
+}
+app.use(antiCsrf);
+// se front e API estão em origens diferentes do MESMO site, aceite também 'same-site'
+// e compare o Origin com a lista permitida</pre>
+<div class="box erro"><span class="t">Erro comum</span><p>Achar que JSON protege sozinho. Se o servidor aceita o corpo independente do <code>Content-Type</code> (por exemplo, faz <code>JSON.parse</code> num <code>text/plain</code>), um formulário com <code>enctype="text/plain"</code> consegue montar um corpo que parece JSON sem disparar preflight. Valide o <code>Content-Type</code>.</p></div>
+
+<div class="box lab"><span class="t">Lab · PortSwigger › CSRF</span><p>"CSRF vulnerability with no defenses", "CSRF where token validation depends on request method" e "SameSite Lax bypass via method override".</p></div>
+<div class="quiz"><span class="t">Verifique · Capítulo 5</span><ol>
+<li>Quais são as três condições para um CSRF funcionar?</li>
+<li>Por que uma API que usa apenas <code>Authorization: Bearer</code> não sofre CSRF?</li>
+<li>Por que o atacante não consegue simplesmente ler o token CSRF do formulário?</li>
+<li>Para que serve o <code>Sec-Fetch-Site</code>? Que valor você bloqueia?</li>
+<li>Quando é aceitável usar <code>@csrf.exempt</code>?</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 6</span>XSS e Content Security Policy</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>O React escapa tudo automaticamente. Então um app Next.js não tem XSS, certo? Liste três jeitos de ter.</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Classificar</b> XSS refletido, armazenado e baseado em DOM.</li>
+<li><b>Aplicar</b> o escape correto para cada <i>contexto</i>.</li>
+<li><b>Reconhecer</b> os pontos de escape do React, do Next e do Jinja.</li>
+<li><b>Implantar</b> uma CSP com nonce, começando em modo de relatório.</li></ul></div>
+
+<h2>6.1 O que é e por que é grave</h2>
+<p>XSS é quando dado do atacante vira <b>código executado no navegador da vítima, dentro da origem do seu site</b>. Com isso o script pode fazer qualquer coisa que o usuário faria: ler dados da tela, fazer requisições autenticadas, mudar a senha, instalar um keylogger no formulário. Por isso o XSS anula quase todas as outras defesas, inclusive o token CSRF, que o script consegue ler.</p>
+<table>
+<tr><th>Tipo</th><th>Origem do dado</th><th>Exemplo</th></tr>
+<tr><td>Refletido</td><td>Parâmetro da requisição, devolvido na resposta</td><td><code>/busca?q=&lt;script&gt;...</code></td></tr>
+<tr><td>Armazenado</td><td>Salvo no banco e mostrado a outros usuários</td><td>Nome do candidato no RH com <code>&lt;img src=x onerror=...&gt;</code>, visto pelo recrutador. É o mais perigoso</td></tr>
+<tr><td>DOM</td><td>O próprio JavaScript do front lê de <code>location</code> ou <code>postMessage</code> e escreve no DOM</td><td><code>el.innerHTML = location.hash</code></td></tr>
+</table>
+
+<h2>6.2 Escape depende do contexto</h2>
+<table>
+<tr><th>Contexto</th><th>Exemplo</th><th>Defesa</th></tr>
+<tr><td>Corpo HTML</td><td><code>&lt;p&gt;{nome}&lt;/p&gt;</code></td><td>Escape HTML (o React e o Jinja fazem)</td></tr>
+<tr><td>Atributo</td><td><code>&lt;div title="{x}"&gt;</code></td><td>Escape de atributo, <b>sempre entre aspas</b></td></tr>
+<tr><td>URL</td><td><code>&lt;a href={url}&gt;</code></td><td>Escape <b>não basta</b>: valide se o esquema é <code>http</code> ou <code>https</code>. Bloqueie <code>javascript:</code> e <code>data:</code></td></tr>
+<tr><td>Dentro de <code>&lt;script&gt;</code></td><td>Estado inicial serializado</td><td>Serializar escapando <code>&lt;</code>. Um <code>&lt;/script&gt;</code> no dado fecha a tag</td></tr>
+<tr><td>HTML rico (editor, markdown)</td><td>Descrição da vaga</td><td>Sanitizar com <b>DOMPurify</b> (lista de tags permitidas)</td></tr>
+</table>
+
+<h2>6.3 Onde o React e o Jinja deixam passar</h2>
+<pre class="bad"><span class="lbl">Errado · React/Next</span>&lt;div dangerouslySetInnerHTML={{ __html: vaga.descricao }} /&gt;   // HTML do banco direto
+&lt;a href={candidato.linkedin}&gt;Perfil&lt;/a&gt;                         // "javascript:fetch(...)"
+ref.current.innerHTML = mensagem;                                 // contorna o React
+</pre>
+<pre class="good"><span class="lbl">Certo</span>import DOMPurify from 'isomorphic-dompurify';
+&lt;div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(vaga.descricao) }} /&gt;
+
+const urlSegura = (u: string) => { try { const x = new URL(u); return ['http:', 'https:'].includes(x.protocol) ? x.href : '#'; } catch { return '#'; } };
+&lt;a href={urlSegura(candidato.linkedin)} rel="noopener noreferrer" target="_blank"&gt;Perfil&lt;/a&gt;
+ref.current.textContent = mensagem;</pre>
+<pre class="bad"><span class="lbl">Errado · Flask/Jinja</span>{{ observacao | safe }}                      {# desliga o escape #}
+return f"&lt;h1&gt;Olá {request.args['nome']}&lt;/h1&gt;"   # HTML montado à mão: sem escape nenhum
+&lt;div class={{ classe }}&gt;                     {# atributo sem aspas: " onmouseover=... #}</pre>
+<p class="small">O Jinja do Flask só faz autoescape em templates <code>.html</code>, <code>.htm</code>, <code>.xml</code> e <code>.xhtml</code>. Templates com outra extensão e <code>render_template_string</code> com dado do usuário merecem atenção.</p>
+
+<h2>6.4 Content Security Policy: a rede de segurança</h2>
+<p>A CSP é um cabeçalho que diz ao navegador <b>de onde</b> pode vir script. Com uma política estrita, mesmo que um XSS escape, o <code>&lt;script&gt;</code> injetado não executa, porque não tem o <i>nonce</i> (número aleatório por resposta) que só o servidor conhece.</p>
+<pre class="good"><span class="lbl">CSP estrita recomendada</span>Content-Security-Policy:
+  script-src 'nonce-R4nd0mP0rR3sp0st4' 'strict-dynamic';
+  object-src 'none'; base-uri 'none'; frame-ancestors 'none';
+  report-uri /csp-relatorio</pre>
+<ul>
+<li><b>Comece</b> com <code>Content-Security-Policy-Report-Only</code> por uma ou duas semanas. Veja o que quebraria e só depois aplique de verdade.</li>
+<li>No Next.js, o nonce é gerado no <code>middleware.ts</code> e o Next aplica nos scripts dele. A documentação oficial do Next tem um guia de CSP. Atenção: usar nonce obriga a renderização dinâmica das páginas.</li>
+<li><code>'unsafe-inline'</code> no <code>script-src</code> anula quase todo o benefício.</li>
+<li><code>frame-ancestors 'none'</code> também resolve o <i>clickjacking</i>, que é colocar o seu site num iframe invisível.</li>
+</ul>
+
+<div class="box lab"><span class="t">Lab · PortSwigger › Cross-site scripting</span><p>"Reflected XSS into HTML context with nothing encoded", "Stored XSS into HTML context with nothing encoded", "DOM XSS in innerHTML sink using source location.search" e "Stored XSS into anchor href attribute with double quotes HTML-encoded".</p></div>
+<div class="quiz"><span class="t">Verifique · Capítulo 6</span><ol>
+<li>Por que o XSS armazenado é mais grave que o refletido?</li>
+<li>Escape HTML resolve <code>&lt;a href={url}&gt;</code>? O que resolve?</li>
+<li>Cite três formas de ter XSS num app React.</li>
+<li>Como o nonce impede um script injetado de rodar?</li>
+<li>Por que começar com <code>Report-Only</code>?</li>
+</ol></div>
+<div class="feyn"><span class="t">Explique com suas palavras</span>"Se o meu site tem XSS, o token CSRF não adianta porque..."<div class="linhas"></div></div>
+
+<h1><span class="num">Capítulo 7</span>Redirecionamento aberto</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>Escreva uma função que recebe o <code>next</code> do login e decide se é seguro redirecionar. Depois teste nas entradas da seção 7.3.</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Explicar</b> por que um redirect "inofensivo" vira phishing e roubo de token.</li>
+<li><b>Implementar</b> uma validação que resiste às variações de URL que os navegadores aceitam.</li>
+<li><b>Escrever</b> o teste parametrizado com os casos de ataque.</li></ul></div>
+
+<div class="box caso"><span class="t">Caso real · projeto do Julielton (Flask + flask-login)</span><p>A revisão de segurança encontrou o redirecionamento aberto no login: o parâmetro <code>next</code> era usado sem validação. Ele já foi corrigido em <code>_destino_seguro</code> (<code>src/mabsol_docs/web/__init__.py</code>), que recusa barra invertida, caracteres de controle, esquema, host e <code>//</code>. Este capítulo serve para você entender a fundo por que a primeira correção que costuma vir à cabeça falha.</p></div>
+
+<h2>7.1 Por que importa</h2>
+<ul>
+<li><b>Phishing com a sua credibilidade</b>: o link <code>https://seuapp.com.br/login?next=https://seuapp-login.com</code> começa com o seu domínio. A vítima faz login de verdade e é mandada para uma cópia que diz "sessão expirada, digite a senha de novo".</li>
+<li><b>Roubo de token em OAuth</b>: se o <code>redirect_uri</code> aceita um open redirect do seu domínio, o código ou token pode ser desviado para o atacante.</li>
+<li>Combinado com <code>javascript:</code>, em redirects feitos pelo front, vira XSS.</li>
+</ul>
+
+<h2>7.2 A correção ingênua e por que falha</h2>
+<pre class="bad"><span class="lbl">Errado</span>nxt = request.args.get("next", "/")
+if nxt.startswith("/"):          # "parece" interno
+    return redirect(nxt)</pre>
+<p><code>//evil.com</code> começa com <code>/</code>, e o navegador o interpreta como <b>URL relativa ao esquema</b>, ou seja, <code>https://evil.com</code>. Os navegadores também tratam <code>\</code> como <code>/</code> e <b>removem tabulações e quebras de linha</b> das URLs. Então <code>/\evil.com</code> e <code>/%09/evil.com</code> (tab decodificado) também escapam.</p>
+<pre class="good"><span class="lbl">Certo · Flask</span>from urllib.parse import urlsplit
+from flask import redirect, request, url_for
+
+def destino_seguro(alvo: str | None) -> str:
+    padrao = url_for("painel")
+    if not alvo or any(ord(c) &lt; 32 or ord(c) == 127 for c in alvo):  # tab, \n, \r, controles
+        return padrao
+    alvo = alvo.replace("\\", "/")                  # o navegador faz o mesmo
+    p = urlsplit(alvo)
+    if p.scheme or p.netloc:                        # absoluta ou //host
+        return padrao
+    if not alvo.startswith("/") or alvo.startswith("//"):
+        return padrao
+    return alvo
+
+@app.post("/login")
+def login():
+    ...
+    return redirect(destino_seguro(request.args.get("next")))</pre>
+<pre class="good"><span class="lbl">Certo · TypeScript (usa o mesmo parser WHATWG do navegador)</span>export function destinoSeguro(alvo: string | undefined, padrao = '/painel'): string {
+  if (!alvo) return padrao;
+  const base = new URL('https://app.invalid');           // origem fictícia
+  let u: URL;
+  try { u = new URL(alvo, base); } catch { return padrao; }
+  if (u.origin !== base.origin) return padrao;           // saiu da origem? recusa
+  return u.pathname + u.search + u.hash;                 // devolve só o caminho normalizado
+}</pre>
+<p><b>Por que a versão TS é elegante:</b> em vez de imaginar todas as variações maliciosas, ela deixa o mesmo algoritmo de parsing usado pelo navegador resolver a URL e compara o resultado. Validar a <i>interpretação</i> é mais robusto que validar o <i>texto</i>. Quando der, prefira uma <b>lista de destinos permitidos</b> ou um ID (<code>?next=relatorios</code> mapeado no servidor).</p>
+
+<h2>7.3 O teste parametrizado (exemplo com ajuda parcial)</h2>
+<pre class="good"><span class="lbl">pytest · complete os valores esperados que faltam antes de rodar</span>import pytest
+@pytest.mark.parametrize("entrada,esperado", [
+    ("/relatorios?mes=10", "/relatorios?mes=10"),
+    ("https://evil.com",   "/painel"),
+    ("//evil.com",         "/painel"),
+    ("/\\evil.com",        ____),
+    ("\\\\evil.com",       ____),
+    ("/\t/evil.com",       ____),
+    ("javascript:alert(1)", ____),
+    ("relatorios",         ____),   # relativo sem barra: decida e justifique
+    ("",                   "/painel"),
+])
+def test_destino_seguro(app, entrada, esperado):
+    with app.test_request_context():
+        assert destino_seguro(entrada) == esperado</pre>
+
+<div class="box lab"><span class="t">Lab · PortSwigger</span><p>"DOM-based open redirection" (seção DOM-based) e, para ver o impacto, "SSRF with filter bypass via open redirection vulnerability" (seção SSRF).</p></div>
+<div class="quiz"><span class="t">Verifique · Capítulo 7</span><ol>
+<li>Por que <code>startswith("/")</code> não basta? Cite três entradas que passam.</li>
+<li>Qual a vantagem de validar com <code>new URL(alvo, base)</code> e comparar a origem?</li>
+<li>Como um open redirect ajuda a roubar tokens de OAuth?</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 8</span>Webhooks com HMAC</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>Seu endpoint <code>POST /webhook/whatsapp</code> é público na internet. O que impede qualquer pessoa de mandar um JSON igual ao do provedor?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Explicar</b> o que é HMAC e por que ele autentica a origem.</li>
+<li><b>Verificar</b> uma assinatura sobre o <i>corpo bruto</i> com comparação em tempo constante.</li>
+<li><b>Proteger</b> contra replay e duplicidade com timestamp e idempotência.</li></ul></div>
+
+<div class="box caso"><span class="t">Caso real · marketZapp (Fastify + BullMQ + Evolution API)</span><p>Um webhook sem verificação de segredo permitiu que eventos não legítimos disparassem envio de mensagens não solicitadas. Um webhook é uma rota pública que <b>executa ações</b>. Sem autenticação, ela é um botão "enviar mensagem" exposto na internet.</p>
+<p>Hoje o <code>src/routes/whatsapp.ts</code> exige o <code>WHATSAPP_WEBHOOK_SECRET</code> (a Evolution envia o segredo no cabeçalho <code>apikey</code>), e o boot falha em produção sem a variável. Isso já resolve o incidente. A Evolution <b>não assina</b> o corpo com HMAC, então o marketZapp está no caso "provedor sem assinatura" da seção 8.3. Ainda falta uma coisa: a comparação é feita com <code>===</code> (seção 8.2).</p></div>
+
+<h2>8.1 HMAC em uma página</h2>
+<p><b>HMAC</b> (<i>Hash-based Message Authentication Code</i>, RFC 2104) é <code>HMAC(segredo, mensagem)</code>, um hash que só quem conhece o segredo consegue produzir. O provedor e você compartilham o segredo. O provedor envia <code>assinatura = HMAC-SHA256(segredo, corpo)</code> num cabeçalho, e você recalcula e compara. Se bater, (1) a mensagem veio de quem tem o segredo e (2) não foi alterada no caminho.</p>
+<p>É o padrão dos provedores que assinam. A Meta (WhatsApp Cloud API oficial) envia <code>X-Hub-Signature-256: sha256=&lt;hex&gt;</code>, calculado com o <b>App Secret</b> sobre o corpo bruto. Stripe, GitHub e outros seguem a mesma ideia, com pequenas variações, então leia a documentação do seu provedor.</p>
+
+<h2>8.2 Os três detalhes que quebram a verificação</h2>
+<ol>
+<li><b>Corpo bruto.</b> A assinatura foi calculada sobre os <i>bytes exatos</i> enviados. Se você fizer <code>JSON.stringify(req.body)</code> depois do parse, a ordem das chaves, os espaços e o escape de Unicode mudam, e a assinatura nunca bate. Aí alguém "resolve" desligando a verificação.</li>
+<li><b>Comparação em tempo constante.</b> <code>===</code> para no primeiro caractere diferente. Medindo o tempo de resposta, em tese dá para descobrir a assinatura byte a byte. Use <code>crypto.timingSafeEqual</code> (Node) ou <code>hmac.compare_digest</code> (Python).</li>
+<li><b>Falhar fechado.</b> Cabeçalho ausente, segredo não configurado ou formato inesperado resultam em <b>401</b>, nunca em "deixa passar".</li>
+</ol>
+<pre class="bad"><span class="lbl">Errado</span>app.post('/webhook/whatsapp', async (req, reply) => {
+  const esperado = createHmac('sha256', SEGREDO).update(JSON.stringify(req.body)).digest('hex');
+  if (req.headers['x-hub-signature-256'] !== 'sha256=' + esperado) console.warn('assinatura inválida');
+  await fila.add('mensagem', req.body);        // processa MESMO assim
+});</pre>
+<pre class="good"><span class="lbl">Certo · Fastify (plugin com escopo próprio, só para o webhook)</span>import { createHmac, timingSafeEqual } from 'node:crypto';
+
+export async function webhookWhatsapp(app: FastifyInstance) {
+  // neste escopo, guarda o corpo bruto antes do parse
+  app.addContentTypeParser('application/json', { parseAs: 'buffer' }, (req, body, done) => {
+    (req as any).rawBody = body;
+    try { done(null, JSON.parse(body.toString('utf8'))); } catch (e) { done(e as Error, undefined); }
+  });
+
+  app.post('/webhook/whatsapp', async (req, reply) => {
+    const segredo = process.env.META_APP_SECRET;
+    if (!segredo) { req.log.error('META_APP_SECRET ausente'); return reply.code(500).send(); }
+    if (!assinaturaValida((req as any).rawBody, req.headers['x-hub-signature-256'], segredo))
+      return reply.code(401).send();
+
+    for (const msg of extrairMensagens(req.body)) {
+      await fila.add('mensagem', msg, { jobId: msg.id });   // id do evento = idempotência
+    }
+    return reply.code(200).send();                          // responda rápido, processe na fila
+  });
+}
+
+function assinaturaValida(raw: Buffer, header: unknown, segredo: string): boolean {
+  if (typeof header !== 'string' || !header.startsWith('sha256=')) return false;
+  const esperado = Buffer.from(createHmac('sha256', segredo).update(raw).digest('hex'));
+  const recebido = Buffer.from(header.slice(7));
+  return esperado.length === recebido.length && timingSafeEqual(esperado, recebido);
+}</pre>
+<p class="small">O <code>timingSafeEqual</code> lança erro se os tamanhos forem diferentes. Por isso o tamanho é comparado antes. Alternativa pronta: o plugin <code>fastify-raw-body</code>.</p>
+
+<h2>8.3 Replay, duplicidade e provedores que não assinam</h2>
+<ul>
+<li><b>Replay</b>: o atacante captura uma requisição válida e a reenvia. Provedores como o Stripe incluem um <b>timestamp</b> dentro da assinatura (<code>t=...,v1=...</code>), e você recusa eventos com mais de 5 minutos. Se o provedor não faz isso, a defesa é a idempotência.</li>
+<li><b>Idempotência</b>: provedores reenviam o mesmo evento quando você demora ou falha. Use o ID do evento como chave. No BullMQ, <code>jobId</code> repetido é ignorado enquanto o job existir. Para garantia permanente, use <code>SET evento:&lt;id&gt; 1 NX EX 604800</code> no Redis ou uma <code>UNIQUE</code> no banco.</li>
+<li><b>Provedor sem assinatura</b> (o caso da Evolution API): segredo longo no cabeçalho ou no caminho da URL (<code>/webhook/&lt;token-aleatório&gt;</code>), comparado em tempo constante. Some a isso uma lista de IPs, se o provedor publicar uma, e, para ações críticas, <b>confirme o evento consultando a API do provedor</b> antes de agir.</li>
+</ul>
+<pre class="good"><span class="lbl">Python (para webhooks no Flask)</span>import hmac, hashlib
+def assinatura_valida(raw: bytes, header: str | None, segredo: bytes) -> bool:
+    if not header or not header.startswith("sha256="):
+        return False
+    esperado = hmac.new(segredo, raw, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(esperado, header[7:])
+# raw = request.get_data()   (corpo bruto; chame ANTES de request.json)</pre>
+
+<h2>8.4 Teste que faltava</h2>
+<pre class="good"><span class="lbl">Vitest · com app.inject do Fastify</span>it('recusa webhook sem assinatura', async () => {
+  const r = await app.inject({ method: 'POST', url: '/webhook/whatsapp', payload: exemplo });
+  expect(r.statusCode).toBe(401);
+  expect(fila.add).not.toHaveBeenCalled();
+});
+it('aceita webhook assinado e não duplica', async () => { /* assine com o segredo de teste, envie 2x */ });</pre>
+
+<div class="quiz"><span class="t">Verifique · Capítulo 8</span><ol>
+<li>Por que a assinatura precisa ser calculada sobre o corpo bruto?</li>
+<li>Que ataque a comparação em tempo constante evita?</li>
+<li>Qual a diferença entre proteger contra replay e garantir idempotência? Precisa dos dois?</li>
+<li>Seu provedor não assina os webhooks. Monte uma defesa em camadas.</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 9</span>Gestão de segredos</h1>
+<div class="box gatilho"><span class="t">Pergunta-gatilho</span><p>Você apagou o <code>.env</code> do repositório e fez push. Quem ainda consegue ver o conteúdo?</p></div>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Distinguir</b> configuração pública de segredo, inclusive no front.</li>
+<li><b>Executar</b> o procedimento correto quando um segredo vaza.</li>
+<li><b>Prevenir</b> vazamentos com <code>.gitignore</code>, gitleaks e hooks.</li></ul></div>
+
+<h2>9.1 No front-end, nada é secreto</h2>
+<p>No Next.js, toda variável com prefixo <code>NEXT_PUBLIC_</code> é <b>copiada para dentro do JavaScript</b> enviado ao navegador. No Vite, o mesmo vale para <code>VITE_</code>. Qualquer pessoa vê com F12. Essas variáveis servem para <b>configuração</b> (URL da API, ID público do analytics), nunca para chave de API, senha ou segredo de JWT.</p>
+<div class="box caso"><span class="t">Caso real · RH, revisado ao produzir este material</span><p>Os arquivos <code>frontend/.env.production</code> e <code>rh/.env.production</code> estão versionados, mas contêm só <code>NEXT_PUBLIC_API_URL</code> e <code>NEXT_PUBLIC_SITE_URL</code>. São URLs que já vão parar no navegador de qualquer visitante, então <b>não há segredo vazado ali</b>. Mesmo assim, padronize: <code>.env.example</code> no Git e valores reais fora dele. Assim, no dia em que alguém colocar uma chave nesses arquivos, ela não vai para o histórico.</p></div>
+<div class="box erro"><span class="t">Erro comum</span><p>Colocar uma chave de API (da Anthropic, do Google Maps sem restrição, de um ERP) numa variável <code>NEXT_PUBLIC_</code> "porque o front precisa chamar". O certo é o front chamar <b>a sua API</b>, que chama o serviço externo com a chave guardada no servidor.</p></div>
+
+<h2>9.2 Onde os segredos vazam</h2>
+<ul>
+<li><b>Histórico do Git</b>: apagar num commit novo não remove dos anteriores. Clones, forks e caches já têm uma cópia. Robôs varrem o GitHub público em minutos.</li>
+<li><b>Logs</b>: <code>console.log(req.headers)</code> grava o <code>Authorization</code> e os cookies. Use a opção <code>redact</code> do pino (padrão no Fastify) para <code>req.headers.authorization</code> e <code>req.headers.cookie</code>.</li>
+<li><b>Mensagens de erro</b> com a string de conexão (<code>postgres://user:senha@...</code>).</li>
+<li><b>Imagens Docker</b>: <code>COPY . .</code> com o <code>.env</code> dentro, ou um <code>ARG</code>/<code>ENV</code> com segredo no Dockerfile, que fica gravado nas camadas da imagem. Use <code>.dockerignore</code>.</li>
+<li><b>Chat com IA, prints e tickets</b>: o que você cola num prompt sai da sua máquina. Diga "está no <code>.env</code>, leia de lá".</li>
+</ul>
+
+<h2>9.3 Procedimento quando um segredo vaza</h2>
+<ol>
+<li><b>Revogar e trocar primeiro</b>: gere uma nova senha ou chave no provedor e invalide a antiga. É o único passo que de fato resolve. Os outros só limpam.</li>
+<li><b>Investigar o uso</b>: confira os logs do provedor e do banco desde a data do vazamento.</li>
+<li><b>Limpar o histórico</b> (opcional depois da troca): <code>git filter-repo --path caminho/.env --invert-paths</code>, push forçado e aviso a quem tem clone.</li>
+<li><b>Prevenir</b>: adicione ao <code>.gitignore</code>, instale o hook e registre o que aconteceu.</li>
+</ol>
+<div class="box caso"><span class="t">Pendência real</span><p>Numa sessão do RH foi colado no chat um valor que parece token (começa com <code>AQ.Ab8RN6</code>). Se for uma credencial válida, aplique o passo 1 acima. É a missão M5.</p></div>
+
+<h2>9.4 Prevenção</h2>
+<pre class="good"><span class="lbl">.gitignore padrão</span>.env
+.env.*
+!.env.example</pre>
+<pre class="good"><span class="lbl">Varredura com gitleaks</span># histórico inteiro do repositório (gitleaks v8.19+; em versões antigas: gitleaks detect)
+gitleaks git -v .
+# antes de cada commit: use o hook do pre-commit (repo gitleaks/gitleaks, id: gitleaks)</pre>
+<ul>
+<li>Ative o <b>Secret scanning e o Push protection</b> nas configurações dos repositórios do GitHub.</li>
+<li>Use um segredo <b>diferente</b> por ambiente (dev, homologação, produção) e por sistema. O segredo de JWT do RH não pode ser o mesmo do marketZapp.</li>
+<li>Dê o menor privilégio possível: o usuário do banco da aplicação não precisa ser superusuário. No Oracle do Winthor, se der, use um usuário só de leitura para o ETL.</li>
+<li>Valide a presença dos segredos <b>na subida do processo</b> (com <code>zod</code> sobre o <code>process.env</code>), para não descobrir em produção que a variável estava vazia.</li>
+<li>Quando crescer: Docker secrets, Doppler, Infisical, 1Password CLI ou o cofre do provedor de nuvem.</li>
+</ul>
+<div class="quiz"><span class="t">Verifique · Capítulo 9</span><ol>
+<li>Uma variável <code>NEXT_PUBLIC_*</code> pode guardar segredo? Por quê?</li>
+<li>Coloque em ordem: limpar histórico, trocar a credencial, verificar logs, adicionar ao <code>.gitignore</code>.</li>
+<li>Cite quatro lugares, além do Git, por onde segredos vazam.</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 10</span>Outros essenciais</h1>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Prevenir</b> SQL injection em pg, Oracle e ORMs.</li>
+<li><b>Reconhecer</b> SSRF.</li>
+<li><b>Configurar</b> os cabeçalhos de segurança.</li>
+<li><b>Registrar</b> os eventos de segurança certos, sem vazar dados.</li>
+<li><b>Situar</b> tudo isso no OWASP Top 10.</li></ul></div>
+
+<h2>10.1 SQL injection</h2>
+<p>Acontece quando dado do usuário é <b>concatenado</b> na consulta. A defesa é sempre a mesma: <b>parâmetros</b>, de modo que o banco recebe o comando e os dados separados.</p>
+<pre class="bad"><span class="lbl">Errado</span>await pool.query(`SELECT * FROM candidato WHERE email = '${email}'`);
+await prisma.$queryRawUnsafe(`SELECT * FROM vaga WHERE titulo LIKE '%${q}%'`);
+cursor.execute(f"SELECT * FROM PCPRODUT WHERE CODPROD = {cod}")</pre>
+<pre class="good"><span class="lbl">Certo</span>await pool.query('SELECT * FROM candidato WHERE email = $1', [email]);         // pg
+await prisma.$queryRaw`SELECT * FROM vaga WHERE titulo ILIKE ${'%' + q + '%'}`;  // template tag = parametrizado
+cursor.execute("SELECT * FROM PCPRODUT WHERE CODPROD = :cod", cod=cod)          # oracledb (bind)
+// nomes de coluna/ordenação não aceitam parâmetro: use lista permitida
+const col = ({ nome: 'nome', data: 'criado_em' } as const)[req.query.ordem as string] ?? 'criado_em';</pre>
+
+<h2>10.2 SSRF (Server-Side Request Forgery)</h2>
+<p>Se o servidor baixa uma URL fornecida pelo usuário (importar imagem por link, preview de link, webhook configurável), o atacante aponta para <code>http://localhost:6379</code> (Redis), <code>http://169.254.169.254</code> (metadados da nuvem, onde ficam credenciais) ou para a rede interna da VPS. Defesa: lista de domínios permitidos, resolver o DNS e bloquear IPs privados, de loopback e link-local (inclusive depois de redirecionamentos), e não seguir redirects automaticamente.</p>
+
+<h2>10.3 Cabeçalhos de segurança</h2>
+<table>
+<tr><th style="width:32%">Cabeçalho</th><th>Valor sugerido</th><th style="width:28%">Protege contra</th></tr>
+<tr><td><code>Strict-Transport-Security</code></td><td><code>max-age=63072000; includeSubDomains</code></td><td>Downgrade para HTTP</td></tr>
+<tr><td><code>Content-Security-Policy</code></td><td>Ver capítulo 6</td><td>XSS, clickjacking</td></tr>
+<tr><td><code>X-Content-Type-Options</code></td><td><code>nosniff</code></td><td>O navegador "adivinhar" que um upload é script</td></tr>
+<tr><td><code>Referrer-Policy</code></td><td><code>strict-origin-when-cross-origin</code></td><td>Vazar token presente na URL para outros sites</td></tr>
+<tr><td><code>Permissions-Policy</code></td><td><code>camera=(), microphone=(), geolocation=()</code></td><td>Abuso de APIs do navegador</td></tr>
+</table>
+<p>Atalhos: <code>helmet</code> (Express), <code>@fastify/helmet</code>, <code>Flask-Talisman</code>, ou <code>headers()</code> no <code>next.config</code>. Também dá para configurar no nginx/Caddy. Confira o resultado em <i>securityheaders.com</i>.</p>
+
+<h2>10.4 Uploads (o RH recebe currículos)</h2>
+<ul>
+<li>Valide o tipo pelo <b>conteúdo</b> (magic bytes), não pela extensão. Imponha limite de tamanho.</li>
+<li>Gere o nome do arquivo no servidor (UUID). Nunca use o nome enviado, que pode trazer <code>../../</code>.</li>
+<li>Guarde fora da pasta pública. Sirva por uma rota que <b>verifica a autorização</b> e envia <code>Content-Disposition: attachment</code>.</li>
+<li>Currículo é dado pessoal (LGPD): defina retenção e controle de acesso, e lembre do backup.</li>
+</ul>
+
+<h2>10.5 Logs de segurança</h2>
+<p>Registre: login com sucesso e com falha, logout, troca de senha e de papel, acesso negado (403), reuso de refresh token e webhook com assinatura inválida. Inclua <b>quem, quando, IP e o quê</b>. <b>Nunca</b> registre senha, token, cookie ou CPF completo. Um 403 isolado é ruído, mas 200 de 403 seguidos do mesmo usuário é alguém testando IDOR.</p>
+
+<h2>10.6 Mapa do OWASP Top 10</h2>
+<p class="small">A edição 2025 reorganizou a lista (confira a versão oficial em owasp.org/Top10). A tabela relaciona as categorias principais aos capítulos deste módulo.</p>
+<table>
+<tr><th>Categoria OWASP</th><th>Onde está neste material</th></tr>
+<tr><td>Broken Access Control</td><td>Capítulo 4 (IDOR, multi-tenant), capítulo 7 (open redirect), SSRF</td></tr>
+<tr><td>Security Misconfiguration</td><td>CORS (0.4), cookies (3), cabeçalhos (10.3)</td></tr>
+<tr><td>Software Supply Chain Failures</td><td>Fora do escopo. Veja <code>npm audit</code> e Dependabot no Módulo 2</td></tr>
+<tr><td>Cryptographic Failures</td><td>Hash de senha (1.1), HTTPS (0.5), segredos (9)</td></tr>
+<tr><td>Injection</td><td>SQLi (10.1), XSS (6)</td></tr>
+<tr><td>Insecure Design</td><td>Modelagem de ameaças (11)</td></tr>
+<tr><td>Authentication Failures</td><td>Capítulos 1, 2 e 3</td></tr>
+<tr><td>Software or Data Integrity Failures</td><td>Webhooks sem assinatura (8), JWT sem verificação (2.3)</td></tr>
+<tr><td>Logging and Alerting Failures</td><td>10.5</td></tr>
+<tr><td>Mishandling of Exceptional Conditions</td><td>Falhar fechado (8.2), não vazar erro com detalhes (9.2)</td></tr>
+</table>
+<div class="quiz"><span class="t">Verifique · Capítulo 10</span><ol>
+<li>Por que <code>ORDER BY</code> dinâmico não se resolve com parâmetro? O que fazer?</li>
+<li>Que endereço um atacante tenta acessar via SSRF numa VPS na nuvem?</li>
+<li>Cite três eventos que devem ir para o log de segurança e três dados que nunca devem ir.</li>
+</ol></div>
+
+<h1><span class="num">Capítulo 11</span>Modelagem de ameaças e checklist de deploy</h1>
+<div class="box obj"><span class="t">Ao final, você consegue</span><ul>
+<li><b>Conduzir</b> uma modelagem de ameaças de 30 minutos numa funcionalidade nova.</li>
+<li><b>Avaliar</b> um sistema com o checklist antes do deploy.</li></ul></div>
+
+<h2>11.1 Modelagem de ameaças em 4 perguntas</h2>
+<p>É a prática de pensar como atacante <b>antes</b> de escrever o código. Encaixa naturalmente na sua spec curta (problema, regras, critério de pronto): basta acrescentar uma seção "ameaças". As quatro perguntas do Threat Modeling Manifesto:</p>
+<ol>
+<li><b>O que estamos construindo?</b> Desenhe as caixas (navegador, API, banco, fila, provedor externo) e as setas.</li>
+<li><b>O que pode dar errado?</b> Para cada seta que cruza uma <i>fronteira de confiança</i>, passe pelo STRIDE:</li>
+</ol>
+<table>
+<tr><th>STRIDE</th><th>Ameaça</th><th>Pergunta</th><th>Capítulo</th></tr>
+<tr><td><b>S</b>poofing</td><td>Falsificar identidade</td><td>Alguém consegue se passar por outro usuário ou pelo provedor?</td><td>1, 2, 8</td></tr>
+<tr><td><b>T</b>ampering</td><td>Adulterar dados</td><td>Dá para mudar o preço, o papel ou o tenant na requisição?</td><td>2, 4</td></tr>
+<tr><td><b>R</b>epudiation</td><td>Negar autoria</td><td>Conseguimos provar quem aprovou o pagamento?</td><td>10.5</td></tr>
+<tr><td><b>I</b>nformation disclosure</td><td>Vazar dados</td><td>Um bar vê os dados do outro? O erro mostra a stack?</td><td>4, 9</td></tr>
+<tr><td><b>D</b>enial of service</td><td>Derrubar</td><td>Um upload de 2 GB ou mil logins por segundo derruba?</td><td>1.4, 10.4</td></tr>
+<tr><td><b>E</b>levation of privilege</td><td>Ganhar poder</td><td>Um usuário vira admin?</td><td>2.4, 4</td></tr>
+</table>
+<ol start="3">
+<li><b>O que vamos fazer a respeito?</b> Para cada ameaça: mitigar, aceitar (registrando o motivo, como você já faz com as decisões adiadas), transferir ou eliminar a funcionalidade.</li>
+<li><b>Fizemos um bom trabalho?</b> Cada mitigação vira um teste.</li>
+</ol>
+
+<h2>11.2 Checklist de segurança antes do deploy</h2>
+<div class="two">
+<div>
+<h3>Autenticação e sessão</h3>
+<ul class="check">
+<li>Senha com argon2id ou bcrypt (custo ≥ 10)</li>
+<li>Login sem enumeração (mensagem e tempo iguais)</li>
+<li>Rate limit no login e no reset de senha</li>
+<li>JWT: <code>algorithms</code>, <code>iss</code>, <code>aud</code> e <code>exp</code> curto</li>
+<li>Revogação possível (versão de token ou sessão no servidor)</li>
+<li>ID da sessão regenerado no login</li>
+<li>Cookies <code>HttpOnly; Secure; SameSite</code></li>
+<li>MFA para administradores</li>
+</ul>
+<h3>Autorização</h3>
+<ul class="check">
+<li>Toda rota autenticada por padrão</li>
+<li>Papel lido do estado atual, não do token velho</li>
+<li>Consultas filtradas pelo tenant/dono</li>
+<li>Teste "A não vê os dados de B" para cada recurso</li>
+<li>Corpo validado com lista de campos (zod)</li>
+</ul>
+</div>
+<div>
+<h3>Entrada e saída</h3>
+<ul class="check">
+<li>Consultas SQL parametrizadas</li>
+<li>Sem <code>dangerouslySetInnerHTML</code> / <code>|safe</code> sem sanitizar</li>
+<li>URLs de usuário validadas (http/https)</li>
+<li>Redirect com <code>next</code> validado</li>
+<li>Proteção CSRF (token ou Origin/Sec-Fetch-Site)</li>
+<li>Webhooks com HMAC e idempotência</li>
+<li>Uploads validados e fora da pasta pública</li>
+</ul>
+<h3>Operação</h3>
+<ul class="check">
+<li>Nenhum segredo no Git (rodar gitleaks)</li>
+<li>Segredo de produção ≠ dev, validado na subida</li>
+<li>HTTPS + HSTS, cabeçalhos de segurança</li>
+<li>CORS com lista fechada de origens</li>
+<li>Erros genéricos para o cliente, detalhes só no log</li>
+<li>Logs de eventos de segurança, sem dados sensíveis</li>
+<li>Backup testado (Módulo 3)</li>
+<li><code>/security-review</code> rodado no diff</li>
+</ul>
+</div>
+</div>
+
+<h1><span class="num">Prática</span>Missões nos seus projetos</h1>
+<p>As missões são o último degrau: sem exemplo resolvido e sem código pronto. Cada uma tem um <b>critério de pronto</b> objetivo. Faça em uma branch própria (<code>seg/m1-jwt</code>, etc.), com commits pequenos. Na regra da trilha, <b>investigue sozinho por 15 minutos</b> antes de pedir ajuda, e leia todo diff antes de commitar.</p>
+
+<table>
+<tr><th style="width:9%">#</th><th style="width:25%">Missão</th><th>O que fazer</th><th style="width:30%">Pronto quando</th></tr>
+<tr><td>M1</td><td>RH: papel atual, não o do token</td><td>Implementar <code>tokenVersion</code> (2.4) e reduzir a validade do access token. Middleware lê papel e <code>ativo</code> do banco. <code>jwt.verify</code> com <code>algorithms</code>, <code>iss</code> e <code>aud</code>.</td><td>Teste: rebaixar o usuário faz a próxima requisição de admin retornar 401/403. Teste: token com <code>alg</code> diferente é recusado.</td></tr>
+<tr><td>M2</td><td>RH: login e reset</td><td>Revisar o login contra enumeração (1.3), adicionar rate limit e revisar o reset de senha (1.6).</td><td>Mensagem e status iguais para e-mail inexistente e senha errada. 11ª tentativa por minuto recebe 429.</td></tr>
+<tr><td>M3</td><td>Julielton: provar o redirect</td><td>Conferir a correção atual contra todos os casos de 7.3 e transformar em teste parametrizado. Ver se <code>CSRFProtect</code> e os <code>SESSION_COOKIE_*</code> estão configurados (3.3, 5.2).</td><td>Teste parametrizado passando no pytest, com pelo menos 8 casos.</td></tr>
+<tr><td>M4</td><td>marketZapp: terminar o webhook</td><td>O segredo já é exigido. Falta: trocar o <code>c === WHATSAPP_WEBHOOK_SECRET</code> de <code>whatsapp.ts</code> por comparação em tempo constante, e garantir idempotência pelo ID da mensagem da Evolution (capítulo 8.3).</td><td>Os testes atuais de <code>whatsapp.test.ts</code> continuam passando. Teste novo: o mesmo evento enviado 2x gera 1 job.</td></tr>
+<tr><td>M5</td><td>Segredos em todos os repos</td><td>Rodar <code>gitleaks git</code> em cada repositório de <code>~/repo</code>. Verificar e, se preciso, revogar o valor <code>AQ.Ab8RN6...</code>. Padronizar <code>.gitignore</code> + <code>.env.example</code>.</td><td>Relatório do gitleaks limpo, ou com os achados tratados (credencial trocada) e registrados no <code>MELHORIAS.md</code>.</td></tr>
+<tr><td>M6</td><td>MesaPay (Go + Gin + GORM): isolamento entre bares</td><td>Modelagem de ameaças de 30 min (capítulo 11) no fluxo de comanda e pagamento. Escrever, com <code>net/http/httptest</code>, o teste "bar A não vê bar B" para cada recurso. Ver se as consultas usam um escopo do GORM por estabelecimento (4.3).</td><td>Documento curto com as ameaças STRIDE e uma suíte de isolamento passando.</td></tr>
+</table>
+<div class="box dica"><span class="t">Como usar a IA nas missões sem atrapalhar o aprendizado</span>
+<ul>
+<li>Primeiro tente escrever a solução. Depois peça <b>revisão</b>, não o código pronto: "revise meu middleware procurando os erros do capítulo 2".</li>
+<li>Peça explicação de toda linha que você não conseguiria reescrever sozinho.</li>
+<li>Peça para a IA <b>atacar</b> o seu código: "liste entradas que burlam esta função <code>destino_seguro</code>". Depois rode cada uma no teste.</li>
+</ul></div>
+
+<h1><span class="num">Apêndice A</span>Gabarito e revisão intercalada</h1>
+<p class="small">Só consulte depois de responder por escrito. Ao errar, não releia só a resposta: volte à seção indicada e crie um flashcard novo com o erro.</p>
+<div class="gab">
+<h3>Pré-teste</h3>
+<ol>
+<li>Não. O JWT comum (JWS) é só assinado. O payload está em base64url e qualquer pessoa o lê. (2.2)</li>
+<li>O papel foi gravado no JWT no login, e o middleware confia no token até ele expirar. (2.4)</li>
+<li>Origem = esquema + host + porta. Site = esquema + domínio registrável. São origens diferentes, mas o mesmo site. (0.2)</li>
+<li>Não. O CORS só controla quem <i>lê</i> a resposta. Requisições simples são enviadas e executadas mesmo assim. (0.4)</li>
+<li>Impede que o JavaScript leia o cookie. Não impede XSS: o script ainda age como o usuário. Só impede o roubo do cookie para uso posterior. (2.6)</li>
+<li>SHA-256 é rápido, e uma GPU testa bilhões por segundo. Hashes de senha são lentos e configuráveis, e o argon2id também consome memória. (1.1)</li>
+<li>Sim. Revela quais e-mails existem (enumeração) e facilita credential stuffing. (1.3)</li>
+<li>Não. <code>//evil.com</code> é uma URL relativa ao esquema e leva para <code>https://evil.com</code>. (7.2)</li>
+<li>O <code>===</code> termina no primeiro byte diferente, e a diferença de tempo vaza informação. Use comparação em tempo constante. (8.2)</li>
+<li>Não. Continua no histórico e em clones. É preciso trocar a credencial. (9.3)</li>
+<li>Não. Ela vai para o bundle JavaScript, visível a qualquer visitante. (9.1)</li>
+<li>Se o pedido pertence ao usuário ou ao tenant dele (autorização horizontal / IDOR). (4.2)</li>
+</ol>
+<h3>Capítulo 0</h3>
+<ol>
+<li>Cookie, com risco de CSRF porque o navegador anexa sozinho. Cabeçalho Authorization, com o token acessível ao JS e risco de roubo via XSS.</li>
+<li>Origens diferentes, mesmo site.</li>
+<li>Não é bloqueado. A SOP impede a leitura da resposta, não o envio.</li>
+<li>Reflete qualquer origem com credenciais. Qualquer site lê dados autenticados do usuário.</li>
+<li><code>req.secure</code> e <code>req.ip</code> ficam errados: cookies <code>Secure</code> podem não ser emitidos, e o rate limit passa a valer para o IP do proxy, ou seja, para todo mundo junto.</li>
+</ol>
+<h3>Capítulo 1</h3>
+<ol>
+<li>A senha tem pouca entropia e um hash rápido permite testar bilhões de palpites. O token de reset tem 256 bits aleatórios, então nem um hash rápido torna a força bruta viável.</li>
+<li>Mensagem, código de status e tempo de resposta.</li>
+<li>Só os primeiros 72 bytes são considerados. O resto é ignorado.</li>
+<li>O atacante manipula o <code>Host</code> e o e-mail legítimo leva o token para o domínio dele (reset poisoning).</li>
+<li>Negação de serviço: qualquer um tranca a conta de qualquer pessoa.</li>
+</ol>
+<h3>Capítulo 2</h3>
+<ol>
+<li>É assinado, não criptografado. O payload é legível. A assinatura só garante integridade.</li>
+<li><code>algorithms</code> (evita <code>none</code> e confusão de algoritmo), <code>issuer</code> e <code>audience</code> (evitam token de outro sistema). O <code>exp</code> é checado por padrão.</li>
+<li>Token curto + refresh (janela de minutos), <code>tokenVersion</code> (revogação imediata) e papel lido do banco (sempre atual). Para admin: as duas últimas.</li>
+<li>Um RT já usado aparecer de novo indica que foi copiado. A família inteira é revogada, o que revela e corta o roubo.</li>
+<li>Para evitar session fixation, em que um ID plantado antes do login se torna autenticado.</li>
+<li>Consegue ver (base64), mas não consegue alterar sem a <code>SECRET_KEY</code>, porque a assinatura quebra.</li>
+</ol>
+<h3>Capítulo 3</h3>
+<ol>
+<li><code>__Host-sid=...; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=...</code>. Prefixo contra sobrescrita por subdomínio, HTTPS, sem JS, sem POST de outro site, expiração definida.</li>
+<li>Não. São o mesmo site (<code>empresa.com</code>), então <code>Lax</code> funciona. <code>None</code> só é necessário entre sites diferentes. O CORS ainda é preciso, porque as origens são diferentes.</li>
+<li>Que o cookie veio de HTTPS, vale só para o host exato e para <code>Path=/</code>. Um subdomínio não consegue criá-lo nem sobrescrevê-lo.</li>
+<li>Não. Lax envia cookies em navegação GET de topo. GET nunca deve mudar estado.</li>
+</ol>
+<h3>Capítulo 4</h3>
+<ol>
+<li>Vertical: usuário comum acessa <code>/admin</code>. Horizontal: usuário A lê o pedido do usuário B.</li>
+<li>O dado de outro tenant nunca é carregado, não existe <code>if</code> para esquecer e o 404 não confirma a existência.</li>
+<li>Não. Dificulta adivinhar, mas IDs vazam. A verificação de dono continua obrigatória.</li>
+<li>O cliente envia campos que não deveria (<code>role</code>, <code>tenantId</code>). O esquema zod só aceita os campos listados.</li>
+<li>Quando revelar que o recurso existe já é informação útil para o atacante, o que acontece quase sempre com recursos de outro tenant.</li>
+</ol>
+<h3>Capítulo 5</h3>
+<ol>
+<li>Autenticação por cookie, ação que muda estado e parâmetros previsíveis.</li>
+<li>Outro site não consegue fazer o navegador anexar o cabeçalho, só o seu JS consegue.</li>
+<li>A SOP impede que o outro site leia a página que contém o token.</li>
+<li>Indica a relação entre quem iniciou e o destino. Bloqueie <code>cross-site</code> em métodos que mudam estado.</li>
+<li>Em rotas chamadas por servidores, como webhooks, que têm outra autenticação (HMAC).</li>
+</ol>
+<h3>Capítulo 6</h3>
+<ol>
+<li>Atinge todos que veem o dado, sem precisar de link, inclusive administradores.</li>
+<li>Não. É preciso validar o esquema (<code>http</code>/<code>https</code>) com <code>new URL</code>.</li>
+<li><code>dangerouslySetInnerHTML</code> sem sanitizar, <code>href</code> com <code>javascript:</code>, e <code>innerHTML</code> via ref (também: estado serializado em <code>&lt;script&gt;</code>).</li>
+<li>O navegador só executa scripts com o nonce desta resposta, e o atacante não sabe o valor.</li>
+<li>Para descobrir o que quebraria sem quebrar a produção.</li>
+</ol>
+<h3>Capítulo 7</h3>
+<ol>
+<li><code>//evil.com</code>, <code>/\evil.com</code> e <code>/&lt;tab&gt;/evil.com</code>.</li>
+<li>Usa o mesmo algoritmo do navegador. Você valida a interpretação final em vez de prever variações de texto.</li>
+<li>Se o <code>redirect_uri</code> permitido contém um open redirect, o código ou token é encaminhado para o domínio do atacante.</li>
+</ol>
+<h3>Capítulo 8</h3>
+<ol>
+<li>A assinatura foi feita sobre os bytes enviados. Reserializar muda os bytes.</li>
+<li>Ataque de tempo, que descobre a assinatura byte a byte.</li>
+<li>O replay é o reenvio malicioso de uma requisição antiga. A idempotência trata o reenvio legítimo pelo provedor. Sim, os dois: o ID do evento resolve ambos em boa parte, e o timestamp limita a janela.</li>
+<li>Token longo na URL ou no cabeçalho com comparação em tempo constante, lista de IPs, confirmação pela API do provedor e idempotência.</li>
+</ol>
+<h3>Capítulo 9</h3>
+<ol>
+<li>Não. Ela é embutida no JS enviado ao navegador.</li>
+<li>Trocar a credencial → verificar logs → limpar histórico → <code>.gitignore</code> e prevenção.</li>
+<li>Logs, mensagens de erro, imagens Docker e prompts, prints ou tickets.</li>
+</ol>
+<h3>Capítulo 10</h3>
+<ol>
+<li>Parâmetros substituem <i>valores</i>, não identificadores. Use uma lista permitida que mapeia a entrada para o nome da coluna.</li>
+<li><code>169.254.169.254</code> (metadados da nuvem) e serviços em <code>localhost</code>, como o Redis.</li>
+<li>Registrar: login com falha, troca de papel, 403. Nunca: senha, token/cookie, CPF completo.</li>
+</ol>
+</div>
+
+<h2>Revisão intercalada (semana 4)</h2>
+<p>Para cada cenário, diga <b>qual falha é</b>, <b>qual capítulo</b> e <b>a correção</b>. A dificuldade está em reconhecer o tipo do problema, então não volte ao texto antes de responder.</p>
+<div class="quiz"><span class="t">Cenários misturados</span><ol>
+<li><code>app.get('/api/curriculos/:arquivo', (req,res) =&gt; res.sendFile(path.join(DIR, req.params.arquivo)))</code> numa rota autenticada.</li>
+<li>Depois do login, o Flask executa <code>return redirect(request.referrer)</code>.</li>
+<li>O admin exclui um usuário com <code>&lt;a href="/admin/usuarios/7/excluir"&gt;</code>.</li>
+<li><code>const ok = req.headers['x-api-key'] === process.env.API_KEY</code></li>
+<li>O token de reset é <code>Date.now().toString(36)</code>.</li>
+<li><code>&lt;div dangerouslySetInnerHTML={{__html: marked(comentario)}} /&gt;</code></li>
+<li><code>PATCH /api/me</code> faz <code>db.usuario.update({ where:{id:req.user.id}, data:req.body })</code>.</li>
+<li>O servidor responde 500 com <code>{"erro":"connect ECONNREFUSED postgres://app:S3nh4@10.0.0.5"}</code>.</li>
+<li>O JWT do marketZapp e o do RH usam o mesmo <code>JWT_SECRET</code>, sem <code>aud</code>.</li>
+<li>Preview de link: o servidor baixa <code>req.body.url</code> para pegar o título da página.</li>
+</ol></div>
+<div class="gab"><ol>
+<li>Path traversal (<code>../</code>) + falta de autorização sobre <b>qual</b> currículo (IDOR). 10.4 e 4. Busque o registro por ID filtrando o dono/tenant e sirva pelo nome gerado.</li>
+<li>Open redirect, com o <code>Referer</code> controlado indiretamente. 7. Use <code>destino_seguro</code>.</li>
+<li>GET que muda estado: CSRF mesmo com Lax. 5 e 3.2. Use POST/DELETE + token/Origin.</li>
+<li>Comparação que não é em tempo constante. 8.2. Use <code>timingSafeEqual</code> e trate o cabeçalho ausente.</li>
+<li>Token previsível. 1.6. Use <code>crypto.randomBytes(32)</code> e guarde o hash.</li>
+<li>XSS armazenado (Markdown permite HTML). 6.3. Use <code>DOMPurify.sanitize</code>.</li>
+<li>Mass assignment: o usuário vira admin. 4.3. Valide com esquema zod e campos permitidos.</li>
+<li>Vazamento de segredo em mensagem de erro. 9.2 e 10.6. Erro genérico para o cliente e detalhe só no log.</li>
+<li>Token de um sistema aceito no outro. 2.2 e 9.4. Use segredos diferentes e valide <code>aud</code>/<code>iss</code>.</li>
+<li>SSRF. 10.2. Lista de domínios permitidos, bloqueio de IPs internos e sem seguir redirects.</li>
+</ol></div>
+
+<h1><span class="num">Apêndice B</span>Flashcards</h1>
+<p class="small">Formato frente → verso. Importe no Anki (um card por linha, separando com tabulação) ou use em papel. Revise em D+1, D+3, D+7, D+14 e D+30.</p>
+<table>
+<tr><th style="width:4%">#</th><th style="width:50%">Frente</th><th>Verso</th></tr>
+<tr><td>1</td><td>O que define uma origem?</td><td>Esquema + host + porta</td></tr>
+<tr><td>2</td><td>O que define um site (para SameSite)?</td><td>Esquema + domínio registrável (eTLD+1)</td></tr>
+<tr><td>3</td><td>A SOP bloqueia o envio ou a leitura?</td><td>A leitura da resposta</td></tr>
+<tr><td>4</td><td><code>ACAO: *</code> funciona com credenciais?</td><td>Não, o navegador recusa</td></tr>
+<tr><td>5</td><td>Hash recomendado para senha (OWASP)</td><td>argon2id (19 MiB, t=2, p=1), ou bcrypt custo ≥ 10</td></tr>
+<tr><td>6</td><td>Limite de entrada do bcrypt</td><td>72 bytes</td></tr>
+<tr><td>7</td><td>NIST 800-63B-4: tamanho mínimo de senha sem MFA</td><td>15 caracteres (8 com MFA). Sem regra de composição, sem troca periódica</td></tr>
+<tr><td>8</td><td>Três canais da enumeração de usuários</td><td>Mensagem, status e tempo</td></tr>
+<tr><td>9</td><td>Por que não montar link de reset com o <code>Host</code>?</td><td>Reset poisoning: o token vai para o domínio do atacante</td></tr>
+<tr><td>10</td><td>JWT é criptografado?</td><td>Não (JWS). É assinado: garante integridade, não sigilo</td></tr>
+<tr><td>11</td><td>Opções obrigatórias no <code>jwt.verify</code></td><td><code>algorithms</code>, <code>issuer</code>, <code>audience</code></td></tr>
+<tr><td>12</td><td>Ataque de confusão de algoritmo</td><td>Token HS256 assinado com a chave pública RS256, aceito por servidor que não fixa o algoritmo</td></tr>
+<tr><td>13</td><td>Como revogar JWT imediatamente</td><td>Versão do token no usuário (<code>tv</code>) ou lista de bloqueio por <code>jti</code></td></tr>
+<tr><td>14</td><td>Detecção de reuso de refresh token</td><td>RT já usado reapresentado → revoga a família inteira</td></tr>
+<tr><td>15</td><td>Session fixation: defesa</td><td>Regenerar o ID da sessão no login e na troca de privilégio</td></tr>
+<tr><td>16</td><td>Sessão padrão do Flask é criptografada?</td><td>Não: é assinada. Legível, mas não alterável sem a <code>SECRET_KEY</code></td></tr>
+<tr><td>17</td><td>Regras do prefixo <code>__Host-</code></td><td><code>Secure</code>, <code>Path=/</code>, sem <code>Domain</code></td></tr>
+<tr><td>18</td><td>SameSite=Lax envia cookie em quê, vindo de outro site?</td><td>Só em navegação de topo com método seguro (GET)</td></tr>
+<tr><td>19</td><td>401 x 403</td><td>401 = não autenticado. 403 = autenticado, mas sem permissão</td></tr>
+<tr><td>20</td><td>IDOR / BOLA</td><td>Acesso a objeto de outro dono só trocando o ID. Defesa: filtrar pelo dono/tenant na consulta</td></tr>
+<tr><td>21</td><td>Mass assignment</td><td>Corpo da requisição com campos privilegiados aplicados direto no modelo</td></tr>
+<tr><td>22</td><td>Três condições para CSRF</td><td>Autenticação por cookie, ação que muda estado, parâmetros previsíveis</td></tr>
+<tr><td>23</td><td><code>Sec-Fetch-Site</code>: o que bloquear</td><td><code>cross-site</code> em POST/PUT/PATCH/DELETE</td></tr>
+<tr><td>24</td><td>Três tipos de XSS</td><td>Refletido, armazenado, DOM</td></tr>
+<tr><td>25</td><td>Escape HTML protege <code>href</code>?</td><td>Não: valide o esquema (http/https)</td></tr>
+<tr><td>26</td><td>CSP estrita: as diretivas-chave</td><td><code>script-src 'nonce-…' 'strict-dynamic'; object-src 'none'; base-uri 'none'</code></td></tr>
+<tr><td>27</td><td>Por que <code>startswith('/')</code> falha no redirect</td><td><code>//host</code>, <code>/\host</code> e tab/newline removidos pelo navegador</td></tr>
+<tr><td>28</td><td>Validação robusta de redirect</td><td><code>new URL(alvo, base)</code> e comparar <code>origin</code></td></tr>
+<tr><td>29</td><td>Assinatura de webhook é calculada sobre o quê?</td><td>Os bytes brutos do corpo</td></tr>
+<tr><td>30</td><td>Comparação em tempo constante (Node / Python)</td><td><code>crypto.timingSafeEqual</code> / <code>hmac.compare_digest</code></td></tr>
+<tr><td>31</td><td>Idempotência de webhook no BullMQ</td><td><code>jobId</code> = ID do evento</td></tr>
+<tr><td>32</td><td><code>NEXT_PUBLIC_*</code> é segredo?</td><td>Não: vai para o bundle do navegador</td></tr>
+<tr><td>33</td><td>Primeiro passo quando um segredo vaza</td><td>Revogar e trocar a credencial</td></tr>
+<tr><td>34</td><td>Comando para varrer o histórico do Git</td><td><code>gitleaks git -v .</code></td></tr>
+<tr><td>35</td><td>Defesa contra SQLi</td><td>Consultas parametrizadas. Para identificadores, lista permitida</td></tr>
+<tr><td>36</td><td>Alvo clássico de SSRF na nuvem</td><td><code>169.254.169.254</code> (metadados)</td></tr>
+<tr><td>37</td><td>STRIDE</td><td>Spoofing, Tampering, Repudiation, Information disclosure, DoS, Elevation of privilege</td></tr>
+<tr><td>38</td><td>As 4 perguntas da modelagem de ameaças</td><td>O que construímos? O que pode dar errado? O que faremos? Fizemos bem?</td></tr>
+</table>
+
+<h1><span class="num">Apêndice C</span>Glossário</h1>
+<table>
+<tr><th style="width:24%">Termo</th><th>Definição</th></tr>
+<tr><td>Access token (AT)</td><td>Credencial de curta duração apresentada a cada requisição.</td></tr>
+<tr><td>argon2id</td><td>Função de hash de senha vencedora da Password Hashing Competition (2015). Lenta e com uso intenso de memória.</td></tr>
+<tr><td>BOLA</td><td><i>Broken Object Level Authorization</i>: o nome do IDOR no OWASP API Top 10.</td></tr>
+<tr><td>Clickjacking</td><td>Colocar o site da vítima num iframe invisível para induzir cliques.</td></tr>
+<tr><td>Credential stuffing</td><td>Testar em massa pares de e-mail e senha vazados de outros serviços.</td></tr>
+<tr><td>CSP</td><td><i>Content Security Policy</i>: cabeçalho que restringe de onde a página carrega e executa recursos.</td></tr>
+<tr><td>eTLD+1</td><td>Domínio registrável: sufixo público + um rótulo (<code>empresa.com.br</code>).</td></tr>
+<tr><td>Fetch Metadata</td><td>Cabeçalhos <code>Sec-Fetch-*</code> enviados pelo navegador, que descrevem o contexto da requisição.</td></tr>
+<tr><td>Fronteira de confiança</td><td>Ponto em que o dado passa de uma zona menos confiável para outra mais confiável (ex.: internet → API).</td></tr>
+<tr><td>HMAC</td><td>Código de autenticação de mensagem baseado em hash e numa chave secreta compartilhada.</td></tr>
+<tr><td>Idempotência</td><td>Propriedade de uma operação que, repetida, produz o mesmo efeito que uma única execução.</td></tr>
+<tr><td>JWS / JWE</td><td>JWT assinado (o comum) / JWT criptografado (raro).</td></tr>
+<tr><td>Nonce (CSP)</td><td>Valor aleatório por resposta que autoriza scripts específicos.</td></tr>
+<tr><td>PKCE</td><td>Extensão do OAuth que liga o pedido de autorização à troca do código, contra a interceptação do código.</td></tr>
+<tr><td>Preflight</td><td>Requisição <code>OPTIONS</code> automática do navegador para perguntar permissão de CORS.</td></tr>
+<tr><td>Refresh token (RT)</td><td>Credencial de longa duração usada só para obter novos access tokens.</td></tr>
+<tr><td>RLS</td><td><i>Row-Level Security</i>: políticas do Postgres que filtram linhas por contexto.</td></tr>
+<tr><td>Sal</td><td>Valor aleatório por senha, combinado antes do hash.</td></tr>
+<tr><td>SOP</td><td><i>Same-Origin Policy</i>: regra do navegador que isola a leitura entre origens.</td></tr>
+<tr><td>SSRF</td><td>Fazer o servidor requisitar um destino escolhido pelo atacante.</td></tr>
+<tr><td>Tenant</td><td>Cliente isolado num sistema multi-cliente (o estabelecimento no MesaPay).</td></tr>
+</table>
+
+<h1><span class="num">Apêndice D</span>Referências</h1>
+<h2>Técnicas (fontes primárias)</h2>
+<ul>
+<li>OWASP Top 10 (edição 2025) e OWASP API Security Top 10 (2023). owasp.org</li>
+<li>OWASP Cheat Sheet Series: Authentication, Password Storage, Session Management, JSON Web Token, Cross-Site Request Forgery Prevention, Cross Site Scripting Prevention, Content Security Policy, Unvalidated Redirects and Forwards, Server Side Request Forgery Prevention, Secrets Management, Forgot Password, Multifactor Authentication. cheatsheetseries.owasp.org</li>
+<li>PortSwigger Web Security Academy (gratuito, com labs). portswigger.net/web-security</li>
+<li>RFC 7519 (JWT), RFC 8725 (JWT Best Current Practices), RFC 2104 (HMAC), RFC 6238 (TOTP), RFC 6265 e o rascunho rfc6265bis (cookies, SameSite), RFC 9700 (OAuth 2.0 Security Best Current Practice, 2025).</li>
+<li>NIST SP 800-63B-4: Digital Identity Guidelines, Authentication and Authenticator Management.</li>
+<li>MDN Web Docs: Same-origin policy, CORS, Set-Cookie, Content-Security-Policy, Sec-Fetch-Site.</li>
+<li>web.dev: "SameSite cookies explained", "Strict CSP" e "Protect your resources from web attacks with Fetch Metadata".</li>
+<li>Documentação: Next.js (Content Security Policy, Environment Variables), Flask (Security Considerations), Flask-WTF (CSRF Protection), Meta for Developers (Webhooks, payload validation), gitleaks.</li>
+<li>Shostack, A. <i>Threat Modeling: Designing for Security</i>. Wiley, 2014. Threat Modeling Manifesto (threatmodelingmanifesto.org).</li>
+</ul>
+<h2>Didática (base do método)</h2>
+<ul>
+<li>Dunlosky, J. et al. (2013). Improving students' learning with effective learning techniques. <i>Psychological Science in the Public Interest</i>, 14(1), 4–58.</li>
+<li>Roediger, H. L. e Karpicke, J. D. (2006). Test-enhanced learning. <i>Psychological Science</i>, 17(3), 249–255.</li>
+<li>Kornell, N., Hays, M. J. e Bjork, R. A. (2009). Unsuccessful retrieval attempts enhance subsequent learning. <i>JEP: Learning, Memory, and Cognition</i>, 35(4), 989–998.</li>
+<li>Sweller, J., van Merriënboer, J. e Paas, F. (1998). Cognitive architecture and instructional design. <i>Educational Psychology Review</i>, 10, 251–296.</li>
+<li>Renkl, A. e Atkinson, R. K. (2003). Structuring the transition from example study to problem solving. <i>Educational Psychologist</i>, 38(1), 15–22.</li>
+<li>Anderson, L. W. e Krathwohl, D. R. (2001). <i>A Taxonomy for Learning, Teaching, and Assessing</i> (Bloom revisada).</li>
+<li>Brown, P. C., Roediger, H. L. e McDaniel, M. A. (2014). <i>Make It Stick</i>. Harvard University Press. (Em português: <i>Fixe o Conhecimento</i>, Penso, 2018.)</li>
+<li>Ambrose, S. A. et al. (2010). <i>How Learning Works</i>. Jossey-Bass.</li>
+</ul>
+<div class="box dica" style="margin-top:8mm"><span class="t">Próximo passo</span><p>Terminou a semana 4? Refaça o pré-teste, compare as notas e registre no bloco semanal da <code>TRILHA-FUNDAMENTOS.md</code>. Os erros que sobrarem viram flashcards. O Módulo 2 (Testes e CI) reaproveita os testes que você escreveu nas missões.</p></div>
+
+</body>
+</html>
