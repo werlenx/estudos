@@ -20,3 +20,5 @@ Fonte: https://unipds.com.br/gads-pos-ia-v2/
 | 12 | 12-carreira | Carreira e entrevistas | [ ] |
 
 Cada pasta tem um `notas.md`; código de prática vai em subpastas da própria pasta.
+
+Fundamentos de engenharia (segurança, testes, Linux, banco): ver `TRILHA-FUNDAMENTOS.md` (local, fora do Git).
